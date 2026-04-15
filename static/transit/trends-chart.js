@@ -294,7 +294,7 @@
       notice:   function (a, b) { return a.noticeSortVal - b.noticeSortVal; }
     };
     var currentSort = 'date';
-    var sortAsc = true;
+    var sortAsc = false;
 
     function renderTable() {
       var sorted = rows.slice();
@@ -344,7 +344,7 @@
     // Initial render with headers
     var html = '<table class="cl-table">';
     html += '<thead><tr>';
-    html += '<th data-sort="date" class="cl-th-date cl-sort-active">Date</th>';
+    html += '<th data-sort="date" class="cl-th-date cl-sort-active cl-sort-desc">Date</th>';
     html += '<th data-sort="route" class="cl-th-route">Route</th>';
     html += '<th data-sort="time" class="cl-th-time">Scheduled</th>';
     html += '<th data-sort="headsign" class="cl-th-headsign">Headsign</th>';
