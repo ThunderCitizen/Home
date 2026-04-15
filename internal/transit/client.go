@@ -314,12 +314,19 @@ func (c *Client) FetchVehiclesWithDelay(ctx context.Context) ([]VehicleWithDelay
 		return nil, time.Time{}, err
 	}
 
-	// Build trip delay map from trip updates feed
+	// Build trip delay map from trip updates feed. Thunder Bay's feed only
+	// publishes stop_time_updates for upcoming stops, so the FIRST entry per
+	// trip (by iteration order, which mirrors stop_sequence ascending) is the
+	// next-stop prediction — the live "where is this bus vs schedule" signal.
+	// Using the last entry would yield the propagated end-of-route arrival
+	// prediction, which isn't what riders care about in the moment.
 	tripDelay := map[string]int32{}
 	if tFeed, err := c.FetchTrips(ctx); err == nil {
-		// Use per-stop delays: take the last reported delay per trip
 		perTrip := map[string]int32{}
 		for _, d := range tFeed.Delays {
+			if _, already := perTrip[d.TripID]; already {
+				continue
+			}
 			if d.ArrivalDelay != nil {
 				perTrip[d.TripID] = *d.ArrivalDelay
 			} else if d.DepartureDelay != nil {

@@ -696,11 +696,11 @@ function busInfoHtml(v: LocalVehicle): string {
   else if (v.status === "INCOMING_AT") status = "Approaching";
   else status = "In transit";
   if (v.nearStop) status += " \u2022 " + v.nearStop;
+  // OTP window: 1m early to 5m late — inside that, say nothing.
   let delay = "";
   if (v.delay != null) {
-    if (v.delay >= -60 && v.delay <= 60) delay = "On time";
-    else if (v.delay > 60) delay = Math.round(v.delay / 60) + "m late";
-    else delay = Math.round(-v.delay / 60) + "m early";
+    if (v.delay < -60) delay = Math.round(-v.delay / 60) + "m early";
+    else if (v.delay > 300) delay = Math.round(v.delay / 60) + "m late";
   }
   return '<span class="info-route" style="background:' + color + '">' + v.routeId + '</span>' +
     ' <span class="info-id">#' + v.id + '</span>' +
@@ -2339,9 +2339,11 @@ function clearTripRoute(): void {
 // Buses modal
 // ---------------------------------------------------------------------------
 
+// Only label buses that fall outside the OTP window (1m early to 5m late).
+// On-time buses show nothing — the absence is the signal.
 function busDelayInfo(v: LocalVehicle): { text: string; cls: string } {
   if (v.delay == null) return { text: '', cls: '' };
-  if (v.delay >= -60 && v.delay <= 300) return { text: 'On time', cls: 'info-detail' };
+  if (v.delay >= -60 && v.delay <= 300) return { text: '', cls: '' };
   if (v.delay < -60) return { text: Math.round(Math.abs(v.delay) / 60) + 'm early', cls: 'info-early' };
   return { text: Math.round(v.delay / 60) + 'm late', cls: 'info-late' };
 }
