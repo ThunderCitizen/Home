@@ -53,24 +53,36 @@ make lint-js   # ESLint only
 
 ## Operator Tools
 
-`make all` builds every helper binary into `bin/` (gitignored). Two main CLIs:
+`make all` builds every helper binary into `bin/` (gitignored).
+
+### Refreshing source data
 
 ```bash
-./bin/fetcher              # interactive menu for refreshing source data
+./bin/fetcher              # interactive menu
 ./bin/fetcher budget       # Ontario FIR data
 ./bin/fetcher gtfs         # Thunder Bay GTFS schedule
 ./bin/fetcher votes        # eSCRIBE council meetings
 ./bin/fetcher wards        # Open North ward boundaries
-
-./bin/patches extract      # dev DB → patches/*.sql files (regenerate after fetch)
-./bin/patches apply        # patches/*.sql → DATABASE_URL (run after deploy)
+./bin/fetcher chunks       # rebuild transit chunks for a date range
 ```
 
-`fetcher` is interactive only — every subcommand previews URLs and prompts `[y/N]` before downloading. See [cmd/fetcher/README.md](../cmd/fetcher/README.md) for the programmatic API if you need a non-interactive entry point.
+`fetcher` is interactive only — every subcommand previews URLs and prompts `[y/N]` before downloading. See [cmd/fetcher/README.md](../cmd/fetcher/README.md) for the programmatic API.
 
-`patches` is a manual operator tool too. Server boot does **not** auto-apply patches — code deploys and data deploys are deliberately separate. See [patches/README.md](../patches/README.md) for the full lifecycle.
+### Shipping curated data to production
 
-Other binaries in `bin/`: `summarize` (LLM motion classifier), `auditbudget` (sub-ledger balance check), `buildshapes` (route shapes from GTFS), `gentstypes` (TS interfaces from Go API structs), `perftest` (latency report).
+Curated state (councillors, budget ledger, council votes, wards) ships as a **signed muni bundle** — a set of TSVs plus `BOD.tsv` (bill-of-datasets), zipped and uploaded to DO Spaces. The server downloads, verifies, and applies it on boot, throttled by `muni_fetch_state.last_checked_at` (24h).
+
+```bash
+make muni-extract          # dev DB → data/muni/*.tsv + BOD.tsv
+./bin/munisign sign -key .signing-key.pub data/muni
+make muni-publish          # zip data/muni → upload to DO Spaces
+```
+
+`./bin/muni publish -dry-run` builds the bundle without uploading. Apply path: `internal/muni/apply.go` — skips datasets whose SHA-256 already appears in `data_patch_log`, errors on checksum drift.
+
+### Other binaries
+
+`summarize` (LLM motion classifier), `auditbudget` (sub-ledger balance check), `buildshapes` (route shapes from GTFS), `gentstypes` (TS interfaces from Go API structs), `perftest` (latency report), `seedtransit` (synthetic transit chunks for dev).
 
 ## What `make dev` Does
 

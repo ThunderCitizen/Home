@@ -106,20 +106,22 @@ Expected distribution (approximate):
 - `notable`: ~10% (contested votes, significant spending)
 - `headline`: ~2-5% (major policy decisions)
 
-### 5. Regenerate the council patch
+### 5. Republish the muni bundle
 
-Write the enriched DB state back into the patch SQL file that ships with the binary:
+Write the enriched DB state back into the signed data bundle shipped to production:
 
 ```bash
-./bin/patches extract
+make muni-extract
+./bin/munisign sign -key .signing-key.pub data/muni
+make muni-publish
 ```
 
-This updates `patches/0001_council_2022-2026.sql`. Commit it.
+`muni extract` rewrites the council TSVs under `data/muni/`; `munisign` signs; `muni publish` zips and uploads to DO Spaces. The app re-fetches on the next boot (after the 24h `muni_fetch_state` window expires) and applies new datasets automatically.
 
 ### 6. Commit
 
 ```bash
-git add patches/0001_council_2022-2026.sql static/councillors/summaries.json
+git add static/councillors/summaries.json
 git commit -m "Update council vote data with significance classifications"
 ```
 
@@ -129,10 +131,12 @@ If you have an `ANTHROPIC_API_KEY` with credits, you can also re-generate summar
 
 ```bash
 go run ./cmd/summarize -force
-./bin/patches extract
+make muni-extract
+./bin/munisign sign -key .signing-key.pub data/muni
+make muni-publish
 ```
 
-This upgrades the scraper-generated summaries to cleaner plain-language text and adds short labels for grid display.
+This upgrades the scraper-generated summaries to cleaner plain-language text and adds short labels for grid display, then republishes the signed bundle.
 
 ## What significance enables
 

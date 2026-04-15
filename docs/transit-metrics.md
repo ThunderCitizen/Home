@@ -1,6 +1,6 @@
 # Transit Performance Metrics — Research Compendium
 
-Research into industry-standard transit KPIs, measurement methodologies, and academic literature to inform what ThunderCitizen should compute from its GTFS-RT data (`transit_stop_delays`, `transit_vehicle_positions`, `transit_stop_visits`, `transit_cancellations`).
+Research into industry-standard transit KPIs, measurement methodologies, and academic literature to inform what ThunderCitizen should compute from its GTFS-RT data (`transit.stop_delay`, `transit.vehicle_position`, `transit.stop_visit`, `transit.cancellation`).
 
 ---
 
@@ -157,7 +157,7 @@ Thunder Bay routes mostly operate at 15–30 min headways → **schedule adheren
 
 ## 6. What ThunderCitizen Computes
 
-Data sources: `transit_stop_delays`, `transit_vehicle_positions`, `transit_stop_visits`, `transit_cancellations`, GTFS static schedule.
+Data sources: `transit.stop_delay`, `transit.vehicle_position`, `transit.stop_visit`, `transit.cancellation`, GTFS static schedule.
 
 ### System-Level Metrics (6 KPI cards)
 
@@ -165,12 +165,12 @@ All cards show three time-of-day bands — **Morning (6–12) / Midday (12–18)
 
 | Card | Data Source | Partitioning |
 |------|------------|--------------|
-| **OTP** | `transit_stop_delays` vs `transit_stop_times` | Trips grouped by first-stop departure hour |
-| **Cancellation Rate** | `transit_cancellations` vs observed-trip baseline | First-stop departure hour |
-| **Cancel Notice** | `transit_cancellations` `feed_timestamp` vs `start_time` | First-stop departure hour |
-| **Stop Wait** | `transit_stop_visits` headways | Per-route headway gaps at each timepoint stop |
-| **EWT** | `transit_stop_visits` vs inline-computed schedule | Per-route; schedule from `transit_stop_times` filtered by observed service days |
-| **Headway Cv** | `transit_stop_visits` headways | Per-route at each stop |
+| **OTP** | `transit.stop_delay` vs `gtfs.stop_times` | Trips grouped by first-stop departure hour |
+| **Cancellation Rate** | `transit.cancellation` vs observed-trip baseline | First-stop departure hour |
+| **Cancel Notice** | `transit.cancellation` `feed_timestamp` vs `start_time` | First-stop departure hour |
+| **Stop Wait** | `transit.stop_visit` headways | Per-route headway gaps at each timepoint stop |
+| **EWT** | `transit.stop_visit` vs inline-computed schedule | Per-route; schedule from `gtfs.stop_times` filtered by observed service days |
+| **Headway Cv** | `transit.stop_visit` headways | Per-route at each stop |
 
 **Why Cv is per-route:** Cv measures spacing regularity of a single service. Pooling multiple routes at a stop creates artificial variance from interleaving — a perfectly regular 20-min Route 1 and 30-min Route 5 produce highly variable 2/18/12/8-minute gaps. Cv at the chunk level captures the rider's experience of one route they're waiting for.
 
@@ -192,10 +192,10 @@ Storing sums (not means) is the load-bearing decision. Aggregating already-round
 | Recipe | What it computes |
 |--------|------------------|
 | `service_kind.go` | weekday / saturday / sunday classification |
-| `otp.go` | `trip_count`, `on_time_count` from `transit_stop_delays` |
-| `cancel.go` | `scheduled_count`, `cancelled_count`, `no_notice_count` from `transit_cancellations` |
-| `baseline.go` | scheduled-trip baseline from observed `(service_id, date)` pairs in `transit_stop_times` |
-| `headway.go` | `headway_count`, `headway_sum_sec`, `headway_sum_sec_sq`, `sched_headway_sec` from `transit_stop_visits` |
+| `otp.go` | `trip_count`, `on_time_count` from `transit.stop_delay` |
+| `cancel.go` | `scheduled_count`, `cancelled_count`, `no_notice_count` from `transit.cancellation` |
+| `baseline.go` | scheduled-trip baseline from observed `(service_id, date)` pairs in `gtfs.stop_times` |
+| `headway.go` | `headway_count`, `headway_sum_sec`, `headway_sum_sec_sq`, `sched_headway_sec` from `transit.stop_visit` |
 
 The orchestrator stitches the recipe outputs into a `chunk.Chunk` and upserts it. Each recipe is auditable in isolation — the formula, the SQL, and the test sit in one file with no cross-coupling.
 
@@ -203,9 +203,13 @@ The orchestrator stitches the recipe outputs into a `chunk.Chunk` and upserts it
 
 **Aggregation.** `KPIFromChunks` and `RouteRowKPIFromChunks` in `internal/transit/view_helpers.go` SUM the raw counts across whatever slice you hand them, then divide once at the end. Empty band (`""`) pools all three. The frontend mirror in `static/transit/chunks.js` (`window.transitChunks.aggregate`) is line-for-line the same math — used by `trends-chart.js` for the route comparison chart so client-side and server-side always agree.
 
-**No calendar dependency.** The "scheduled trips" baseline is reconstructed from `transit_stop_times` joined to the `(service_id, date)` pairs the recorder observed running — derived from `transit_stop_delays`, **not** `transit_calendar_dates`. A long-lived prod DB whose GTFS bundle has rolled past the queried date range produces correct numbers anyway, because we trust observation over the published calendar.
+**No calendar dependency.** The "scheduled trips" baseline is reconstructed from `gtfs.stop_times` joined to the `(service_id, date)` pairs the recorder observed running — derived from `transit.stop_delay`, **not** `gtfs.calendar_dates`. A long-lived prod DB whose GTFS bundle has rolled past the queried date range produces correct numbers anyway, because we trust observation over the published calendar.
 
-**Rebuilding.** `./bin/fetcher chunks` interactively rebuilds chunks for a date range against the live event tables. `./bin/seedtransit` writes synthetic chunks for the dev DB.
+**Auto-rollup (the thing that keeps prod working).** `internal/transit/chunk_rollup.go` runs a background goroutine wired in `cmd/server/main.go` next to the recorder. On startup it scans the last 60 days of `transit.stop_delay` and builds chunks for any date present in events but missing from `transit.route_band_chunk` — the self-healing backfill. Then every 10 minutes it rebuilds today's chunks so `/transit/metrics` stays fresh as bands close. All writes are idempotent upserts, so running this alongside the fetcher or seedtransit is safe.
+
+Without this loop, `route_band_chunk` stays empty forever and every KPI renders as a blank — the event tables fill up fine but nothing projects them into the metrics shape. This exact failure mode hit prod before the rollup was added; dev masked it because `seedtransit` seeds synthetic chunks.
+
+**Manual rebuilding.** `./bin/fetcher chunks` interactively rebuilds chunks for a date range — use this when you've changed a recipe and want to re-project history, or to fill deeper than the 60-day auto-backfill. `./bin/seedtransit` writes synthetic chunks for the dev DB when GTFS hasn't been loaded.
 
 The textbook math (`Cv`, `EWTSec`, `WaitMin`, `ComputeSystem`, `ComputeRoutes`) lives in `internal/transit/chunk/math.go` with unit tests in `math_test.go`. SUM-stable identities used:
 
@@ -230,14 +234,14 @@ The live map stats bar shows incident counts (not raw trip counts) to present th
 
 ### Stop Visit Detection
 
-The vehicle tracker populates `transit_stop_visits` using a two-stage
+The vehicle tracker populates `transit.stop_visit` using a two-stage
 distance check (see `internal/transit/vehicle_tracker.go`):
 - **Threshold:** 50m (calibrated from 22K STOPPED_AT observations: P50=11m, P95=48m)
 - **Stage 1 — point distance:** Each 15-second position update checks haversine distance from the fix to every stop on the vehicle's route
 - **Stage 2 — segment distance:** If the point is > 50m, `segmentDistToPoint` measures the nearest distance from the stop to the line segment between the previous and current GPS fixes. This catches stops the bus passed between readings (at 50 km/h that's ~200m of unobserved travel per poll). When matched via segment distance, `observed_at` is interpolated along the segment rather than pinned to the latest feed timestamp
 - **Dedup:** First sighting per `(trip, stop)` wins via in-memory cache + `ON CONFLICT DO NOTHING`
-- **Usage:** Headway, bunching, Cv, and EWT calculations all use `transit_stop_visits.observed_at` timestamps
-- **Measurement point:** All delay-based metrics (OTP, avg delay, P90, EWT, headway) are computed exclusively at GTFS time point stops (`transit_stop_times.timepoint = TRUE`). This matches TfL QSI methodology — measuring at schedule adherence checkpoints rather than all stops, which avoids inflating on-time numbers with intermediate stops where small delays average out. For EWT/headway specifically, the busiest time point stop per route is used; falls back to the busiest stop overall if no time point has >= 10 visits.
+- **Usage:** Headway, bunching, Cv, and EWT calculations all use `transit.stop_visit.observed_at` timestamps
+- **Measurement point:** All delay-based metrics (OTP, avg delay, P90, EWT, headway) are computed exclusively at GTFS time point stops (`gtfs.stop_times.timepoint = TRUE`). This matches TfL QSI methodology — measuring at schedule adherence checkpoints rather than all stops, which avoids inflating on-time numbers with intermediate stops where small delays average out. For EWT/headway specifically, the busiest time point stop per route is used; falls back to the busiest stop overall if no time point has >= 10 visits.
 
 ### Route-Level Comparison
 
@@ -249,7 +253,7 @@ The route detail page shows a schedule grid split by direction (headsign). Each 
 - **Top line** (grey): scheduled departure time
 - **Bottom line** (colored): actual arrival time — green (on time), blue (early), purple (left early), red (late)
 
-Timepoint stops are drawn from each direction's representative trip (`timepoint=TRUE` in `transit_stop_times`).
+Timepoint stops are drawn from each direction's representative trip (`timepoint=TRUE` in `gtfs.stop_times`).
 
 ### Not yet computable (would need additional data)
 - Passenger-weighted metrics (need ridership/APC data)

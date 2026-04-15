@@ -79,18 +79,19 @@ func NewLiveViewModel(alerts []ActiveAlert, cancelledTrips map[string][]Cancelle
 		merged = append(merged, r)
 	}
 
-	// Build stop alerts map and filter route-level alerts for top display
+	// Build stop-level alert map for map markers. Route-level alerts
+	// without specific stops are surfaced in the top-of-page banner.
 	stopAlerts := make(map[string][]StopAlert)
 	var routeAlerts []ActiveAlert
 	for _, a := range alerts {
+		sa := StopAlert{}
+		if a.Header != nil {
+			sa.Header = *a.Header
+		}
+		if a.Description != nil {
+			sa.Description = *a.Description
+		}
 		if len(a.AffectedStops) > 0 {
-			sa := StopAlert{}
-			if a.Header != nil {
-				sa.Header = *a.Header
-			}
-			if a.Description != nil {
-				sa.Description = *a.Description
-			}
 			seen := map[string]bool{}
 			for _, stopID := range a.AffectedStops {
 				if !seen[stopID] {
@@ -99,8 +100,6 @@ func NewLiveViewModel(alerts []ActiveAlert, cancelledTrips map[string][]Cancelle
 				}
 			}
 		}
-		// Only show route-level alerts without specific stops in the banner.
-		// Stop-specific alerts (detours, closures) are shown in the stop popup instead.
 		if len(a.AffectedRoutes) > 0 && len(a.AffectedStops) == 0 {
 			routeAlerts = append(routeAlerts, a)
 		}

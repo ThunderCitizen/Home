@@ -1,0 +1,123 @@
+// ==========================================================================
+// CUSTOM PROPERTIES — Solarized light / green phosphor dark
+// ==========================================================================
+
+@use "mixins" as *;
+
+:root {
+  // Grey scale — Solarized light (contrast-corrected)
+  --thunder-900: #002b36;  // base03 — darkest text (13.9:1)
+  --thunder-800: #073642;  // base02 — strong text (12.1:1)
+  --thunder-700: #2e4047;  // body text (9.2:1)
+  --thunder-600: #3d5560;  // secondary (7.0:1)
+  --thunder-500: #586e75;  // muted (5.0:1)
+  --thunder-400: #93a1a1;  // base1  — decorative (2.5:1)
+  --thunder-200: #d5c4a1;  // warm border
+  --thunder-100: #eee8d5;  // base2  — recessed surface
+  --thunder-50:  #fdf6e3;  // base3  — page background
+
+  // Accent — darkened solarized green (5.4:1 on cream)
+  --accent: #546e00;
+  --accent-hover: #425800;
+  --accent-light: #f0f4c3;
+
+  // Terminal semantic tokens (global)
+  --term-bg: #fdf6e3;
+  --term-bg-deep: #eae0c9;
+  --term-fg: #475b65;
+  --term-fg-bright: #073642;
+  --term-fg-dim: #4a6068;
+  --term-accent: #546e00;
+  --term-accent-bright: #425800;
+  --term-accent-dim: #859900;
+  --term-border: rgba(101, 123, 131, 0.15);
+  --term-glow: none;
+  --term-scanline: rgba(0, 0, 0, 0.02);
+
+  // Nav glow tokens (light = subtle/none)
+  --nav-hover-filter: none;
+  --nav-active-filter: drop-shadow(0 0 1px rgba(0, 43, 54, 0.2));
+
+  // Typography — mono default, sans for prose
+  --font-mono: "SF Mono", "Cascadia Mono", "Menlo", "Consolas", "Ubuntu Mono", monospace;
+  --font-prose: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  // Pico integration
+  --pico-font-family: var(--font-mono);
+  --pico-primary: var(--accent);
+  --pico-primary-hover: var(--accent-hover);
+  --pico-background-color: var(--thunder-50);
+  --pico-color: var(--thunder-700);
+  --pico-card-background-color: var(--thunder-100);
+  --pico-card-border-color: var(--thunder-200);
+  --pico-muted-color: var(--thunder-500);
+  --pico-muted-border-color: var(--thunder-200);
+  --pico-table-row-stripped-background-color: #ede5cb;
+  --pico-h1-color: var(--accent);
+  --pico-h2-color: var(--accent);
+  --pico-h3-color: var(--accent);
+
+  // Card shadows — warm solarized tint
+  --card-shadow: 0 1px 3px rgba(0, 43, 54, 0.08), 0 1px 2px rgba(0, 43, 54, 0.06);
+  --card-shadow-hover: 0 10px 24px rgba(0, 43, 54, 0.1), 0 4px 8px rgba(0, 43, 54, 0.06);
+
+  // Frosted glass
+  --glass-bg: rgba(253, 246, 227, 0.25);
+  --glass-border: rgba(238, 232, 213, 0.25);
+
+  // Sticky bar heights
+  --year-selector-h: 2.2rem;
+  --search-bar-h: 2.65rem;
+
+  // Dark surface (header/footer) — warm solarized brown
+  --surface-dark: #2c2620;
+
+  // Status colors — darkened for AA on cream
+  --status-ok:        #047857;  // 4.6:1
+  --status-warn:      #b45309;  // 4.5:1
+  --status-error:     #b91c1c;  // 5.6:1
+  --status-info:      #1d4ed8;  // 6.4:1
+  --status-early-dep: #7e22ce;  // 6.7:1
+  --status-muted:     #586e75;  // 5.0:1
+
+  // ---- Design system tokens ----
+
+  // Spacing scale
+  --space-1: 0.25rem;   // 4px  — tight gaps, inline
+  --space-2: 0.5rem;    // 8px  — primary small gap/padding
+  --space-3: 0.75rem;   // 12px — panel padding, default gap
+  --space-4: 1rem;      // 16px — standard section padding
+  --space-5: 1.5rem;    // 24px — card padding, section gaps
+  --space-6: 2rem;      // 32px — page padding, major sections
+  --space-8: 3rem;      // 48px — hero-scale padding
+
+  // Type scale (dense terminal aesthetic — most text lives 0.6–0.9rem)
+  --text-2xs: 0.6rem;   // 9.6px  — ticker, captions
+  --text-xs: 0.68rem;   // 10.9px — terminal labels, uppercase headers
+  --text-sm: 0.75rem;   // 12px   — default body, badges
+  --text-base: 0.85rem; // 13.6px — emphasis body, subheadings
+  --text-md: 1rem;      // 16px   — standard display
+  --text-lg: 1.4rem;    // 22.4px — metric values
+  --text-xl: 1.75rem;   // 28px  - large display
+  --text-2xl: 2rem;     // 32px   — hero headline
+
+  // Radius scale
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 50%;
+
+  // Shadow scale
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.25);
+
+  // Contrast text for dark surfaces (header, footer, badges)
+  --text-on-dark: #fdf6e3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) { @include dark-theme; }
+}
+:root[data-theme="dark"] { @include dark-theme; }

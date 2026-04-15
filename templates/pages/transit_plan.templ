@@ -36,7 +36,7 @@ func firstBusDeparture(itin transit.Itinerary) string {
 	return itin.Departure
 }
 
-// transitLegs returns only non-walk legs.
+// transitLegs returns only non-walk legs (used for the route-badge chain).
 func transitLegs(itin transit.Itinerary) []transit.Leg {
 	var out []transit.Leg
 	for _, leg := range itin.Legs {
@@ -56,6 +56,51 @@ func routeColorCSS(leg transit.Leg) string {
 
 func routeBadgeStyle(leg transit.Leg) templ.Attributes {
 	return templ.Attributes{"style": "background:" + routeColorCSS(leg)}
+}
+
+// prevWasTransit reports whether the leg before index i is a transit leg.
+func prevWasTransit(legs []transit.Leg, i int) bool {
+	for j := i - 1; j >= 0; j-- {
+		if legs[j].Type != "walk" {
+			return true
+		}
+	}
+	return false
+}
+
+// legAction returns the action verb phrase for a leg.
+func legAction(leg transit.Leg, prevTransit bool, isLast bool) string {
+	if leg.Type == "walk" {
+		if isLast {
+			return "Walk to destination"
+		}
+		return "Walk to " + leg.To.Name
+	}
+	if prevTransit {
+		return "Transfer to Route " + leg.RouteID
+	}
+	return "Board Route " + leg.RouteID
+}
+
+// fmtDist mirrors the backend distance formatter.
+func fmtDist(m float64) string {
+	if m >= 1000 {
+		return fmt.Sprintf("%.1f km", m/1000)
+	}
+	return strconv.Itoa(int(m+0.5)) + " m"
+}
+
+// fmtDuration turns a minute count into "45 min" or "1h 3m".
+func fmtDuration(min int) string {
+	if min < 60 {
+		return strconv.Itoa(min) + " min"
+	}
+	h := min / 60
+	m := min % 60
+	if m == 0 {
+		return strconv.Itoa(h) + "h"
+	}
+	return strconv.Itoa(h) + "h " + strconv.Itoa(m) + "m"
 }
 
 // PlanResults renders the trip results partial — either summary bar or full accordion.
@@ -84,7 +129,7 @@ templ PlanResults(vm PlanPartialViewModel) {
 	} else if vm.Summary {
 		@planSummaryBar(vm)
 	} else {
-		@planItinerary(vm.Plan.Itineraries[0], 0, true)
+		@planItinerary(vm.Plan.Itineraries[0], 0, true, vm.gmapsURL())
 		@templ.JSONScript("plan-data", vm.Plan)
 	}
 }
@@ -98,13 +143,32 @@ templ routeBadges(legs []transit.Leg) {
 	</span>
 }
 
+// journeyFlow renders: Depart HH:MM → [route] → [route] → Arrive HH:MM
+templ journeyFlow(itin transit.Itinerary) {
+	{{ dep := firstBusDeparture(itin) }}
+	{{ legs := transitLegs(itin) }}
+	<span class="trip-itin-flow">
+		<span class="trip-itin-stat">
+			<span class="trip-itin-stat-label">Depart</span>
+			<span class="trip-itin-stat-val">{ dep }</span>
+		</span>
+		for _, leg := range legs {
+			<span class="trip-itin-arrow">→</span>
+			<span class="stop-pred-route" { routeBadgeStyle(leg)... }>{ leg.RouteID }</span>
+		}
+		<span class="trip-itin-arrow">→</span>
+		<span class="trip-itin-stat">
+			<span class="trip-itin-stat-label">Arrive</span>
+			<span class="trip-itin-stat-val">{ itin.Arrival }</span>
+		</span>
+	</span>
+}
+
 templ planSummaryBar(vm PlanPartialViewModel) {
 	{{ itin := vm.Plan.Itineraries[0] }}
 	<div id="route-summary-bar" class="route-summary-bar">
 		<span class="route-summary-info">
-			@routeBadges(transitLegs(itin))
-			<strong>{ firstBusDeparture(itin) } → { itin.Arrival }</strong>
-			<span class="trip-itin-dur">({ strconv.Itoa(itin.DurationMin) } min)</span>
+			@journeyFlow(itin)
 		</span>
 		<a href={ templ.SafeURL(vm.gmapsURL()) } target="_blank" rel="noopener" class="route-summary-gmaps" title="Google Maps">
 			<svg width="12" height="12" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>
@@ -117,9 +181,23 @@ templ planSummaryBar(vm PlanPartialViewModel) {
 	@templ.JSONScript("plan-data", vm.Plan)
 }
 
-templ planItinerary(itin transit.Itinerary, idx int, expanded bool) {
-	{{ dep := firstBusDeparture(itin) }}
-	{{ legs := transitLegs(itin) }}
+// legIcon renders the mode glyph for a single leg row.
+templ legIcon(leg transit.Leg) {
+	<div class="trip-leg-icon">
+		if leg.Type == "walk" {
+			<svg class="trip-walk-glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="9.5" cy="2.8" r="1.5" fill="currentColor" stroke="none"></circle>
+				<path d="M6 14l2-4 1.5-2L11 6.5l3 1"></path>
+				<path d="M8 10l-1.5 4"></path>
+				<path d="M9.5 8l-3-1L4 10"></path>
+			</svg>
+		} else {
+			<span class="stop-pred-route trip-leg-route-badge" { routeBadgeStyle(leg)... }>{ leg.RouteID }</span>
+		}
+	</div>
+}
+
+templ planItinerary(itin transit.Itinerary, idx int, expanded bool, gmapsURL string) {
 	<div
 		class={ "trip-itinerary",
 			templ.KV("trip-itinerary-best", idx == 0 && !itin.Cancelled),
@@ -128,14 +206,7 @@ templ planItinerary(itin transit.Itinerary, idx int, expanded bool) {
 	>
 		<div class={ "trip-itin-header", templ.KV("active", expanded) }>
 			<div class="trip-itin-summary">
-				<span class="trip-itin-routes">
-					@routeBadges(transitLegs(itin))
-				</span>
-				<span class="trip-itin-times">
-					<span class="trip-itin-depart">{ dep }</span>
-					<span class="trip-itin-arr">→ { itin.Arrival }</span>
-				</span>
-				<span class="trip-itin-dur">({ strconv.Itoa(itin.DurationMin) } min)</span>
+				@journeyFlow(itin)
 			</div>
 			if itin.Cancelled {
 				<span class="trip-cancelled-tag">cancelled</span>
@@ -147,25 +218,63 @@ templ planItinerary(itin transit.Itinerary, idx int, expanded bool) {
 				if itin.Cancelled {
 					<div class="trip-cancelled-badge">Would save { strconv.Itoa(itin.CancelledSavedMin) } min vs available routes</div>
 				}
+				if itin.LeaveBy != "" {
+					<div class="trip-leave-by">Leave by <strong>{ itin.LeaveBy }</strong> to catch this trip</div>
+				}
 				<div class="trip-legs">
-					for i, leg := range legs {
-						<div class="trip-leg trip-leg-board">
-							<div class="trip-step"><span>{ strconv.Itoa(i + 1) }</span></div>
+					for i, leg := range itin.Legs {
+						{{ isLast := i == len(itin.Legs)-1 }}
+						<div class={ "trip-leg", "trip-leg-" + leg.Type }>
+							@legIcon(leg)
 							<div class="trip-leg-detail">
-								<span class="stop-pred-route" { routeBadgeStyle(leg)... }>{ leg.RouteID }</span>
-								{ " " }{ leg.From.Name } → { leg.To.Name }
-								<span class="trip-leg-stops">({ strconv.Itoa(leg.NumStops) } stops)</span>
+								<div class="trip-leg-action">
+									<span class="trip-leg-verb">{ legAction(leg, prevWasTransit(itin.Legs, i), isLast) }</span>
+									if leg.Type != "walk" && leg.Headsign != "" {
+										<span class="trip-leg-headsign">toward { leg.Headsign }</span>
+									}
+								</div>
+								<div class="trip-leg-meta">
+									if leg.Type == "walk" {
+										{ fmtDuration(leg.DurationMin) } · { fmtDist(leg.DistanceM) }
+									} else {
+										<span class="trip-leg-time">{ leg.Departure } → { leg.Arrival }</span>
+										<span class="trip-leg-meta-sep">·</span>
+										{ fmtDuration(leg.DurationMin) }
+										<span class="trip-leg-meta-sep">·</span>
+										{ strconv.Itoa(leg.NumStops) } stops
+									}
+								</div>
+								if leg.Type != "walk" {
+									<div class="trip-leg-from-to">
+										<span class="trip-leg-fromto-label">From</span> { leg.From.Name }
+										<span class="trip-leg-meta-sep">·</span>
+										<span class="trip-leg-fromto-label">To</span> { leg.To.Name }
+									</div>
+								}
 							</div>
 						</div>
 						if leg.Hint != "" {
 							<div class="trip-leg trip-leg-hint-row">
-								<div class="trip-step"></div>
+								<div class="trip-leg-icon"></div>
 								<div class="trip-leg-hint">{ leg.Hint }</div>
 							</div>
 						}
 					}
+					<div class="trip-leg trip-leg-arrive">
+						<div class="trip-leg-icon"><span class="trip-arrive-dot" aria-hidden="true"></span></div>
+						<div class="trip-leg-detail">
+							<div class="trip-leg-action"><span class="trip-leg-verb">Arrive at destination</span></div>
+							<div class="trip-leg-meta">{ itin.Arrival }</div>
+						</div>
+					</div>
 				</div>
 				<button type="button" class="trip-see-route" data-itin-idx={ strconv.Itoa(idx) }>See route on map</button>
+				if gmapsURL != "" {
+					<a href={ templ.SafeURL(gmapsURL) } target="_blank" rel="noopener" class="trip-compare-btn">
+						<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>
+						See Maps Route
+					</a>
+				}
 			</div>
 		</div>
 	</div>

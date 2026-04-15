@@ -1,0 +1,67 @@
+// ==========================================================================
+// PLACEHOLDERS — reusable %extend targets
+// ==========================================================================
+
+// Reusable terminal tokens — extend on any container that needs the VT100 palette
+%term-tokens {
+  --term-bg: #fdf6e3;
+  --term-bg-deep: #eae0c9;
+  --term-fg: #657b83;
+  --term-fg-bright: #586e75;
+  --term-fg-dim: #93a1a1;
+  --term-accent: #859900;
+  --term-accent-bright: #859900;
+  --term-accent-dim: #b0c24a;
+  --term-border: rgba(101, 123, 131, 0.15);
+  --term-glow: none;
+  --term-scanline: rgba(0, 0, 0, 0.02);
+}
+
+// Reusable scanline overlay — extend on any positioned element
+%term-scanlines {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--term-scanline) 2px,
+      var(--term-scanline) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+// Reusable frosted glass surface — extend on any element needing the glass look
+%frosted-glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+// Reusable badge base — extend for status badges, tags, pills
+%badge-base {
+  display: inline-block;
+  padding: 0.125rem var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+// Reusable card with accent border — extend for directory items, proposal cards
+%card-accent {
+  border-radius: var(--radius-md);
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--thunder-200);
+  padding: var(--space-3);
+}
+
+// Suppress iOS tap-flash + tune gesture responsiveness for buttony controls
+%no-tap-flash {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}

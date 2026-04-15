@@ -89,39 +89,37 @@ git add static/thunderbay.pmtiles && git commit -m "Refresh basemap snapshot"
 
 ## 4. Data storage (DO Spaces)
 
-Data patches (`patches/*.sql`) are served from `data.thundercitizen.ca` (a DO Spaces bucket with CDN). The server downloads `patches.zip` on boot and applies any new patches — no manual DB step needed.
+Curated data ships as a **signed muni bundle** served from `data.thundercitizen.ca` (a DO Spaces bucket with CDN). The server downloads the bundle on boot (throttled to once per 24h via `muni_fetch_state`), verifies the Ed25519 signature against the public key baked into the binary, and applies any new datasets — no manual DB step needed.
 
 ### One-time setup
 
-Create the Space via dashboard (**Spaces → Create → `thundercitizen-data`**, region `tor1`) or:
-
-```bash
-doctl serverless install   # if needed
-# Spaces are created via the dashboard — doctl doesn't have a create command yet.
-```
+Create the Space via dashboard (**Spaces → Create → `thundercitizen-data`**, region `tor1`).
 
 1. **Enable CDN** on the Space (Settings → CDN → Enable)
 2. **Custom subdomain**: add `data.thundercitizen.ca` as a custom CDN endpoint. DO provisions a Let's Encrypt cert automatically.
 3. **DNS**: CNAME `data.thundercitizen.ca` → the CDN endpoint DO gives you (e.g. `thundercitizen-data.tor1.cdn.digitaloceanspaces.com`)
+4. **Generate a signing keypair** once: `./bin/munisign keygen`. Commit the public key (used by the server to verify) and keep the private key in `.signing-key.pub` locally — do NOT commit the private key.
 
-### Upload patches
+### Publish a bundle
 
-After updating patch SQL files locally:
+After refreshing source data and regenerating the dev DB:
 
 ```bash
-./scripts/apply.sh              # zip + upload to DO Spaces
-./scripts/apply.sh --dry-run    # preview only
+make muni-extract                                    # dev DB → data/muni/*.tsv + BOD.tsv
+./bin/munisign sign -key .signing-key.pub data/muni  # writes SIGNATURE
+make muni-publish                                    # zip + upload to DO Spaces
+./bin/muni publish -dry-run                          # preview without uploading
 ```
 
-Requires `s3cmd` or `aws` CLI configured for DO Spaces. The next server boot (or redeploy) picks up the new zip automatically. Idempotent — already-applied patches are a no-op.
+Requires `s3cmd` or `aws` CLI configured for DO Spaces. The next server boot picks up the new bundle automatically. Idempotent — already-applied datasets are a no-op; checksum drift on a previously-applied dataset is a hard error.
 
 ### Environment variables
 
-The server defaults to `https://data.thundercitizen.ca/patches.zip` in production — no env var needed unless you want to override:
+The server resolves the bundle URL from config — no env var needed in typical deploys, but override for staging or testing:
 
 | Variable | Scope | Default | Notes |
 |---|---|---|---|
-| `PATCHES_URL` | RUN_TIME | `https://data.thundercitizen.ca/patches.zip` | Override to point at a different zip |
+| `MUNI_URL` | RUN_TIME | `https://data.thundercitizen.ca/index.json` | Override to point at an alternate bundle index |
 
 ## 5. Verify
 
@@ -152,7 +150,7 @@ Find `<app-id>` with `doctl apps list`.
 
 Schema migrations run on server startup (`cmd/server/main.go:runMigrations`) against the Managed DB. No manual step.
 
-If you changed any patch SQL, run `./scripts/apply.sh` to upload the new zip. The next server boot picks it up automatically.
+If you changed any curated data (councillors, budget ledger, votes, wards), republish the muni bundle: `make muni-extract && ./bin/munisign sign -key .signing-key.pub data/muni && make muni-publish`. The next server boot picks it up automatically.
 
 ## Rollback
 

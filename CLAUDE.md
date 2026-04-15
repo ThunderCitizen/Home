@@ -11,7 +11,8 @@ templ generate            # Regenerate templ → Go
 npm run css               # Rebuild SCSS → CSS
 npm run build:js          # Rebuild TS → JS (leaflet shim)
 ./bin/fetcher             # Interactive: refresh source data (budget/gtfs/votes/wards)
-./bin/patches extract     # Dev DB → patches/*.sql (server boot applies them automatically)
+make muni-extract         # Dev DB → signed TSV bundle in data/muni (applied on server boot)
+make muni-publish         # data/muni → zip + upload to DO Spaces
 go run ./cmd/perftest     # Latency report (server must be running)
 go run ./cmd/perftest -r  # Record + delta vs last run (saves to perftest/)
 ```
@@ -21,8 +22,8 @@ go run ./cmd/perftest -r  # Record + delta vs last run (saves to perftest/)
 - **Route → Handler → ViewModel → Template** (all pages)
 - **pgx/v5** plain SQL, no ORM
 - **templ** templates compile to Go — do not edit `*_templ.go`
-- **Pico CSS** with Sass — do not edit `static/css/style.css`, edit `style.scss`
-- **Static JSON → SQL patches** for curated source data (councillors, budget, council votes, wards). Fetchers in `cmd/fetcher` write `static/*.json`; `./bin/patches extract` turns dev DB state into commit-safe SQL under `patches/`. The server auto-applies all patches on boot (after migrations) — checksum-tracked in `data_patch_log`, idempotent via ON CONFLICT DO NOTHING. No manual seed step.
+- **Pico CSS** with Sass — do not edit `static/css/style.css`. `style.scss` is a coordinator that `@use`s partials: edit the appropriate one (`_tokens.scss`, `_mixins.scss`, `_placeholders.scss`, `_budget.scss`, `_transit.scss`, `_council.scss`)
+- **Static source → signed muni bundle** for curated data (councillors, budget, council votes, wards). Fetchers in `cmd/fetcher` write `static/*.json` → `./bin/muni extract` emits TSVs + `BOD.tsv` under `data/muni/` → `./bin/munisign sign` + `./bin/muni publish` zips and uploads to DO Spaces. On boot the server downloads the signed bundle, verifies the signature, and applies any new datasets via `internal/muni/apply.go` — tracked per-dataset in `data_patch_log` (checksum + signer), throttled by `muni_fetch_state.last_checked_at` (24h). No manual seed step.
 - **Append-only `transit_*` event tables** for GTFS-RT data (recorder writes, everything else reads via SQL)
 - **Standalone Go scripts** live in `cmd/` (e.g. `cmd/buildshapes`, `cmd/gentstypes`), not `scripts/`
 
@@ -69,7 +70,7 @@ type MapProps struct {
 
 Dark mode is defined via `@mixin dark-theme` applied to both `@media (prefers-color-scheme: dark)` and `:root[data-theme="dark"]`. Console helper: `toggleTheme()` / `toggleTheme("dark")` / `toggleTheme("light")`.
 
-### CSS variables (`:root` in `style.scss`)
+### CSS variables (`:root` in `static/css/_tokens.scss`)
 
 | Variable | Light | Dark | Purpose |
 |----------|-------|------|---------|
@@ -113,7 +114,8 @@ Dark mode is defined via `@mixin dark-theme` applied to both `@media (prefers-co
 - **Read path** — `Service.Chunks(ctx, from, to)` returns `[]chunk.ChunkView` from `ChunkCache` (`chunk_cache.go`), which lazy-loads from `transit.route_band_chunk` and caches forever per (route, date, band) — `today` is the only key allowed to refresh, everything else is immutable history.
 - **Aggregation** — `KPIFromChunks` and `RouteRowKPIFromChunks` in `view_helpers.go` SUM raw counts across whatever slice you hand them, then divide once at the end. Empty band string (`""`) pools all three; the system reading is the trip-weighted total over the full 7×3×routes window. The mirror frontend port is `static/transit/chunks.js` (`window.transitChunks.aggregate`) — same formulas, used by `trends-chart.js` for the route comparison chart.
 - **No KPI endpoint** — KPIs are server-rendered into the page via `KPIFromChunks` and the chunks themselves are embedded via `@templ.JSONScript("transit-chunks", vm.Chunks)` for client-side aggregation. There is no `/api/transit/kpis` or `/api/transit/chunks` — the chunks data only travels with the page.
-- **Rebuilding chunks** — `./bin/fetcher chunks` (or `go run ./cmd/fetcher chunks`) interactively rebuilds chunks for a date range against the live event tables. `./bin/seedtransit` writes synthetic chunks for the dev DB when GTFS hasn't been loaded.
+- **Auto-rollup** — `internal/transit/chunk_rollup.go` runs in a goroutine wired in `cmd/server/main.go` next to the recorder. On boot it backfills any date in the last 60 days where events exist but chunks don't; then every 10 min it rebuilds today's chunks. Idempotent upserts. Without this, `route_band_chunk` stays empty and every KPI renders blank — prod hit exactly this before the rollup existed; dev masked it because `seedtransit` pre-fills synthetic chunks.
+- **Manual rebuilds** — `./bin/fetcher chunks` interactively rebuilds chunks for a date range (use after changing a recipe or to fill deeper than the auto-backfill window). `./bin/seedtransit` writes synthetic chunks for the dev DB when GTFS hasn't been loaded.
 - **Cache layer** — non-chunk cached data products live in `RepoCache` (`repo_cache.go`) as `CacheSlot[T]` / `CacheMap[K,V]` fields, with double-checked-locking lazy-load primitives in `cache.go`. The `live` slot is the only one with a TTL (30s via `NewCacheSlotTTL`); everything else caches forever. Chunks live in their own `ChunkCache`, not in `RepoCache`.
 - **Browser cache-control** — Five named strategies in `internal/cache/cache.go`: `Live` (`no-cache`, SSE/realtime feeds), `Short` (30s, predictions/distance/nearby stops), `Page` (5 min, HTML pages and search), `Reference` (1h immutable, GTFS-derived bulk data like routes/stops), `Static` (1 week immutable, `/static/*`). Every handler that sets `Cache-Control` references one of these constants — grep `cache.Live`, `cache.Short`, etc. In non-production environments, `middleware.NoCacheInDev` (wired in `cmd/server/main.go`) wraps the response writer and overwrites every Cache-Control to `no-store` right before the first byte ships, so dev never sees stale work regardless of which strategy a handler picked. In production it's a no-op.
 - **pgx query mode** — `DefaultQueryExecMode = QueryExecModeCacheDescribe` in `database/db.go`. Cache the parameter type descriptions but re-plan every query; the default `CacheStatement` switches to a Postgres generic plan after 5 executions and picks a pathological join order for the recipe queries.
@@ -180,6 +182,7 @@ When the table is inside `overflow-x: auto` (for horizontal scrolling), `positio
 - [docs/summarize-motions.md](docs/summarize-motions.md) - LLM motion classification runbook
 - [docs/data-visualization.md](docs/data-visualization.md) - Chart selection and principles
 - [docs/accessibility.md](docs/accessibility.md) - WCAG 2.2 AA targets and compliance notes
-- [patches/README.md](patches/README.md) - Data patches lifecycle (extract/apply)
 - [cmd/fetcher/README.md](cmd/fetcher/README.md) - Manual fetcher CLI and programmatic API
-- [DEPLOY.md](DEPLOY.md) - Production deployment runbook
+- [cmd/seedtransit/README.md](cmd/seedtransit/README.md) - Synthetic transit chunks for dev
+- [DEPLOY.md](DEPLOY.md) - Production deployment runbook (App Platform)
+- [DEPLOY-DROPLET.md](DEPLOY-DROPLET.md) - Alternative deployment runbook (single droplet + Caddy)

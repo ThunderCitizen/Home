@@ -12,8 +12,9 @@ templ About() {
 		})
 
 		@components.Card(components.CardProps{Title: "What this is"}) {
-			<p><strong>Thunder Citizen</strong> makes public data accessible to the general public &mdash; transit performance, council votes, city budgets, and more.</p>
-			<p>This information is already public, but it&rsquo;s scattered across feeds, PDFs, and meeting minutes that most people will never read. We collect it, organize it, and present it in one place.</p>
+			<p><strong>Thunder Citizen</strong> is Thunder Bay&rsquo;s public data, in one place &mdash; transit performance, council votes, city budgets, and more.</p>
+			<p>This information is already public, but it&rsquo;s scattered across feeds, PDFs, and meeting minutes that most people will never read. We collect it, organize it, and present it.</p>
+			<p>We&rsquo;d love to hear from you &mdash; corrections, questions, ideas, or just hello. Drop us a line at <a href="mailto:hello@thundercitizen.ca">hello@thundercitizen.ca</a>.</p>
 		}
 
 		@components.Card(components.CardProps{Title: "How it works"}) {
@@ -33,7 +34,7 @@ templ About() {
 				<polygon points="314,53 324,58 314,63" fill="var(--term-fg-dim)"/>
 				<rect x="328" y="36" width="120" height="44" rx="4" stroke="var(--accent)" stroke-width="1.5" fill="none"/>
 				<text x="388" y="54" text-anchor="middle" fill="var(--accent)" font-size="11" font-weight="700" letter-spacing="0.05em">PROCESS</text>
-				<text x="388" y="70" text-anchor="middle" fill="var(--term-fg-dim)" font-size="9">parse, cite, compute</text>
+				<text x="388" y="70" text-anchor="middle" fill="var(--term-fg-dim)" font-size="9">parse, cite, index</text>
 				<line x1="452" y1="58" x2="474" y2="58" stroke="var(--term-fg-dim)" stroke-width="1.5"/>
 				<polygon points="474,53 484,58 474,63" fill="var(--term-fg-dim)"/>
 				<rect x="488" y="36" width="90" height="44" rx="4" stroke="var(--accent)" stroke-width="1.5" fill="none"/>
@@ -49,17 +50,6 @@ templ About() {
 			</svg>
 		}
 
-		@components.Card(components.CardProps{Title: "Disclaimer"}) {
-			<p>Thunder Citizen is an independent project. It is not affiliated with, endorsed by, or connected to the City of Thunder Bay.</p>
-			<p>All data is derived from publicly available sources on a best-effort basis. It has not been verified, audited, or approved by any official body. It may contain errors, gaps, or misinterpretations. Reader discretion is advised.</p>
-			<p>This site is provided as-is without warranty of any kind, express or implied, including warranties of merchantability or fitness for a particular purpose. Nothing here should be treated as an authoritative source for decision-making, reporting, or legal proceedings.</p>
-			<p>For official data and reports, refer to the <a href="https://www.thunderbay.ca" target="_blank" rel="noopener">City of Thunder Bay</a>.</p>
-		}
-
-		@components.Card(components.CardProps{Title: "Contact"}) {
-			<p>Corrections or questions: <a href="mailto:eric@decompiled.dev">eric@decompiled.dev</a></p>
-		}
-
 		@components.Card(components.CardProps{Title: "Other local sites we like"}) {
 			<p>No affiliation — just other locals building useful things for Thunder Bay.</p>
 			<ul>
@@ -67,6 +57,25 @@ templ About() {
 				<li><a href="https://justthemenu.ca/" target="_blank" rel="noopener">Just The Menu</a> — Local restaurant menus, no fluff</li>
 				<li><a href="https://opendata.thunderbay.ca/" target="_blank" rel="noopener">Thunder Bay Open Data</a> — The city's open data portal</li>
 			</ul>
+		}
+
+		@components.Card(components.CardProps{Title: "Disclaimers"}) {
+			<h3>Data &amp; accuracy</h3>
+			<p>Thunder Citizen is an independent project. It is not affiliated with the City of Thunder Bay.</p>
+			<p>All content is derived from publicly available sources on a best-effort basis. Data may be incomplete, outdated, inaccurate, or incorrectly interpreted. No guarantee of correctness, completeness, timeliness, or fitness for any purpose is provided.</p>
+			<p>For official information and authoritative records, refer to the <a href="https://www.thunderbay.ca" target="_blank" rel="noopener">City of Thunder Bay</a> or other responsible agencies.</p>
+			<h3>Privacy</h3>
+			<p>Thunder Citizen does not use tracking cookies, analytics pixels, or third-party advertising networks. No user accounts are required.</p>
+			<p>We do log standard request metadata (IP address, user agent, request path, status, timestamp) strictly for security, abuse prevention, and operational stability. Query strings, referer, cookies, and request bodies are not logged.</p>
+			<p>Outbound links (e.g. to the City of Thunder Bay, open data portal, or other local sites) are subject to the privacy policies of those destinations.</p>
+			<p>Privacy questions or requests: <a href="mailto:privacy@thundercitizen.ca">privacy@thundercitizen.ca</a></p>
+		}
+
+		@components.Card(components.CardProps{Title: "Open source"}) {
+			<p>Thunder Citizen&rsquo;s codebase is open source under the <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache License 2.0</a>.</p>
+			<p>Source: <a href="https://github.com/eric-decompiled/ThunderCitizen" target="_blank" rel="noopener">github.com/eric-decompiled/ThunderCitizen</a></p>
+			<p>The Apache 2.0 license means you are free to use, copy, modify, and redistribute this code &mdash; including for commercial projects &mdash; as long as you keep the copyright and license notices, note any changes you made, and don&rsquo;t use the Thunder Citizen name or trademarks to endorse your own work. The code is provided as-is, with no warranty.</p>
+			<p>Pull requests will not be accepted at this time, but bug reports or feature requests are welcome as GitHub Issues.</p>
 		}
 
 	}

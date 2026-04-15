@@ -61,9 +61,11 @@ templ transitMethodology() {
 			</p>
 			<p>
 				All metrics are measured at <strong>timepoint stops</strong>
-				(<code>timepoint=true</code> in GTFS) &mdash; the 3&ndash;5 schedule
-				checkpoints per direction where the timetable is enforced. This matches
-				how agencies compute performance internally.
+				(<code>timepoint=true</code> in GTFS) &mdash; the 3&ndash;5 stops
+				per direction that Thunder Bay Transit publishes as the
+				measured checkpoints. Times at the stops in between are
+				interpolated from travel distance, not promised, so we only
+				grade the bus on the stops the agency itself commits to.
 			</p>
 		</article>
 
@@ -104,9 +106,11 @@ templ transitMethodology() {
 			<header class="methods-header"><h3>Six-Hour Chunks</h3><span class="methods-tag methods-tag-architecture">Architecture</span></header>
 			<p>
 				Each service day is sliced into three six-hour windows. Every
-				metric is computed per window, per route. Chunks store raw counts
-				and sums &mdash; not percentages &mdash; so rollups across routes
-				and days are exact arithmetic, not averages of averages.
+				metric is computed per window, per route. Chunks store raw
+				counts and sums &mdash; not percentages. A weekly or
+				system-wide number sums the counts across chunks and divides
+				once at the end, so a busy route with 200 trips outweighs a
+				quiet one with 10 instead of both counting the same.
 			</p>
 			<div class="chunk-stream-visual" id="chunk-stream-visual" aria-label="Six-hour chunks collecting events from the live data stream"></div>
 			<script>
@@ -115,7 +119,7 @@ templ transitMethodology() {
 				if (!el) return;
 
 				var W = 600, H = 240;
-				var PAD = { left: 35, right: 25, top: 22 };
+				var PAD = { left: 60, right: 25, top: 22 };
 				var tw = W - PAD.left - PAD.right;
 				function xAt(h) { return PAD.left + (h / 24) * tw; }
 
@@ -141,13 +145,27 @@ templ transitMethodology() {
 				svg += '<text x="' + (PAD.left - 6) + '" y="' + (streamY + 4) + '" text-anchor="end" fill="var(--accent)" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">stream</text>';
 
 				// Stream events — seeded random dots so each render is identical.
+				// Density tracks service reality: sparse overnight, peaks at midday.
 				var seed = 17;
 				function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-				for (var d = 0; d < 70; d++) {
-					var hh = rand() * 24;
+				var hourWeights = [
+					0.05, 0.05, 0.05, 0.05, 0.1, 0.2,   // 0–5 overnight
+					0.7,  1.0,  1.1,  1.1,  1.1, 1.2,   // 6–11 morning
+					1.4,  1.5,  1.5,  1.4,  1.3, 1.1,   // 12–17 midday peak
+					1.0,  0.9,  0.8,  0.6,  0.4, 0.2    // 18–23 evening taper
+				];
+				var wTotal = 0;
+				for (var wi = 0; wi < hourWeights.length; wi++) wTotal += hourWeights[wi];
+				for (var d = 0; d < 50; d++) {
+					var pick = rand() * wTotal;
+					var hh = 23;
+					for (var hi = 0; hi < 24; hi++) {
+						pick -= hourWeights[hi];
+						if (pick <= 0) { hh = hi + rand(); break; }
+					}
 					var dx = xAt(hh);
 					var dy = streamY + (rand() - 0.5) * 6;
-					svg += '<circle cx="' + dx.toFixed(1) + '" cy="' + dy.toFixed(1) + '" r="1.8" fill="var(--accent)" opacity="0.85"/>';
+					svg += '<circle cx="' + dx.toFixed(1) + '" cy="' + dy.toFixed(1) + '" r="2.6" fill="var(--accent)" opacity="0.85"/>';
 				}
 
 				// Chunks — three sealed, one passthrough gap (12 AM – 6 AM, no service)
@@ -203,10 +221,9 @@ templ transitMethodology() {
 			</script>
 			<p>
 				Once a window closes the chunk is sealed and never changes.
-				Midnight to 6 AM has no chunk &mdash; Thunder Bay Transit
-				doesn&rsquo;t run service then. Math lives in
-				<a href="https://github.com/ericrichardson/ThunderCitizen/tree/main/internal/transit/chunk" target="_blank" rel="noopener"><code>internal/transit/chunk/</code></a>
-				with unit tests.
+				Midnight to 6 AM has no chunk &mdash; a handful of late-night
+				trips run in that window, but not enough to produce
+				meaningful metrics, so we leave them out.
 			</p>
 		</article>
 
@@ -420,8 +437,8 @@ templ transitMethodology() {
 			</script>
 			<p>
 				The calculation squares each gap, sums those squares, and divides
-				by twice the total time. This gives the wait a random rider actually
-				experiences. Subtract the scheduled wait (half the planned headway)
+				by twice the total time. This gives the wait riders arriving at
+				random times actually experience. Subtract the scheduled wait (half the planned headway)
 				and the remainder is the excess. Bigger gaps get disproportionate
 				weight because more riders accumulate during them &mdash; double
 				the gap, quadruple the rider-minutes lost.
@@ -476,7 +493,7 @@ templ transitMethodology() {
 							<td>
 								<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/raptor_alenex.pdf" target="_blank" rel="noopener">Delling, Pajor, Werneck &mdash; Round-Based Public Transit Routing (PDF)</a>
 							</td>
-							<td>The RAPTOR algorithm: round-by-round timetable scanning for multi-leg trip planning</td>
+							<td>RAPTOR &mdash; the algorithm powering the route finder feature</td>
 							<td>Our initial approach was graph-based; we&rsquo;re still working on understanding this paper properly</td>
 						</tr>
 						<tr>

@@ -1,0 +1,120 @@
+// ==========================================================================
+// SCSS VARIABLES & MIXINS — must precede all usage
+// ==========================================================================
+
+$bp-xs: 400px;
+$bp-sm: 600px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+
+@mixin respond-to($name) {
+  @if $name == 'xs'         { @media (max-width: $bp-xs) { @content; } }
+  @else if $name == 'sm'    { @media (max-width: $bp-sm) { @content; } }
+  @else if $name == 'md'    { @media (max-width: $bp-md) { @content; } }
+  @else if $name == 'md-up' { @media (min-width: $bp-md) { @content; } }
+  @else if $name == 'lg'    { @media (max-width: $bp-lg) { @content; } }
+}
+
+@mixin auto-grid($min-col: 260px, $gap: var(--space-3)) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax($min-col, 1fr));
+  gap: $gap;
+}
+
+// tint: mix a status/accent color with a surface base via color-mix().
+// Default base is the page background; caller can override for cards/transparent.
+@function tint($color, $amount: 15%, $base: var(--thunder-50)) {
+  @return color-mix(in srgb, #{$color} #{$amount}, #{$base});
+}
+
+// motion-card-variant: 3px left border + soft bg tint for result variants.
+// Used by .motion-card (on page bg) and .motion-substantive (on card bg).
+@mixin motion-card-variant($base: var(--thunder-50)) {
+  border-left: 3px solid transparent;
+
+  &.motion-lost {
+    border-left-color: var(--status-error);
+    background: tint(var(--status-error), 8%, $base);
+  }
+
+  &.motion-voted {
+    border-left-color: var(--accent);
+    background: tint(var(--accent), 8%, $base);
+  }
+}
+
+@mixin dark-theme {
+    // Grey scale — green phosphor
+    --thunder-900: #86efac;  // brightest green — headings (12.8:1)
+    --thunder-800: #4ade80;  // bright green — strong text (10.3:1)
+    --thunder-700: #4ade80;  // body text (10.3:1)
+    --thunder-600: #22c55e;  // secondary (7.9:1)
+    --thunder-500: #1a7a3a;  // muted (3.3:1)
+    --thunder-400: #145a2c;  // subtle / disabled
+    --thunder-200: rgba(74, 222, 128, 0.1); // green-tint border
+    --thunder-100: #141e14;  // card surface (lifted from deep bg)
+    --thunder-50:  #0d1a0d;  // page bg
+
+    // Accent — phosphor green
+    --accent: #4ade80;
+    --accent-hover: #86efac;
+    --accent-light: rgba(74, 222, 128, 0.15);
+
+    // Terminal semantic tokens
+    --term-bg: #0d1a0d;
+    --term-bg-deep: #0a100a;
+    --term-fg: #4ade80;
+    --term-fg-bright: #86efac;
+    --term-fg-dim: #22c55e;
+    --term-accent: #4ade80;
+    --term-accent-bright: #86efac;
+    --term-accent-dim: #22c55e;
+    --term-border: rgba(74, 222, 128, 0.1);
+    --term-glow: 0 0 8px rgba(74, 222, 128, 0.3);
+    --term-scanline: rgba(0, 0, 0, 0.08);
+
+    // Nav glow tokens (dark = phosphor bloom, chained like bolt logo)
+    --nav-hover-filter:
+      drop-shadow(0 0 3px rgba(74, 222, 128, 0.5))
+      drop-shadow(0 0 8px rgba(74, 222, 128, 0.3));
+    --nav-active-filter:
+      drop-shadow(0 0 3px rgba(74, 222, 128, 0.4))
+      drop-shadow(0 0 6px rgba(74, 222, 128, 0.2));
+
+    // Pico dark overrides
+    --pico-background-color: var(--thunder-50);
+    --pico-color: var(--thunder-700);
+    --pico-card-background-color: var(--thunder-100);
+    --pico-card-border-color: var(--thunder-200);
+    --pico-muted-color: var(--thunder-500);
+    --pico-muted-border-color: var(--thunder-200);
+    --pico-table-row-stripped-background-color: color-mix(in srgb, var(--thunder-200) 40%, var(--thunder-50));
+    --pico-h1-color: var(--accent);
+    --pico-h2-color: var(--accent);
+    --pico-h3-color: var(--accent);
+
+    // Card shadows — green phosphor glow
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 8px rgba(74, 222, 128, 0.05);
+    --card-shadow-hover: 0 10px 24px rgba(0, 0, 0, 0.4), 0 0 12px rgba(74, 222, 128, 0.08);
+
+    --glass-bg: rgba(13, 26, 13, 0.25);
+    --glass-border: rgba(74, 222, 128, 0.08);
+
+    // Surface dark — green-black
+    --surface-dark: #0a100a;
+
+    --status-ok:        #34d399;
+    --status-warn:      #fbbf24;
+    --status-error:     #f87171;
+    --status-info:      #60a5fa;
+    --status-early-dep: #a78bfa;
+    --status-muted:     #9ca3af;
+
+    // Shadow scale — deeper + phosphor glow
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 6px rgba(74, 222, 128, 0.03);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 8px rgba(74, 222, 128, 0.05);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 12px rgba(74, 222, 128, 0.06);
+
+    --text-on-dark: #86efac;
+}

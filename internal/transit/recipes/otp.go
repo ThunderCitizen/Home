@@ -16,11 +16,12 @@ import (
 //   - A "trip" is one row in transit.stop_delay grouped by trip_id.
 //     Only timepoint stops count — timepoints are the schedule-adherence
 //     checkpoints; non-timepoint stops aren't held to a published time.
-//     The is_timepoint flag is denormalized onto stop_delay at write
-//     time (see migrations/000001_schema.up.sql), and there's a partial
-//     index idx_transit_stop_delay_timepoint_band on
-//     (date, route_id, band) WHERE is_timepoint = true that this filter
-//     is designed to hit.
+//     Timepoint membership is resolved via EXISTS against
+//     transit.route_pattern_stop (keyed by pattern_id + stop_id); the
+//     recorder leaves stop_delay.is_timepoint false because its trip
+//     cache isn't keyed by stop, so every timepoint-filtering query
+//     joins back to the pattern table. Mirrors the same pattern used
+//     by headway.go.
 //   - The trip's delay is the average of arrival_delay across its
 //     timepoint stops, falling back to departure_delay when arrival is
 //     null.
@@ -39,7 +40,12 @@ FROM (
     SELECT d.trip_id, AVG(COALESCE(d.arrival_delay, d.departure_delay)) AS avg_delay
     FROM transit.stop_delay d
     WHERE d.date = $1::date AND d.route_id = $2 AND d.band = $3
-      AND d.is_timepoint = true
+      AND EXISTS (
+        SELECT 1 FROM transit.route_pattern_stop rps
+        WHERE rps.pattern_id = d.pattern_id
+          AND rps.stop_id = d.stop_id
+          AND rps.is_timepoint = true
+      )
     GROUP BY d.trip_id
 ) t
 `

@@ -149,7 +149,7 @@
         var color = routeColors[r.route_id] || routeColors[r.short_name] || tc.statusMuted;
         html += '<div class="rc-col">';
         html += '<span class="rc-val"></span>';
-        html += '<div class="rc-col-track"><div class="rc-col-bar" style="height:0;background:' + color + '"></div></div>';
+        html += '<div class="rc-col-track"><div class="rc-col-bar" style="height:0;background:' + color + ';color:' + color + '"></div></div>';
         html += '<span class="rc-badge" style="color:' + color + '">' + r.short_name + '</span>';
         html += '</div>';
       }
@@ -261,7 +261,13 @@
         noticeSortVal = diff;
         var absDiff = Math.abs(diff);
         var dur = absDiff >= 60 ? Math.floor(absDiff / 60) + 'h ' + (absDiff % 60) + 'm' : absDiff + 'm';
-        if (diff > 0) {
+        if (diff >= 119) {
+          // TB Transit's GTFS-RT TripUpdate feed only publishes cancellations
+          // ~2h before departure, so anything at the ceiling is "at least 2h"
+          // — the real notice given to riders may be much longer.
+          notice = '2h+ before';
+          noticeBad = false;
+        } else if (diff > 0) {
           notice = dur + ' before';
           noticeBad = diff < 15;
         } else {

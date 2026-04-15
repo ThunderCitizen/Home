@@ -41,6 +41,8 @@ interface ThemeColors {
   surfaceDark: string;
   textColor: string;
   termAccent: string;
+  termBg: string;
+  termFgDim: string;
 }
 
 declare function ThemeColors(): ThemeColors;
@@ -173,6 +175,58 @@ interface StopAlert {
   description?: string;
 }
 let stopAlerts: Record<string, StopAlert[]> = {};
+
+function linkifyStopIds(text: string): string {
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\b(\d{3,4})\b/g, function (match, id: string) {
+    const stop = allStops.find(function (s) { return s.stop_id === id; });
+    if (!stop) return match;
+    return '<a href="#transit-map" class="alert-stop-link" data-alert-stop="' +
+      escapeHtml(id) + '" title="Show stop ' + escapeHtml(id) + ' on map">' + id + '</a>';
+  });
+}
+
+function dedupeAlerts(alerts: readonly StopAlert[] | undefined): StopAlert[] {
+  if (!alerts || alerts.length === 0) return [];
+  const seen: Record<string, boolean> = {};
+  const out: StopAlert[] = [];
+  for (let i = 0; i < alerts.length; i++) {
+    const a = alerts[i];
+    const header = a.header || '';
+    const desc = a.description || '';
+    if (!header && !desc) continue;
+    const key = header + '\u241f' + desc;
+    if (seen[key]) continue;
+    seen[key] = true;
+    out.push(a);
+  }
+  return out;
+}
+
+function focusStopOnMap(stopId: string): void {
+  const stop = allStops.find(function (s) { return s.stop_id === stopId; });
+  if (!stop || !map) return;
+  const mapEl = document.getElementById('transit-map');
+  if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const doFly = function () {
+    if (!map) return;
+    map.flyTo([stop.lat, stop.lon], Math.max(map.getZoom(), 17), { duration: 0.8 });
+    lockStopInfo(stop.stop_id, stop.stop_name);
+  };
+  // Give the window scroll a moment to settle before flyTo so Leaflet's
+  // bounds calc uses the post-scroll viewport position.
+  window.setTimeout(doFly, 400);
+}
+
+document.addEventListener('click', function (e: Event) {
+  const target = e.target as HTMLElement | null;
+  if (!target) return;
+  const link = target.closest('.alert-stop-link') as HTMLElement | null;
+  if (!link) return;
+  e.preventDefault();
+  const stopId = link.getAttribute('data-alert-stop');
+  if (stopId) focusStopOnMap(stopId);
+});
 
 // Read server-rendered data from the DOM (must be called after DOMContentLoaded)
 function loadServerData(): void {
@@ -678,6 +732,18 @@ function stopPredictionsHtml(stopId: string, stopName: string, preds: {route_id:
   if (preds.length === 0) {
     html += ' <span class="info-detail">No upcoming arrivals</span>';
   }
+  const alerts = dedupeAlerts(stopAlerts[stopId]);
+  for (let j = 0; j < alerts.length; j++) {
+    const a = alerts[j];
+    const headerLinked = a.header ? linkifyStopIds(a.header) : '';
+    const descLinked = a.description ? linkifyStopIds(a.description) : '';
+    const fullText = a.header && a.description ? a.header + ' — ' + a.description : (a.header || a.description || '');
+    html += ' <span class="info-alert" title="' + escapeHtml(fullText) + '">⚠ ' +
+      (headerLinked ? '<strong>' + headerLinked + '</strong>' : '') +
+      (headerLinked && descLinked ? ' — ' : '') +
+      descLinked +
+      '</span>';
+  }
   return html;
 }
 
@@ -1052,6 +1118,7 @@ function loadRouteSchedule(route: string | null): void {
 
   scheduleRouteId = route;
   container.hidden = false;
+
   container.innerHTML = '<p class="perf-loading">Loading schedule\u2026</p>';
 
   fetch('/transit/route/' + encodeURIComponent(route) + '?partial=schedule-today')
@@ -1262,7 +1329,7 @@ function loadStops(): void {
           radius: hasAlert ? r + 2 : r,
           fillColor: isHub ? "#1e3a5f" : "#334e68",
           fillOpacity: 0.8,
-          color: hasAlert ? TC.statusError : "white",
+          color: hasAlert ? TC.statusWarn : "white",
           weight: hasAlert ? 2.5 : 1.5,
         });
 
@@ -1365,7 +1432,7 @@ function updateStopOccupancy(vehicles: LocalVehicle[]): void {
       // Reset to default
       marker.setStyle({
         fillColor: md.isHub ? "#1e3a5f" : "#334e68",
-        color: md.hasAlert ? TC.statusError : "white",
+        color: md.hasAlert ? TC.statusWarn : "white",
       });
       return;
     }
@@ -1696,22 +1763,6 @@ function initTripPlanner(): void {
         }
       });
 
-      // Enable Google Maps link
-      const gmapsLink = document.getElementById("trip-gmaps-link") as HTMLAnchorElement | null;
-      if (gmapsLink) {
-        const firstLeg = plan.itineraries[0].legs[0];
-        const lastLeg = plan.itineraries[0].legs[plan.itineraries[0].legs.length - 1];
-        if (firstLeg && lastLeg) {
-          gmapsLink.href = 'https://www.google.com/maps/dir/?api=1' +
-            '&origin=' + firstLeg.from.lat + ',' + firstLeg.from.lon +
-            '&destination=' + lastLeg.to.lat + ',' + lastLeg.to.lon +
-            '&travelmode=transit';
-          gmapsLink.target = '_blank';
-          gmapsLink.rel = 'noopener';
-          gmapsLink.classList.remove('disabled');
-          gmapsLink.removeAttribute('aria-disabled');
-        }
-      }
     }
   });
 }
@@ -1772,6 +1823,7 @@ function wireStopSearch(inputId: string, resultsId: string, onSelect: (stop: Sto
             resultsEl.hidden = true;
             input.value = stop.stop_name + " #" + stop.stop_id;
             onSelect(stop);
+            input.blur();
           });
         })(matches[j]);
       }
@@ -1885,6 +1937,7 @@ function showDefaultStops(resultsEl: HTMLElement, input: HTMLInputElement, onSel
       e.preventDefault();
       resultsEl.hidden = true;
       onLocateClick(true);
+      input.blur();
     });
   }
 
@@ -1897,6 +1950,7 @@ function showDefaultStops(resultsEl: HTMLElement, input: HTMLInputElement, onSel
         resultsEl.hidden = true;
         input.value = stop.stop_name + " #" + stop.stop_id;
         onSelect(stop);
+        input.blur();
       });
     })(stops[k]);
   }
@@ -2105,15 +2159,22 @@ function drawTripRoute(itin: Itinerary): void {
     bounds.extend(to);
 
     if (leg.type === "walk") {
+      // Walk halo (contrast)
       L.polyline([from, to], {
-        color: TC.statusMuted, weight: 3, dashArray: "6,8", opacity: 0.7,
+        color: TC.termBg, weight: 7, opacity: 0.85,
+        lineCap: "round", lineJoin: "round",
       }).addTo(tripRouteLayer);
-      if (leg.distance_m > 0) {
+      // Walk dashes on top
+      L.polyline([from, to], {
+        color: TC.termFgDim, weight: 4, dashArray: "2,8", opacity: 1,
+        lineCap: "round", lineJoin: "round",
+      }).addTo(tripRouteLayer);
+      if (leg.distance_m >= 100) {
         const mid = L.latLng((from.lat + to.lat) / 2, (from.lng + to.lng) / 2);
         const dist = leg.distance_m >= 1000 ? (leg.distance_m / 1000).toFixed(1) + "km" : Math.round(leg.distance_m) + "m";
         L.marker(mid, {
           icon: L.divIcon({
-            html: '<span class="trip-walk-label">\ud83d\udeb6 ' + dist + '</span>',
+            html: '<span class="trip-walk-label">' + dist + '</span>',
             className: "trip-walk-label-wrap no-chrome",
             iconSize: [0, 0],
             iconAnchor: [0, 4],
@@ -2126,19 +2187,35 @@ function drawTripRoute(itin: Itinerary): void {
       transitLegsArr.push({ leg: leg, from: from, to: to });
       const color = ROUTE_COLORS[leg.route_id] || TC.statusMuted;
       const shapeCoords = extractShapeSegment(leg.route_id, from, to);
+      // Halo (contrast outline) — drawn first, underneath
       L.polyline(shapeCoords, {
-        color: color, weight: 6, opacity: 0.9,
+        color: TC.termBg, weight: 11, opacity: 0.9,
+        lineCap: "round", lineJoin: "round",
       }).addTo(tripRouteLayer);
+      // Main colored stroke on top
+      L.polyline(shapeCoords, {
+        color: color, weight: 7, opacity: 1,
+        lineCap: "round", lineJoin: "round",
+      }).addTo(tripRouteLayer);
+      // Arrows: open chevrons (less ink), larger and more frequent
       LDecorator.polylineDecorator(shapeCoords, {
-        patterns: [{ offset: "15%", repeat: "20%", symbol: LDecorator.Symbol.arrowHead({ pixelSize: 14, polygon: false, pathOptions: { stroke: true, color: color, weight: 3.5, opacity: 0.85 } }) }],
+        patterns: [{
+          offset: "8%", repeat: "12%",
+          symbol: LDecorator.Symbol.arrowHead({
+            pixelSize: 14, polygon: false,
+            pathOptions: { stroke: true, fill: false, color: TC.termBg, weight: 3, opacity: 0.95, lineCap: "round", lineJoin: "round" },
+          }),
+        }],
       }).addTo(tripRouteLayer);
 
-      // Board/alight dots
+      // Board/alight dots (with drop-shadow via className)
       L.circleMarker(from, {
-        radius: 5, fillColor: "white", fillOpacity: 1, color: color, weight: 3,
+        radius: 7, fillColor: "white", fillOpacity: 1, color: color, weight: 3.5,
+        className: "trip-leg-dot",
       }).addTo(tripRouteLayer);
       L.circleMarker(to, {
-        radius: 5, fillColor: color, fillOpacity: 1, color: "white", weight: 2,
+        radius: 7, fillColor: color, fillOpacity: 1, color: "white", weight: 2.5,
+        className: "trip-leg-dot",
       }).addTo(tripRouteLayer);
     }
   }
@@ -2387,78 +2464,99 @@ function buildCancelRow(rid: string, t: CancelledTrip): HTMLElement {
     top.appendChild(nameEl);
   }
   top.appendChild(document.createTextNode(' ' + timeRange));
-  if (t.upcoming) {
-    const warn = document.createElement('span');
-    warn.className = 'info-late';
-    warn.textContent = '\u26A0 Upcoming';
-    top.appendChild(document.createTextNode(' '));
-    top.appendChild(warn);
-  }
 
   const sub = document.createElement('span');
   sub.className = 'stat-modal-sub';
-  if (t.headsign) sub.textContent = t.headsign;
-  if (t.lead_label) {
-    if (t.headsign) sub.appendChild(document.createTextNode(' \u2022 '));
-    const notice = document.createElement('span');
-    notice.className = (t.lead_min != null && t.lead_min <= 15) ? 'info-late' : 'info-detail';
-    notice.textContent = (t.lead_min != null && t.lead_min <= 0) ? t.lead_label : t.lead_label + ' notice';
-    sub.appendChild(notice);
-  }
+  if (t.first_seen) {
+    const label = document.createElement('span');
+    label.className = 'cancel-info-label';
+    label.textContent = 'First reported';
+    sub.appendChild(label);
 
-  const infoBtn = document.createElement('button');
-  infoBtn.type = 'button';
-  infoBtn.className = 'cancel-info-btn';
-  infoBtn.textContent = 'Info';
+    const time = document.createElement('span');
+    time.className = 'cancel-info-time';
+    time.textContent = t.first_seen;
+    sub.appendChild(time);
+
+    if (t.lead_min != null) {
+      const m = Math.abs(t.lead_min);
+      let dur: string;
+      if (m >= 60) {
+        const h = Math.floor(m / 60);
+        const rem = m % 60;
+        dur = rem === 0 ? h + 'h' : h + 'h ' + rem + 'm';
+      } else {
+        dur = m + ' min';
+      }
+      const rel = t.lead_min > 0 ? dur + ' before' : (t.lead_min < 0 ? dur + ' after' : 'at departure');
+
+      const sep = document.createElement('span');
+      sep.className = 'cancel-info-sep';
+      sep.textContent = '\u2014';
+      sub.appendChild(sep);
+
+      const notice = document.createElement('span');
+      notice.className = 'cancel-info-notice';
+      notice.textContent = rel;
+      sub.appendChild(notice);
+    }
+  }
 
   detail.appendChild(top);
   detail.appendChild(sub);
 
   row.appendChild(badge);
   row.appendChild(detail);
-  row.appendChild(infoBtn);
-
-  // Detail panel (hidden until Info clicked)
-  const panel = document.createElement('div');
-  panel.className = 'cancel-info-panel';
-  panel.hidden = true;
-
-  const lines: string[] = [];
-  if (t.first_seen) lines.push('<span class="cancel-info-label">First reported</span> ' + escapeHtml(t.first_seen) + ' \u2014 per Thunder Bay Transit\u2019s GTFS-RT feed');
-  panel.innerHTML = lines.join('<br>');
-
-
-  infoBtn.addEventListener('click', function () {
-    panel.hidden = !panel.hidden;
-    infoBtn.classList.toggle('active', !panel.hidden);
-  });
 
   wrap.appendChild(row);
-  wrap.appendChild(panel);
   return wrap;
 }
 
 function updateCancelsPanel(): void {
   const el = document.getElementById("terminal-cancels-list");
   if (!el) return;
-  const routeIds = Object.keys(cancelledTrips).sort(function (a, b) {
-    const ka = routeSortKey(a), kb = routeSortKey(b);
-    return ka[0] - kb[0] || ka[1].localeCompare(kb[1]);
-  });
 
-  el.innerHTML = '';
-  let count = 0;
-  for (let ri = 0; ri < routeIds.length; ri++) {
-    const rid = routeIds[ri];
+  type Entry = { rid: string; trip: CancelledTrip };
+  const upcoming: Entry[] = [];
+  const previous: Entry[] = [];
+  for (const rid in cancelledTrips) {
     const trips = cancelledTrips[rid];
-    for (let ti = 0; ti < trips.length; ti++) {
-      el.appendChild(buildCancelRow(rid, trips[ti]));
-      count++;
+    for (let i = 0; i < trips.length; i++) {
+      const entry = { rid, trip: trips[i] };
+      if (trips[i].upcoming) upcoming.push(entry);
+      else previous.push(entry);
     }
   }
-  if (count === 0) {
+
+  const byTime = function (a: Entry, b: Entry): number {
+    const at = a.trip.start_time || '';
+    const bt = b.trip.start_time || '';
+    if (at !== bt) return at.localeCompare(bt);
+    const ka = routeSortKey(a.rid), kb = routeSortKey(b.rid);
+    return ka[0] - kb[0] || ka[1].localeCompare(kb[1]);
+  };
+  upcoming.sort(byTime);
+  previous.sort(byTime);
+
+  el.innerHTML = '';
+  if (upcoming.length === 0 && previous.length === 0) {
     el.innerHTML = '<p class="info-detail">No cancellations today</p>';
+    return;
   }
+
+  const appendSection = function (title: string, entries: Entry[], headerCls: string) {
+    if (entries.length === 0) return;
+    const header = document.createElement('div');
+    header.className = 'cancel-section-header ' + headerCls;
+    header.textContent = title + ' \u00B7 ' + entries.length;
+    el.appendChild(header);
+    for (let i = 0; i < entries.length; i++) {
+      el.appendChild(buildCancelRow(entries[i].rid, entries[i].trip));
+    }
+  };
+
+  appendSection('Upcoming', upcoming, 'cancel-section-upcoming');
+  appendSection('Previous', previous, 'cancel-section-previous');
 }
 
 // ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"thundercitizen/internal/assets"
 	"thundercitizen/internal/cache"
@@ -54,14 +55,12 @@ func main() {
 	// TSV data into the database. In dev, reads local muni/ directory.
 	// Each dataset is tracked in data_patch_log with the signer's
 	// fingerprint — skip if already applied with the same sha256.
+	//
+	// To avoid hitting DO Spaces on every restart we gate the fetch on
+	// muni_fetch_state.last_checked_at. If we checked in the last 24h
+	// the DB already has the data and we short-circuit before download.
 	muniCtx, muniCancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	if bundle, err := resolveMuniBundle(muniCtx, cfg); err != nil {
-		log.Error("muni data unavailable", "err", err)
-	} else if n, err := muni.Apply(muniCtx, db, bundle); err != nil {
-		log.Error("muni data apply failed", "err", err)
-	} else if n > 0 {
-		log.Info("applied muni data", "datasets", n)
-	}
+	applyMuniBundle(muniCtx, db, cfg)
 	muniCancel()
 
 	// GTFS: synchronous initial fetch so routes are in the DB before the
@@ -89,6 +88,12 @@ func main() {
 
 	recorder := transit.NewRecorder(db)
 	recorder.Start(transitCtx)
+
+	// Keep transit.route_band_chunk populated without operator action:
+	// a startup backfill catches any missing recent days, then every 10
+	// minutes today's chunks are rebuilt so /transit/metrics stays fresh
+	// as bands close.
+	transit.NewChunkRollup(db).Start(transitCtx)
 
 	// Start GTFS background refresher for periodic updates. The initial
 	// fetch is already done synchronously above; this loop handles the
@@ -142,6 +147,10 @@ func main() {
 	h := handlers.New(db)
 
 	r := chi.NewRouter()
+	// RequestID runs outermost so the per-request logger it attaches to
+	// the context is visible to every downstream middleware and handler,
+	// including Recoverer's panic log and RequestLogger's completion log.
+	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.SecureHeaders)
 	r.Use(middleware.RequestLogger)
@@ -223,6 +232,46 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("stopped")
+}
+
+// muniCheckInterval is how long a successful bundle check is valid before
+// we'll re-hit the upstream source. Kept short enough to pick up new
+// publications within a day, long enough that dev hot-reloads don't spam DO.
+const muniCheckInterval = 24 * time.Hour
+
+// applyMuniBundle resolves the bundle (local dir in dev, DO Spaces in prod)
+// and applies it, unless we've already checked inside the last muniCheckInterval.
+func applyMuniBundle(ctx context.Context, db *pgxpool.Pool, cfg *config.Config) {
+	usesRemote := !(cfg.Environment != "production" && cfg.MuniURL == config.DataBaseURL+"/index.json")
+	if usesRemote {
+		if last, err := muni.LastCheckedAt(ctx, db); err != nil {
+			log.Warn("muni fetch state unreadable; fetching anyway", "err", err)
+		} else if !last.IsZero() && time.Since(last) < muniCheckInterval {
+			log.Info("muni bundle recently checked; skipping fetch",
+				"last_checked", last.Format(time.RFC3339),
+				"age", time.Since(last).Round(time.Minute))
+			return
+		}
+	}
+
+	bundle, err := resolveMuniBundle(ctx, cfg)
+	if err != nil {
+		log.Error("muni data unavailable", "err", err)
+		return
+	}
+	n, err := muni.Apply(ctx, db, bundle)
+	if err != nil {
+		log.Error("muni data apply failed", "err", err)
+		return
+	}
+	if n > 0 {
+		log.Info("applied muni data", "datasets", n)
+	}
+	if usesRemote {
+		if err := muni.MarkChecked(ctx, db); err != nil {
+			log.Warn("failed to record muni check", "err", err)
+		}
+	}
 }
 
 // resolveMuniBundle downloads and verifies the signed muni bundle.

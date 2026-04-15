@@ -2,19 +2,21 @@
 #
 # Multi-stage build for the ThunderCitizen server + operator tools.
 #
-#   builder  golang:1.24-bookworm  → produces every Go binary we ship
+#   builder  golang:1.25-bookworm  → produces every Go binary we ship
 #   runtime  debian:bookworm-slim  → just the binaries + static assets + migrations
 #
-# Data patches (patches/*.sql) are NOT bundled — the server downloads them
-# at boot from PATCHES_URL (a zip on a GitHub release). The patches CLI
-# (cmd/patches) is for local dev only and is NOT built here.
+# Curated data is NOT bundled — the server downloads a signed muni bundle
+# from MUNI_URL (DO Spaces) on boot, verifies its Ed25519 signature, and
+# applies any new datasets via internal/muni/apply.go. The muni + munisign
+# CLIs are for local dev / CI publishing only and are NOT built into the
+# runtime image.
 # Schema migrations ARE bundled as files because golang-migrate reads
 # them from disk on startup (cmd/server/main.go: migrate.New("file://migrations", ...)).
 
 # ─────────────────────────────────────────────────────────────────────
 # Builder
 # ─────────────────────────────────────────────────────────────────────
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 
 # Node + npm for SCSS and TypeScript bundling. nodejs in bookworm is 18.x
 # which is enough for our esbuild + sass + tsc usage.
@@ -51,9 +53,10 @@ RUN templ generate \
  && npm run css \
  && npm run build:js
 
-# Build every CLI we ship. patches and gentstypes are deliberately
-# excluded — patches is applied out-of-band, gentstypes is dev-only
-# codegen for the api.gen.ts file.
+# Build every CLI we ship in the runtime image. muni, munisign, seedtransit,
+# and gentstypes are deliberately excluded — muni/munisign run at publish
+# time from a workstation or CI runner, seedtransit is dev-only, and
+# gentstypes is dev-only codegen for the api.gen.ts file.
 ARG COMMIT=unknown
 ARG BUILD_TIME=unknown
 

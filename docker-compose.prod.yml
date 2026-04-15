@@ -79,6 +79,17 @@
 # Containers become `thundercitizen-prod-db-1`, etc.
 name: thundercitizen-prod
 
+# Shared logging config applied to every long-running service. json-file
+# with a 20m × 5-file rolling cap (~100MB per container). Caddy's access
+# log does NOT use this — it writes to a bind-mounted file with daily
+# rotation and a hard 7-day TTL (see the `log` block in the Caddyfile).
+# Only Caddy's server/cert events land here.
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 configs:
   caddyfile:
     # Compose interpolates ${VAR} at parse time, baking the values into the
@@ -93,6 +104,37 @@ configs:
       # Canonical site — thundercitizen.ca and its www alias share one cert
       # (Let's Encrypt issues a single cert with both as SANs).
       thundercitizen.ca, www.thundercitizen.ca {
+          # Minimum-data access log. Keeps: timestamp, remote IP, method,
+          # path (without query string), status, duration, User-Agent.
+          # Drops: Referer, Cookie, Authorization headers and the query
+          # string portion of the URI. Static-asset requests are skipped —
+          # high volume, no operational value.
+          #
+          # Retention: roll_at 05:00 rotates a fresh file every day at
+          # 00:00 Eastern Standard Time (05:00 UTC — the host runs in
+          # UTC per harden.sh). roll_keep_for 168h deletes rotated
+          # files older than 7 days at the next rotation. roll_size
+          # 100mb is a safety cap in case daily volume ever spikes.
+          # This gives a hard, advertiseable "no log entry older than
+          # 7 days" promise.
+          log {
+              output file /var/log/caddy/access.log {
+                  roll_at 05:00
+                  roll_size 100mb
+                  roll_keep 10
+                  roll_keep_for 168h
+              }
+              format filter {
+                  wrap json
+                  fields {
+                      request>headers>Referer delete
+                      request>headers>Cookie delete
+                      request>headers>Authorization delete
+                      request>uri regexp "\?.*" ""
+                  }
+              }
+          }
+          log_skip /static/*
           encode zstd gzip
           reverse_proxy app:8080
       }
@@ -131,6 +173,7 @@ services:
   db:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-thundercitizen}
       POSTGRES_DB: ${POSTGRES_DB:-thundercitizen}
@@ -154,6 +197,7 @@ services:
   app:
     image: ghcr.io/eric-decompiled/thundercitizen:${TC_IMAGE_TAG:-latest}
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-thundercitizen}
       POSTGRES_DB: ${POSTGRES_DB:-thundercitizen}
@@ -191,6 +235,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"
@@ -201,6 +246,7 @@ services:
     volumes:
       - caddy_data:/data       # cert storage — MUST persist or you'll hit LE rate limits
       - caddy_config:/config
+      - ./caddy-logs:/var/log/caddy  # bind mount so operator can tail from the host; rotated by Caddy, max age 7 days
     depends_on:
       app:
         condition: service_healthy

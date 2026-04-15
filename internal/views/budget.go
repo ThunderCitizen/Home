@@ -3,11 +3,13 @@ package views
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"sort"
 
 	"thundercitizen/internal/budget"
+	"thundercitizen/internal/logger"
 )
+
+var log = logger.New("budget")
 
 // DefaultBudgetYear is the most recent fiscal year the app reports on. The
 // budget page defaults to this when no ?year is provided.
@@ -112,7 +114,7 @@ func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) Bu
 
 	hasData, err := ledger.HasEntries(ctx, year)
 	if err != nil {
-		slog.Warn("budget ledger HasEntries failed", "year", year, "err", err)
+		log.Warn("budget ledger HasEntries failed", "year", year, "err", err)
 		return vm
 	}
 	if !hasData {
@@ -121,13 +123,13 @@ func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) Bu
 
 	summary, err := ledger.OperatingSummaryForYear(ctx, year)
 	if err != nil {
-		slog.Warn("budget operating summary failed", "year", year, "err", err)
+		log.Warn("budget operating summary failed", "year", year, "err", err)
 		return vm
 	}
 
 	svcTotals, err := ledger.TotalByService(ctx, year)
 	if err != nil {
-		slog.Warn("budget service totals failed", "year", year, "err", err)
+		log.Warn("budget service totals failed", "year", year, "err", err)
 		return vm
 	}
 
@@ -136,7 +138,7 @@ func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) Bu
 
 	sankey, svcDetails, err := BuildSankeyFromLedger(ctx, ledger, year, taxLevyLabel, "", "")
 	if err != nil {
-		slog.Warn("budget ledger sankey failed", "year", year, "err", err)
+		log.Warn("budget ledger sankey failed", "year", year, "err", err)
 		return vm
 	}
 

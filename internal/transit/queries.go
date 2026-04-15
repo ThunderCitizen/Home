@@ -451,6 +451,12 @@ func leadLabel(min int) string {
 	if min == 0 {
 		return "at departure"
 	}
+	// TB Transit's GTFS-RT TripUpdate feed only publishes cancellations within
+	// a ~2h rolling window before departure, so anything at/above that ceiling
+	// is reported as "2h+" — the real notice given to riders may be much longer.
+	if min >= 119 {
+		return "2h+"
+	}
 	if min >= 60 {
 		if min%60 == 0 {
 			return fmt.Sprintf("%dh", min/60)

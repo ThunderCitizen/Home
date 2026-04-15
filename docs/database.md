@@ -12,20 +12,21 @@ Migrations auto-run on server startup.
 
 ## Schema
 
-Migrations in `migrations/`. Every transit-domain relation is prefixed with
-`transit_`, mirroring the `council_*` and `budget_*` conventions.
+Migrations in `migrations/`. Relations live in named Postgres schemas:
 
-Tables:
-
-- **GTFS schedule** — `transit_routes`, `transit_stops`, `transit_trips`, `transit_stop_times`, `transit_calendar_dates`, `transit_transfers`
-- **GTFS-RT events** — `transit_vehicle_positions`, `transit_stop_delays`, `transit_cancellations`, `transit_alerts`
-- **Derived** — `transit_stop_visits` (GPS proximity detection), `transit_route_timepoints`
-- **Fleet tracking** — `transit_vehicles`, `transit_vehicle_assignments`
-- **Operational** — `transit_feed_state`, `transit_feed_gaps`
+- **`gtfs.*`** — raw GTFS schedule imports (`routes`, `stops`, `trips`, `stop_times`, `calendar`, `calendar_dates`, `shapes`, `transfers`, `feed_info`)
+- **`transit.*`** — transit domain (events, derived state, schedule projections):
+  - **GTFS-RT events** — `transit.vehicle_position`, `transit.stop_delay`, `transit.cancellation`, `transit.alert`
+  - **Derived** — `transit.stop_visit` (GPS proximity detection), `transit.route_band_chunk` (metric rollups — see below)
+  - **Schedule projections** — `transit.route`, `transit.route_pattern`, `transit.route_pattern_stop`, `transit.route_baseline`, `transit.scheduled_stop`, `transit.service_calendar`, `transit.stop`, `transit.trip_catalog`
+  - **Fleet tracking** — `transit.vehicle`, `transit.vehicle_assignment`
+  - **Operational** — `transit.feed_state`, `transit.feed_gap`
+- **`public.*`** — everything else: `councillors`, `council_meetings`, `council_motions`, `council_vote_records`, `budget_accounts`, `budget_ledger`
+- **Operational public tables** — `data_patch_log` (muni bundle apply audit: dataset checksum + signer + timestamp), `muni_fetch_state` (single-row throttle, migration `000007`)
 
 ## PostGIS
 
-The `db` container uses `Dockerfile.db` (Debian + `postgresql-16-postgis-3`). Geography columns on `transit_stops` and `transit_vehicle_positions` enable spatial queries:
+The `db` container uses `Dockerfile.db` (Debian + `postgresql-16-postgis-3`). Geography columns on `transit.stop` and `transit.vehicle_position` enable spatial queries:
 
 - **Nearest stops** — KNN via `<->` operator on GiST index
 - **Vehicle-to-stop distance** — `ST_Distance` between geography columns
@@ -38,58 +39,60 @@ were never used (GIS on vehicle positions, per-vehicle history) and one btree
 on `last_updated` was 386 MB alone for 18 scans. The current set targets actual
 query patterns and dropped total index footprint to ~170 MB.
 
-**transit_stop_delays** (heaviest table, ~357K rows)
+**transit.stop_delay** (heaviest table, ~357K rows)
 
 | Index | Type | Covers |
 |-------|------|--------|
 | PK `(date, trip_id, stop_id)` | btree | OTP date-range scans, trip delay lookups |
-| `idx_esd_route_stop_date` | btree | Per-route per-stop metrics |
-| `idx_esd_last_updated_brin` | BRIN | 24h dashboard percentile queries (24 KB vs 386 MB btree) |
+| `idx_transit_stop_delay_route_stop_date` | btree | Per-route per-stop metrics |
+| `idx_transit_stop_delay_last_updated` | BRIN | 24h dashboard percentile queries (24 KB vs 386 MB btree) |
+| `idx_transit_stop_delay_first_stop_band` | btree (partial: is_first_stop) | Per-band cancel/OTP at trip start |
+| `idx_transit_stop_delay_timepoint_band` | btree (partial: is_timepoint) | Per-band EWT timepoint queries |
+| `idx_transit_stop_delay_service_date` | btree | Service-day rollups |
 
-**transit_stop_visits** (~180K rows)
+**transit.stop_visit** (~180K rows)
 
 | Index | Type | Covers |
 |-------|------|--------|
 | PK `(trip_id, stop_id)` | btree | Upsert on write path |
-| `idx_sv_route_stop INCLUDE (observed_at)` | btree | Headway/EWT/Cv — covering index for index-only scans |
-| `idx_sv_observed` | btree | Date-range headway window functions |
+| `idx_transit_stop_visit_route_stop INCLUDE (observed_at)` | btree | Headway/EWT/Cv — covering index for index-only scans |
+| `idx_transit_stop_visit_observed` | btree | Date-range headway window functions |
 
-**transit_cancellations** (~44K rows)
+**transit.cancellation** (~44K rows)
 
 | Index | Type | Covers |
 |-------|------|--------|
 | UNIQUE `(trip_id, feed_timestamp)` | btree | Dedup on insert, cancel detail queries |
-| `idx_ec_feed_timestamp` | btree | Date-range cancel rate scans |
-| `idx_ec_trip_route_start` | btree (partial) | Cancel detail GROUP BY (WHERE start_time IS NOT NULL) |
+| `idx_transit_cancellation_feed_timestamp` | btree | Date-range cancel rate scans |
+| `idx_transit_cancellation_route_start` | btree (partial) | Cancel detail GROUP BY (WHERE start_time IS NOT NULL) |
 
-**transit_vehicle_positions** (~2.8M rows)
+**transit.vehicle_position** (~2.8M rows)
 
 | Index | Type | Covers |
 |-------|------|--------|
 | PK `(id)` | btree | Required |
-| `idx_evp_feed_timestamp` | btree | 24h dashboard, live feed queries |
+| `idx_transit_vehicle_position_feed_timestamp` | btree | 24h dashboard, live feed queries |
 
 **Other tables**
 
 | Index | Table | Covers |
 |-------|-------|--------|
-| `idx_ea_feed_timestamp` | `transit_alerts` | Latest-alert queries |
-| `idx_transit_stops_geog` | `transit_stops` | PostGIS KNN nearest-stop queries |
-| `idx_transit_stop_times_stop` | `transit_stop_times` | Stop-level schedule queries |
-| `idx_transit_stop_times_first_dep_time` | `transit_stop_times` (partial: stop_sequence=1) | Per-band cancel rate / OTP queries |
-| `idx_transit_stop_times_tp_dep_time` | `transit_stop_times` (partial: timepoint=TRUE) | Per-band EWT scheduled-headway lookup |
-| `idx_transit_trips_service_route` | `transit_trips` | Calendar→trips join (INCLUDE trip_id, route_id) |
+| `idx_transit_alert_feed_timestamp` | `transit.alert` | Latest-alert queries |
+| GiST on `geog` column | `transit.stop` | PostGIS KNN nearest-stop queries |
+| `idx_gtfs_stop_times_stop` | `gtfs.stop_times` | Stop-level schedule queries |
+| `idx_data_patch_log_patch_id` | `public.data_patch_log` | Latest-apply lookup per dataset (for muni drift check) |
 
 ### Schedule-headway computation
 
 EWT and related scheduled-headway calculations are derived inline from
-`transit_stop_times` joined against `transit_route_timepoints` and the
-(service_id, date) pairs we observed running (via `transit_stop_delays`).
-The previous `transit_sched_headways` materialized view was dropped — it
-depended on `transit_calendar_dates`, which silently lapsed on long-lived
-deployments whenever the GTFS bundle's coverage rolled past the queried
-date range. See the `headway` recipe in `internal/transit/recipes/`
-and the chunk orchestrator in `internal/transit/chunk.go`.
+`gtfs.stop_times` joined against `transit.route_baseline` (the per-route
+timepoint projection) and the (service_id, date) pairs we observed running
+(via `transit.stop_delay`). The previous materialized sched_headways view
+was dropped — it depended on calendar_dates which silently lapsed on
+long-lived deployments whenever the GTFS bundle's coverage rolled past
+the queried date range. See the `headway` recipe in
+`internal/transit/recipes/` and the chunk orchestrator in
+`internal/transit/chunk.go`.
 
 ### Metric rollup table — `transit.route_band_chunk`
 
@@ -104,12 +107,17 @@ never percentages — aggregation happens in Go via `KPIFromChunks` in
 per-metric recipes from `internal/transit/recipes/` against the upstream
 event tables.
 
+Kept populated automatically by `ChunkRollup` (`internal/transit/chunk_rollup.go`):
+a background goroutine that does a 60-day backfill on boot and rebuilds
+today's chunks every 10 minutes. See [docs/transit-metrics.md](transit-metrics.md)
+for the full write-path + failure-mode story.
+
 ### Postgres Tuning
 
 | Setting | Default | Current | Why |
 |---------|---------|---------|-----|
 | `work_mem` | 4 MB | 16 MB | Eliminates disk-spill sorts in headway window functions |
-| `shared_buffers` | 128 MB | 256 MB | Keeps hot tables (stop_visits, transit_stop_delays) in memory |
+| `shared_buffers` | 128 MB | 256 MB | Keeps hot tables (`transit.stop_visit`, `transit.stop_delay`) in memory |
 
 ## Connection
 
@@ -134,11 +142,10 @@ Uses `pgx/v5` with connection pooling. Pool configured in `internal/database/db.
 
 `cmd/server/main.go` loads data after migrations:
 
-1. `transit.LoadStaticGTFS(ctx, db)` — Routes, stops, trips, stop_times, calendar_dates from GTFS CSV files. After loading the CSVs, this also:
-   - Refreshes `transit_route_timepoints` from the new stop_times
+1. `transit.LoadStaticGTFS(ctx, db)` — Routes, stops, trips, stop_times, calendar_dates loaded into `gtfs.*` from the GTFS CSV files, then projected into `transit.route`, `transit.route_pattern`, `transit.route_pattern_stop`, `transit.route_baseline`, `transit.scheduled_stop`, `transit.service_calendar`, `transit.stop`, `transit.trip_catalog`. After loading, this also:
    - Derives display names from headsigns where `long_name` is empty
-   - Runs `ANALYZE` on `transit_stop_times`, `transit_trips`, `transit_stops`,
-     and `transit_route_timepoints` so the planner has fresh statistics.
-     Bulk loads don't trigger autoanalyze, and stale stats caused the
-     per-band metric queries to pick pathological seq-scan plans.
+   - Runs `ANALYZE` on the freshly-loaded tables so the planner has
+     fresh statistics. Bulk loads don't trigger autoanalyze, and stale
+     stats caused the per-band metric queries to pick pathological
+     seq-scan plans.
 2. `data.LoadFIRFromDB(ctx, db)` — FIR budget data, merged into `BudgetByYear`

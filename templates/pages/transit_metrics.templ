@@ -39,7 +39,7 @@ var kpiDefs = []kpiDef{
 	},
 	{
 		Key: "ewt", Label: "Excess Wait Time", Tag: "Delay", Unit: "min",
-		Explain: "Extra minutes a random rider waits beyond the scheduled headway, measured across all stops. Compared against the published GTFS schedule.",
+		Explain: "Extra minutes riders wait beyond the scheduled headway, measured across all stops. Compared against the published GTFS schedule.",
 		Slots: [3]struct{ Attr, Class, Label string }{
 			{"ewt_morn", "kpi-p50", "Morning"},
 			{"ewt_mid", "kpi-p90", "Midday"},

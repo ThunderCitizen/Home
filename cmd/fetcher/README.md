@@ -59,12 +59,14 @@ These are the same functions the CLI subcommands call. Anything more complex tha
 
 ## After fetching
 
-Source data lives in the dev DB and on disk. To ship it to production, regenerate the patches:
+Source data lives in the dev DB and on disk. To ship it to production, republish the signed muni bundle:
 
 ```bash
-./bin/patches extract     # dev DB → patches/*.sql
-git add patches/*.sql static/...
+make muni-extract                                    # dev DB → data/muni/*.tsv + BOD.tsv
+./bin/munisign sign -key .signing-key.pub data/muni  # writes SIGNATURE
+make muni-publish                                    # zip + upload to DO Spaces
+git add static/...                                   # commit refreshed static JSON (bundle TSVs are not committed)
 git commit
 ```
 
-Then deploy the new image and `./bin/patches apply` on the production DB.
+The next server boot (once the `muni_fetch_state` 24h throttle expires) downloads the new bundle, verifies the signature, and applies any new datasets into the DB automatically.

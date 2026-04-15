@@ -55,15 +55,17 @@ WHERE id = <motion_id>;
 
 Find the motion ID on `/minutes/{meeting_id}` or query the DB. Then re-run `go run ./cmd/summarize -dump` to capture the updated significance.
 
-### Step 5: Regenerate the council patch
+### Step 5: Republish the muni bundle
 
 ```bash
-./bin/patches extract
-git add patches/0001_council_2022-2026.sql static/councillors/summaries.json
+make muni-extract
+./bin/munisign sign -key .signing-key.pub data/muni
+make muni-publish
+git add static/councillors/summaries.json
 git commit -m "Update council vote data through <date>"
 ```
 
-`patches extract` reads the now-enriched dev DB and re-writes the council patch SQL file. That patch ships in the next image and applies on fresh deploys.
+`muni extract` reads the now-enriched dev DB and rewrites `data/muni/councillors.tsv` + `data/muni/council_*.tsv` + `BOD.tsv`. `munisign` signs the bundle, `muni publish` uploads it to DO Spaces. On next boot production fetches the new bundle and applies changed datasets automatically.
 
 ---
 

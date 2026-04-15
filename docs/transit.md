@@ -4,13 +4,13 @@
 
 | Term | Definition | GTFS field |
 |------|-----------|------------|
-| **Time point** | A stop where schedule adherence is measured, located at major intersections or key destinations (hospitals, colleges, terminals). | `transit_stop_times.timepoint = TRUE` |
-| **Terminal** | The endpoint of a route. Circular routes have one terminal; linear routes have two. Terminals provide driver amenities (restrooms, refreshments). Thunder Bay has two: City Hall and Waterfront. | `transit_stops.is_terminal` |
-| **Block** | The full sequence of trips one bus performs in a service day. A single block may span multiple routes. When a bus fails, all remaining trips in the block are affected. | `transit_trips.block_id` |
-| **Block interruption** | A contiguous span of cancelled trips within a block — not a "block cancellation" (the block itself isn't cancelled, it's interrupted and may recover). | Derived from `transit_cancellations` + `transit_trips.block_id` |
-| **Headsign** | The destination displayed on the front of the bus, used to distinguish trip direction. | `transit_trips.headsign` |
+| **Time point** | A stop where schedule adherence is measured, located at major intersections or key destinations (hospitals, colleges, terminals). | `gtfs.stop_times.timepoint = TRUE` |
+| **Terminal** | The endpoint of a route. Circular routes have one terminal; linear routes have two. Terminals provide driver amenities (restrooms, refreshments). Thunder Bay has two: City Hall and Waterfront. | `transit.stop.is_terminal` |
+| **Block** | The full sequence of trips one bus performs in a service day. A single block may span multiple routes. When a bus fails, all remaining trips in the block are affected. | `gtfs.trips.block_id` |
+| **Block interruption** | A contiguous span of cancelled trips within a block — not a "block cancellation" (the block itself isn't cancelled, it's interrupted and may recover). | Derived from `transit.cancellation` + `gtfs.trips.block_id` |
+| **Headsign** | The destination displayed on the front of the bus, used to distinguish trip direction. | `gtfs.trips.headsign` |
 | **Deadhead** | Non-revenue movement of a bus between trips (e.g., repositioning from one route to another within a block). Not tracked in GTFS. | — |
-| **Layover** | Recovery time between consecutive trips in a block. Thunder Bay averages 3.7 min on route changes and 1.5 min within the same route. | Derived from `transit_stop_times` |
+| **Layover** | Recovery time between consecutive trips in a block. Thunder Bay averages 3.7 min on route changes and 1.5 min within the same route. | Derived from `gtfs.stop_times` |
 
 ## Upstream API
 
@@ -48,16 +48,16 @@ Route, stop, trip, and schedule data from CSV files, loaded into Postgres at ser
 Polls all three feeds in background goroutines:
 
 ```
-pollLoop(vehicles, 15s) → recordVehicles → transit_vehicle_positions + vehicleTracker
-pollLoop(trips, 30s)    → recordTrips    → transit_stop_delays + transit_cancellations
-pollLoop(alerts, 30s)   → recordAlerts   → transit_alerts
+pollLoop(vehicles, 15s) → recordVehicles → transit.vehicle_position + vehicleTracker
+pollLoop(trips, 30s)    → recordTrips    → transit.stop_delay + transit.cancellation
+pollLoop(alerts, 30s)   → recordAlerts   → transit.alert
 ```
 
 The recorder is a pure event writer — no in-memory aggregation. Dashboard stats are derived on-the-fly from event tables via windowed SQL queries.
 
-**`recordTrips`** upserts `transit_stop_delays` (one row per trip-stop per day) and inserts `transit_cancellations`.
+**`recordTrips`** upserts `transit.stop_delay` (one row per trip-stop per day) and inserts `transit.cancellation`.
 
-**`recordVehicles`** inserts into `transit_vehicle_positions` and calls the vehicle tracker. The tracker upserts the `transit_vehicles` fleet table, records `transit_vehicle_assignments` (vehicle-to-trip mapping), and writes `transit_stop_visits` rows for any stop the bus just reached (see Stop Visit Detection below). The live map fetches directly via the CORS proxy (`/api/transit/vehicles`).
+**`recordVehicles`** inserts into `transit.vehicle_position` and calls the vehicle tracker. The tracker upserts the `transit.vehicle` fleet table, records `transit.vehicle_assignment` (vehicle-to-trip mapping), and writes `transit.stop_visit` rows for any stop the bus just reached (see Stop Visit Detection below). The live map fetches directly via the CORS proxy (`/api/transit/vehicles`).
 
 ### Client (`client.go`)
 
@@ -68,8 +68,8 @@ GTFS-RT protobuf client. Parses feeds into Go types. Used by:
 
 ### Metrics — chunk model (`internal/transit/chunk.go`, `internal/transit/chunk/`, `internal/transit/recipes/`)
 
-Computes transit performance from `transit_stop_delays`, `transit_stop_visits`,
-`transit_stop_times`, and `transit_cancellations`. The metric unit is a
+Computes transit performance from `transit.stop_delay`, `transit.stop_visit`,
+`gtfs.stop_times`, and `transit.cancellation`. The metric unit is a
 **chunk**: 1 route × 1 day × 1 band (Morning 6–12 / Midday 12–18 / Evening 18–24),
 persisted as one row in `transit.route_band_chunk` (migration `000003`).
 
@@ -86,9 +86,9 @@ persisted as one row in `transit.route_band_chunk` (migration `000003`).
   the formulas can be audited in isolation. The orchestrator stitches
   recipe outputs into a `chunk.Chunk` and upserts it.
 - **No calendar_dates dependency** — The "scheduled trips" baseline is
-  reconstructed from `transit_stop_times` joined to the `(service_id, date)`
-  pairs the recorder observed running (via `transit_stop_delays`), not from
-  `transit_calendar_dates`. Long-lived prod DBs whose GTFS bundle has
+  reconstructed from `gtfs.stop_times` joined to the `(service_id, date)`
+  pairs the recorder observed running (via `transit.stop_delay`), not from
+  `gtfs.calendar_dates`. Long-lived prod DBs whose GTFS bundle has
   rolled past the queried range still produce correct numbers.
 - **Read path** — `Service.Chunks(ctx, from, to)` calls `ChunkCache.Range`
   in `internal/transit/chunk_cache.go`. The cache lazy-loads from the
@@ -176,7 +176,7 @@ without a fetch.
 
 Tracks the vehicle fleet and detects stop visits:
 
-- **Fleet tracking** — Upserts `transit_vehicles` table with first/last seen timestamps
+- **Fleet tracking** — Upserts `transit.vehicle` table with first/last seen timestamps
 - **Trip assignments** — Records which vehicle served which trip on each date
 - **Stop visit detection** — For each 15-second position update, checks whether the bus is within 50m of any stop on its route. Uses both point distance (current GPS fix) and line-segment distance (between the previous and current fix) via `segmentDistToPoint`, so stops the bus passed between readings still get recorded. First sighting per `(trip, stop)` wins via an in-memory dedup map
 - **Crossing time interpolation** — When a visit is matched via segment distance, the observed_at timestamp is interpolated along the segment rather than snapped to the latest feed timestamp
@@ -185,18 +185,18 @@ Tracks the vehicle fleet and detects stop visits:
 ### Stops (`stops.go`)
 
 - **`AllStops`** — Returns all stops with coordinates, route count, and transfer flag
-- **`StopPredictions`** — Fetches live GTFS-RT trip updates, filters for a specific stop, and returns predicted arrivals with delay status. Uses absolute timestamps from the feed (no dependency on matching GTFS static trip IDs). Route display info (name, color) from the `transit_routes` table.
+- **`StopPredictions`** — Fetches live GTFS-RT trip updates, filters for a specific stop, and returns predicted arrivals with delay status. Uses absolute timestamps from the feed (no dependency on matching GTFS static trip IDs). Route display info (name, color) from the `transit.route` table.
 
 ### Queries (`queries.go`)
 
 | Function | Returns | Source |
 |----------|---------|--------|
-| `DayPercentiles` | P50/P90/P99/P99.9 in 30-min buckets (24h) | `transit_stop_delays` bucketed by `last_updated` |
+| `DayPercentiles` | P50/P90/P99/P99.9 in 30-min buckets (24h) | `transit.stop_delay` bucketed by `last_updated` |
 | `DaySnapshots` | 5-min system stats (24h) | Derived on-the-fly from all `transit_*` event tables |
-| `WeekSummary` | Daily aggregates (7d) | Derived from `transit_stop_delays` + `transit_cancellations` |
-| `RouteSchedule` | Today's trips for a route | `transit_trips` + `transit_stop_times` + `transit_stop_delays` |
-| `CurrentAlerts` | Alerts from latest feed poll | `transit_alerts` |
-| `CancelledRoutes` | Routes with cancellations in latest feed poll | `transit_cancellations` |
+| `WeekSummary` | Daily aggregates (7d) | Derived from `transit.stop_delay` + `transit.cancellation` |
+| `RouteSchedule` | Today's trips for a route | `gtfs.trips` + `gtfs.stop_times` + `transit.stop_delay` |
+| `CurrentAlerts` | Alerts from latest feed poll | `transit.alert` |
+| `CancelledRoutes` | Routes with cancellations in latest feed poll | `transit.cancellation` |
 
 ### Trip Planner (`raptor.go`)
 
@@ -232,7 +232,7 @@ GTFS-RT `STOPPED_AT` observations: P50 = 11m, P95 = 48m. At 50 km/h with
 15-second polling that's ~200m of unobserved travel between fixes, which is
 why the segment-distance check (in addition to point distance) is necessary —
 without it the tracker would miss stops the bus drove past between two GPS
-readings. `transit_stop_visits` is the primary source for headway, bunching,
+readings. `transit.stop_visit` is the primary source for headway, bunching,
 Cv, and EWT calculations.
 
 ### Handler (`handler.go`)
@@ -267,7 +267,7 @@ timetable loading.
 
 ### Static GTFS Loader (`gtfs_loader.go`)
 
-Loads CSV files from `static/transit/gtfs/` into `transit_routes`, `transit_stops`, `transit_trips`, `transit_stop_times`, `transit_calendar_dates`, `transit_transfers` tables at startup. Truncates and reloads each time.
+Loads CSV files from `static/transit/gtfs/` into `transit.route`, `transit.stop`, `gtfs.trips`, `gtfs.stop_times`, `gtfs.calendar_dates`, `gtfs.transfers` tables at startup. Truncates and reloads each time.
 
 ### Protobuf (`gtfsrt/`)
 
@@ -278,36 +278,36 @@ Generated Go types from the [GTFS-RT proto spec](https://gtfs.org/realtime/proto
 ### Event Tables
 
 ```
-transit_vehicle_positions — vehicle GPS positions from every poll
-transit_stop_delays       — (date, trip_id, stop_id) PK, upserted from GTFS-RT trip updates
-transit_cancellations     — (trip_id, feed_timestamp) unique, append-only
-transit_alerts            — (alert_id, feed_timestamp) unique, append-only
+transit.vehicle_position — vehicle GPS positions from every poll
+transit.stop_delay       — (date, trip_id, stop_id) PK, upserted from GTFS-RT trip updates
+transit.cancellation     — (trip_id, feed_timestamp) unique, append-only
+transit.alert            — (alert_id, feed_timestamp) unique, append-only
 ```
 
 ### Fleet & Operational Tables
 
 ```
-transit_vehicles            — vehicle_id PK, first/last seen timestamps
-transit_vehicle_assignments — (date, vehicle_id, trip_id) PK, vehicle-to-trip mapping
-transit_feed_state          — last processed timestamp per feed type
-transit_feed_gaps           — detected gaps in polling
+transit.vehicle            — vehicle_id PK, first/last seen timestamps
+transit.vehicle_assignment — (date, vehicle_id, trip_id) PK, vehicle-to-trip mapping
+transit.feed_state          — last processed timestamp per feed type
+transit.feed_gap           — detected gaps in polling
 ```
 
 ### Schedule Tables (from static GTFS)
 
 ```
-transit_routes          — route_id PK, short_name, long_name, color
-transit_stops           — stop_id PK, stop_name, lat, lon, wheelchair, geog (PostGIS)
-transit_trips           — trip_id PK, route_id, service_id, headsign
-transit_stop_times      — (trip_id, stop_sequence) PK, arrival/departure times
-transit_calendar_dates  — (service_id, date) unique, exception_type
-transit_transfers       — (from_stop_id, to_stop_id) unique, official transfer points
+transit.route          — route_id PK, short_name, long_name, color
+transit.stop           — stop_id PK, stop_name, lat, lon, wheelchair, geog (PostGIS)
+gtfs.trips           — trip_id PK, route_id, service_id, headsign
+gtfs.stop_times      — (trip_id, stop_sequence) PK, arrival/departure times
+gtfs.calendar_dates  — (service_id, date) unique, exception_type
+gtfs.transfers       — (from_stop_id, to_stop_id) unique, official transfer points
 ```
 
 ### Stop Visits
 
 ```
-transit_stop_visits — (date, trip_id, stop_id) PK
+transit.stop_visit — (date, trip_id, stop_id) PK
                       route_id, vehicle_id, observed_at, distance_m
                       idx_sv_route_stop_date, idx_sv_stop_date, idx_sv_observed
 ```
@@ -315,10 +315,9 @@ transit_stop_visits — (date, trip_id, stop_id) PK
 ### Spatial (PostGIS)
 
 ```
-transit_stops.geog              — geography(Point, 4326), auto-populated via trigger
-transit_vehicle_positions.geog  — geography(Point, 4326), auto-populated via trigger
-idx_transit_stops_geog          — GiST index for KNN nearest-neighbor queries
-idx_evp_geog                    — GiST index for vehicle proximity queries
+transit.stop.geog              — geography(Point, 4326), auto-populated via trigger
+transit.vehicle_position.geog  — geography(Point, 4326), auto-populated via trigger
+idx_transit_stop_geog           — GiST index on transit.stop for KNN nearest-neighbor queries
 ```
 
 ## HTTP Endpoints
@@ -380,7 +379,7 @@ Two ways to get data into the dev DB:
 
 1. **Real data via the recorder.** Bring up the dev server and let the
    in-process GTFS-RT recorder collect for a few minutes — it populates
-   `transit_vehicle_positions`, `transit_stop_delays`, `transit_stop_visits`,
+   `transit.vehicle_position`, `transit.stop_delay`, `transit.stop_visit`,
    etc. Then `./bin/fetcher chunks` rolls those events into
    `transit.route_band_chunk` for whatever date range you ask for.
 2. **Synthetic chunks via `seedtransit`.** `go run ./cmd/seedtransit` (or

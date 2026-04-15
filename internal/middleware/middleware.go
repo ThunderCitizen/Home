@@ -2,6 +2,8 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -9,29 +11,64 @@ import (
 	"thundercitizen/internal/logger"
 )
 
-var log = logger.New("http")
+var baseLog = logger.New("http")
+
+// RequestID generates a short random id, attaches a logger tagged with
+// that id to the request context, and mirrors the id on the response via
+// X-Request-ID. Downstream handlers and middleware should reach for
+// logger.FromContext(r.Context()) so their logs carry the same id —
+// this is what lets you grep `req_id=abc123` across the request log,
+// any handler logs, and the panic log for a single request.
+func RequestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := newRequestID()
+		l := baseLog.With("req_id", id)
+		w.Header().Set("X-Request-ID", id)
+		next.ServeHTTP(w, r.WithContext(logger.Into(r.Context(), l)))
+	})
+}
+
+func newRequestID() string {
+	var b [6]byte
+	_, _ = rand.Read(b[:])
+	return hex.EncodeToString(b[:])
+}
 
 // RequestLogger logs method, path, status, and duration for every request.
+// Level is status-aware: 5xx at Error, 4xx at Warn, everything else at
+// Info. Pulls the logger from the request context so the per-request id
+// set by RequestID is included.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, status: 200}
 		next.ServeHTTP(sw, r)
-		log.Info("request",
+		l := logger.FromContext(r.Context())
+		attrs := []any{
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", sw.status,
 			"duration", time.Since(start),
-		)
+		}
+		switch {
+		case sw.status >= 500:
+			l.Error("request", attrs...)
+		case sw.status >= 400:
+			l.Warn("request", attrs...)
+		default:
+			l.Info("request", attrs...)
+		}
 	})
 }
 
-// Recoverer catches panics, logs the stack trace, and returns 500.
+// Recoverer catches panics, logs the stack trace, and returns 500. Pulls
+// the logger from the request context so the panic log carries the same
+// req_id as the rest of the request's logs.
 func Recoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Error("panic recovered",
+				logger.FromContext(r.Context()).Error("panic recovered",
 					"err", err,
 					"method", r.Method,
 					"path", r.URL.Path,

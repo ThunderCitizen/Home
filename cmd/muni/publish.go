@@ -50,8 +50,8 @@ func runPublish(args []string) {
 
 	// 2. Build the versioned zip. Name is content-addressed so old bundles
 	//    remain fetchable for audit/rollback.
-	date := time.Now().UTC().Format("2006-01-02")
-	versioned := fmt.Sprintf("%s-muni-%s.zip", date, v.MerkleRoot[:12])
+	now := time.Now().UTC()
+	versioned := fmt.Sprintf("%s-muni-%s.zip", now.Format("2006-01-02"), v.MerkleRoot[:12])
 	zipPath := filepath.Join("data", versioned)
 	if err := os.MkdirAll("data", 0o755); err != nil {
 		fail("mkdir data: %v", err)
@@ -69,7 +69,7 @@ func runPublish(args []string) {
 		Bundle:            versioned,
 		MerkleRoot:        v.MerkleRoot,
 		SignerFingerprint: v.SignerFingerprint,
-		PublishedAt:       time.Now().UTC().Format(time.RFC3339),
+		PublishedAt:       now.Format(time.RFC3339),
 	}
 	indexPath := filepath.Join("data", "index.json")
 	if err := writeJSON(indexPath, idx); err != nil {
@@ -110,12 +110,14 @@ func runPublish(args []string) {
 	// pointer. A server fetching between the two calls sees either the
 	// previous complete state or the new complete state, never a broken
 	// index pointing at a missing bundle.
-	if err := putPublic(ctx, client, versioned, zipPath, "application/zip"); err != nil {
+	// Bundle is content-addressed — safe to cache forever.
+	if err := putPublic(ctx, client, versioned, zipPath, "application/zip", "public, max-age=31536000, immutable"); err != nil {
 		fail("upload bundle: %v", err)
 	}
 	logf("uploaded  %s/%s", spacesBucket, versioned)
 
-	if err := putPublic(ctx, client, indexKey, indexPath, "application/json"); err != nil {
+	// Index is the mutable pointer — keep CDN/browser revalidation tight.
+	if err := putPublic(ctx, client, indexKey, indexPath, "application/json", "public, max-age=60, must-revalidate"); err != nil {
 		fail("upload index: %v", err)
 	}
 	logf("uploaded  %s/%s", spacesBucket, indexKey)
@@ -137,32 +139,45 @@ func runPublish(args []string) {
 }
 
 // putPublic uploads a file to DO Spaces with public-read ACL.
-func putPublic(ctx context.Context, c *minio.Client, key, src, ctype string) error {
+func putPublic(ctx context.Context, c *minio.Client, key, src, ctype, cacheControl string) error {
 	_, err := c.FPutObject(ctx, spacesBucket, key, src, minio.PutObjectOptions{
-		ContentType: ctype,
-		UserMetadata: map[string]string{
-			// DO Spaces accepts the x-amz-acl header verbatim.
-			"x-amz-acl": "public-read",
-		},
+		ContentType:  ctype,
+		CacheControl: cacheControl,
+		// minio-go's isAmzHeader passes x-amz-acl through from UserMetadata
+		// as a raw canned-ACL header (not x-amz-meta-*).
+		UserMetadata: map[string]string{"x-amz-acl": "public-read"},
 	})
 	return err
 }
 
-// headOK confirms a public URL returns 200.
+// headOK confirms a public URL returns 200. Retries once to smooth over
+// DO Spaces edge-cache propagation right after an upload.
 func headOK(ctx context.Context, url string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
-	if err != nil {
-		return err
+	var lastErr error
+	for attempt := 0; attempt < 2; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(time.Second):
+			}
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
+		if err != nil {
+			return err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			return nil
+		}
+		lastErr = fmt.Errorf("%s returned HTTP %d", url, resp.StatusCode)
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s returned HTTP %d", url, resp.StatusCode)
-	}
-	return nil
+	return lastErr
 }
 
 // zipFlat writes a flat zip of every regular file in srcDir (no nested paths).
@@ -181,24 +196,27 @@ func zipFlat(srcDir, outPath string) error {
 	w := zip.NewWriter(out)
 	defer w.Close()
 
+	copyOne := func(name string) error {
+		src, err := os.Open(filepath.Join(srcDir, name))
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+		dst, err := w.Create(name)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(dst, src)
+		return err
+	}
+
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
 		}
-		src, err := os.Open(filepath.Join(srcDir, e.Name()))
-		if err != nil {
+		if err := copyOne(e.Name()); err != nil {
 			return err
 		}
-		dst, err := w.Create(e.Name())
-		if err != nil {
-			src.Close()
-			return err
-		}
-		if _, err := io.Copy(dst, src); err != nil {
-			src.Close()
-			return err
-		}
-		src.Close()
 	}
 	return nil
 }

@@ -172,20 +172,22 @@ curl -I http://thundercitizen.com/   # should print HTTP/1.1 302 + Location: htt
 
 ## 8. Database seed (automatic)
 
-Nothing to do here — both schema migrations and data patches (councillor
-biographies, council motions/votes, FY2026 budget accounts + ledger, …)
-are applied automatically by the app on every boot. Patches are
-content-checksummed and tracked in `data_patch_log`, so subsequent boots
-no-op once everything has been applied.
+Nothing to do here — both schema migrations and the curated **muni bundle**
+(councillor biographies, council motions/votes, budget accounts + ledger,
+wards) are loaded automatically by the app on every boot. On startup the
+server downloads the signed bundle from `data.thundercitizen.ca`, verifies
+the signature, and applies any datasets whose SHA-256 isn't already in
+`data_patch_log`. Subsequent boots no-op; the first check is throttled by
+`muni_fetch_state.last_checked_at` (24h window).
 
 To verify after the first `./scripts/run.sh`:
 
 ```bash
 ./scripts/run.sh exec -T db psql -U thundercitizen -d thundercitizen -c \
-    "SELECT patch_id, action, at FROM data_patch_log ORDER BY at;"
+    "SELECT patch_id, action, signer, at FROM data_patch_log ORDER BY at;"
 ```
 
-You should see one `apply` row per patch file in `patches/`.
+You should see one `apply` row per dataset in the bundle's `BOD.tsv`.
 
 To reseed from scratch (e.g. testing): wipe the postgres volume and bring
 the stack back up — the app re-applies everything on boot.
@@ -273,6 +275,56 @@ follow the restore command above before bringing up the app. The
 `init` service will still generate a fresh password — the dump's
 data overwrites whatever the fresh DB started with.
 
+## Logs and retention
+
+### Caddy access log (the one with IPs and user agents)
+
+Caddy writes access logs to a file inside the container, bind-mounted to
+`./caddy-logs/` on the host so you can tail from the host:
+
+```bash
+tail -f caddy-logs/access.log            # live
+ls -la caddy-logs/                       # rotated files (access.log.*)
+```
+
+Retention is enforced by Caddy itself, not Docker:
+
+- `roll_at 05:00` — rotates a fresh file at 00:00 Eastern Standard Time
+  (05:00 UTC; the host itself runs in UTC).
+- `roll_keep_for 168h` — deletes rotated files older than 7 days at the next
+  rotation.
+- `roll_size 100mb` — safety cap if daily traffic ever blows up.
+- `roll_keep 10` — belt-and-suspenders count cap.
+
+The access log is filtered: `Referer`, `Cookie`, and `Authorization` headers
+are dropped at log-write time, the query-string portion of the URI is
+stripped, and requests under `/static/*` are skipped entirely. Kept fields
+are IP, method, path, status, duration, User-Agent, timestamp.
+
+### Container stdout/stderr (Caddy lifecycle, app, db)
+
+Every long-running service (`db`, `app`, `caddy`) pins the Docker `json-file`
+log driver to `max-size: 20m`, `max-file: 5` — a rolling ~100MB per container.
+These streams carry no PII (the Go app logs only method, path, status,
+duration; Postgres logs queries and connections; Caddy's stderr is certificate
+and server events — the access log goes to the file above, not here).
+
+```bash
+docker compose -f docker-compose.prod.yml logs caddy --tail 50    # Caddy server/cert events
+docker compose -f docker-compose.prod.yml logs app --tail 50      # app log (slog text)
+docker compose -f docker-compose.prod.yml logs db --tail 50       # Postgres log
+```
+
+On disk the raw files live at
+`/var/lib/docker/containers/<container-id>/<container-id>-json.log*`.
+
+### Changing retention
+
+- **Access log age:** edit `roll_keep_for` in the Caddyfile block inside
+  `docker-compose.prod.yml`, then `docker compose up -d --force-recreate caddy`.
+- **Container stdout size cap:** edit `logging.options` on the service,
+  same recreate command.
+
 ## Troubleshooting
 
 **Caddy can't get a cert:**
@@ -290,7 +342,7 @@ docker compose -f docker-compose.prod.yml exec db psql -U thundercitizen -l
 **Force GTFS reload** (routes disappeared but hash still stored):
 ```bash
 ./scripts/run.sh exec -T db psql -U thundercitizen -d thundercitizen \
-    -c "DELETE FROM transit_feed_state WHERE feed_type = 'gtfs_static';"
+    -c "DELETE FROM transit.feed_state WHERE feed_type = 'gtfs_static';"
 ./scripts/run.sh up -d --force-recreate app
 ./scripts/run.sh logs --since=30s -f app 2>&1 | grep -i gtfs
 ```

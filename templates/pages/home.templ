@@ -7,6 +7,38 @@ import (
 	"thundercitizen/templates/components"
 )
 
+templ nextMeetingCard(m views.NextMeeting) {
+	<div class="next-meeting">
+		<div class="next-meeting-when">
+			<strong>{ m.Date }</strong>
+			if m.Time != "" {
+				<span class="next-meeting-time">{ m.Time }</span>
+			}
+			if m.Type != "" {
+				<span class="next-meeting-type">{ m.Type }</span>
+			}
+		</div>
+		if m.Summary != "" {
+			<p class="next-meeting-summary">{ m.Summary }</p>
+		}
+		if len(m.KeyItems) > 0 {
+			<ul class="next-meeting-items">
+				for _, item := range m.KeyItems {
+					<li>{ item }</li>
+				}
+			</ul>
+		}
+		<p class="next-meeting-links">
+			if m.AgendaURL != "" {
+				<a href={ templ.SafeURL(m.AgendaURL) } target="_blank" rel="noopener">Agenda &rarr;</a>
+			}
+			if m.EventURL != "" {
+				<a href={ templ.SafeURL(m.EventURL) } target="_blank" rel="noopener">Event details &rarr;</a>
+			}
+		</p>
+	</div>
+}
+
 templ Home(vm views.HomeViewModel) {
 	@templates.Layout("Home") {
 		<div class="home">
@@ -47,6 +79,14 @@ templ Home(vm views.HomeViewModel) {
 				}
 			</div>
 		</section>
+
+		if vm.NextMeeting != nil {
+			<section class="home-section">
+				@components.Card(components.CardProps{Title: "Next Council Meeting"}) {
+					@nextMeetingCard(*vm.NextMeeting)
+				}
+			</section>
+		}
 
 		<div class="home-bottom grid cols-2">
 			@components.Card(components.CardProps{Title: "Notice Board"}) {

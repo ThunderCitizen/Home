@@ -20,6 +20,8 @@
       surfaceDark:    get("--surface-dark"),
       textColor:      get("--pico-color"),
       termAccent:     get("--term-accent"),
+      termBg:         get("--term-bg"),
+      termFgDim:      get("--term-fg-dim"),
     };
     return cache;
   }

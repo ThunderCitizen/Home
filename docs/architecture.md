@@ -40,21 +40,20 @@ For transit API endpoints, the handler returns JSON directly from the Reporter.
 
 ```
 cmd/
-    server/main.go            Entry point, routing, middleware, server setup
-    fetcher/                  Manual CLI: fetcher {budget,gtfs,votes,wards}
+    server/main.go            Entry point, routing, middleware, server setup (also auto-applies muni bundle on boot)
+    fetcher/                  Manual CLI: fetcher {budget,gtfs,votes,wards,chunks}
     summarize/main.go         LLM motion summarizer
     auditbudget/main.go       Verifies the budget ledger sub-ledgers balance
     buildshapes/main.go       Generates route-shapes.json from GTFS
     gentstypes/main.go        Generates TypeScript interfaces from Go API structs
     perftest/main.go          Hits every server route, prints latency report
-patches/
-    cmd/cli/                  CLI: patches {extract,apply}
-    patches.go                Tracker (Apply, Down, Status), embed FS, drift detection
-    *.sql                     Curated data patches (commit these)
+    seedtransit/              Synthetic transit chunks for dev (when GTFS hasn't been loaded)
+    muni/                     CLI: muni {extract,publish} — build & ship the signed data bundle
+    munisign/                 CLI: keygen/sign/verify for muni bundle signatures
 internal/
     config/                   Environment configuration
     database/                 PostgreSQL connection pool + health check
-    fetch/                    Shared Source struct used by all four fetcher subcommands
+    fetch/                    Shared Source struct used by all fetcher subcommands
     logger/                   Structured logging (log/slog wrapper with component tags)
     httperr/                  Consistent JSON error responses (BadRequest, Internal, etc.)
     middleware/               HTTP middleware (RequestLogger, Recoverer, SecureHeaders)
@@ -65,6 +64,7 @@ internal/
     council/                  Council minutes scraper, vote parser, DB store + DiscoverVoteSources/FetchVotes
     transit/                  GTFS-RT recording, reporting, metrics + DiscoverGTFSSources/FetchGTFS
     wards/                    Open North ward boundary fetcher (DiscoverSources/Fetch)
+    muni/                     Signed data-bundle loader: parses BOD.tsv, dispatches per-dataset plugins, tracks apply/drift in data_patch_log
 templates/
     layout.templ              Base layout with nav, footer
     components/               Reusable Pico CSS components
@@ -132,49 +132,50 @@ Year range is dynamic — derived from current date, not hardcoded. Driven by `.
 
 Event-sourced transit analytics. See [docs/transit.md](transit.md) for full details.
 
-**Write path:** Recorder polls 3 GTFS-RT feeds, writes to 4 event tables (`transit_vehicle_positions`, `transit_stop_delays`, `transit_cancellations`, `transit_alerts`).
+**Write path:** Recorder polls 3 GTFS-RT feeds, writes to 4 event tables (`transit.vehicle_position`, `transit.stop_delay`, `transit.cancellation`, `transit.alert`).
 
 **Read path:** Reporter assembles reports from event data via windowed SQL queries. No pre-computed snapshots — dashboard data derived on-the-fly.
 
 **Metrics:** System and per-route metrics (EWT, OTP, cancellation rate, headway Cv, bunching) computed from event data. EWT is the primary rider-facing metric. Per-route detail pages show full breakdowns.
 
-**Stop detection:** The vehicle tracker records `transit_stop_visits` rows when a bus is within 50m of a stop on its route — checking both the current GPS fix and the line segment between the previous and current positions (catches stops the bus passed between 15-second readings). Feeds headway/bunching/EWT calculations.
+**Stop detection:** The vehicle tracker records `transit.stop_visit` rows when a bus is within 50m of a stop on its route — checking both the current GPS fix and the line segment between the previous and current positions (catches stops the bus passed between 15-second readings). Feeds headway/bunching/EWT calculations.
 
 ## Data Provenance
 
 Provenance lives in two places:
 
-1. **`data_patch_log`** — append-only audit table that records every Apply and Down of a curated SQL data patch, with the SHA-256 of the patch body at the time of action. Tells you exactly what data shipped, when, and what version of the patch produced it. See [patches/README.md](../patches/README.md).
-2. **Source files in `static/`** — `static/budget/fir_YYYY.json`, `static/councillors/votes_*.json`, `static/transit/gtfs/*.txt` etc. are committed (or .gitignored and regenerated via `./bin/fetcher`) and represent the latest fetched state. They're the input to the patch generator (`./bin/patches extract`).
+1. **`data_patch_log`** — append-only audit table that records every dataset applied from a muni bundle, with the SHA-256 of the dataset TSV and the bundle signer. Tells you exactly what data shipped, when, and who signed it.
+2. **`muni_fetch_state`** (migration `000007`) — single-row throttle table (`last_checked_at timestamptz`). On boot the server skips the bundle download entirely if the last check is within 24h.
+3. **Source files in `static/`** — `static/budget/fir_YYYY.json`, `static/councillors/votes_*.json`, `static/transit/gtfs/*.txt` etc. are committed (or .gitignored and regenerated via `./bin/fetcher`) and represent the latest fetched state. They're the input to the muni extractor (`./bin/muni extract`).
 
-The earlier `documents` + `facts` + `fact_citations` citation graph was removed pre-launch — it was write-only after the CPI removal, and the patches mechanism gives the same audit story for the data we actually ship.
+The earlier `documents` + `facts` + `fact_citations` citation graph was removed pre-launch — it was write-only after the CPI removal, and the bundle mechanism gives the same audit story for the data we actually ship.
 
 ### Two Types of Data — Know Which You're Adding
 
 | Source type | Example | Storage |
 |---|---|---|
-| **Downloadable file** | FIR XLSX, GTFS ZIP, minutes PDF | Static file under `static/`, then a SQL patch (`./bin/patches extract`) for whatever needs to land in the DB |
-| **Live feed / stream** | GTFS-RT protobuf (vehicle positions, delays) | `transit_*` event tables (append-only) — recorded by `internal/transit/recorder.go` |
+| **Downloadable file** | FIR XLSX, GTFS ZIP, minutes PDF | Static file under `static/`, then a TSV in the muni bundle (`./bin/muni extract`) for whatever needs to land in the DB |
+| **Live feed / stream** | GTFS-RT protobuf (vehicle positions, delays) | `transit.*` event tables (append-only) — recorded by `internal/transit/recorder.go` |
 
-**Rule**: if you can download it and hash it, it goes through `./bin/fetcher` → static file → patch. If it's a continuous feed, it's events → domain tables → no patch.
+**Rule**: if you can download it and hash it, it goes through `./bin/fetcher` → static file → muni bundle. If it's a continuous feed, it's events → domain tables → no bundle.
 
 ### Adding a New Data Source
 
 1. Write a small `Discover*Sources(ctx, opts) ([]fetch.Source, error)` and `Fetch*(ctx, opts) error` pair in the relevant `internal/<package>/` directory (mirror `internal/budget/firsource.go`)
 2. Add a subcommand in `cmd/fetcher/<name>.go` that calls Discover → printSources → confirm → Fetch
-3. If the data needs to ship to production, add an extractor entry in `patches/cmd/cli/extract.go` so `./bin/patches extract` produces a patch SQL file
+3. If the data needs to ship to production, add an extractor in `cmd/muni/` (emits one TSV + a `BOD.tsv` row) and a matching plugin in `internal/muni/plugins.go` to load it back into the DB
 
 ## Key Patterns
 
 - **Reporter pattern** — Handler is a thin HTTP adapter; data assembly lives in `Reporter`
 - **Event-sourced transit** — Raw events are source of truth; all analytics derived via SQL
-- **Static source files** — Budget JSON, council JSON, GTFS .txt: downloaded into `static/`, regenerated via `./bin/fetcher`, committed (or extracted into patches)
+- **Static source files** — Budget JSON, council JSON, GTFS .txt: downloaded into `static/`, regenerated via `./bin/fetcher`, committed (or extracted into a muni bundle)
 - **Structured logging** — `logger.New("component")` → tagged slog output with levels
 - **Consistent errors** — `httperr` package for all JSON API error responses
 - **Middleware stack** — Panic recovery, security headers, request logging
 - **View models** — Handlers build view models, pass to templates; domain models stay pure
 - **Component composition** — Templates compose via `@Component(props) { children }`
-- **Source attribution** — Patch SQL files carry SHA-256 fingerprints in `data_patch_log`; every apply/down is timestamped
+- **Source attribution** — Muni bundle datasets carry SHA-256 fingerprints + signer in `data_patch_log`; every apply is timestamped
 - **Progressive enhancement** — Pages work without JS; Leaflet/D3/HTMX enhance when available
 - **Client-side switching** — Budget years and council terms switch via embedded JSON without page reloads
 - **Animated interactions** — Accordion open/close, modal entrance/exit, ward map hover states
