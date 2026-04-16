@@ -3,6 +3,7 @@ package council
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -134,7 +135,8 @@ type MeetingFilter struct {
 	Term          string // "2018-2022", "2022-2026", or ""
 	Query         string // full-text search across motions
 	RecordedVotes bool   // only meetings with recorded votes
-	Defeated      bool   // only meetings with lost motions
+	Headline      bool   // only meetings with headline motions
+	Notable       bool   // only meetings with notable motions
 	Limit         int
 	Offset        int
 }
@@ -155,6 +157,7 @@ type MeetingSummary struct {
 	NotableCount    int
 	RoutineCount    int
 	ProceduralCount int
+	MediaCount      int
 }
 
 // ListMeetingSummaries returns meetings with motion counts, filterable and paginated.
@@ -183,8 +186,11 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 	if f.RecordedVotes {
 		where += " AND EXISTS (SELECT 1 FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.raw_text != '')"
 	}
-	if f.Defeated {
-		where += " AND EXISTS (SELECT 1 FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.result = 'LOST')"
+	if f.Headline {
+		where += " AND EXISTS (SELECT 1 FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.significance = 'headline')"
+	}
+	if f.Notable {
+		where += " AND EXISTS (SELECT 1 FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.significance IN ('headline', 'notable'))"
 	}
 
 	var total int
@@ -205,7 +211,8 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'headline'),
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'notable'),
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'routine'),
-		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'procedural')
+		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'procedural'),
+		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.media_url IS NOT NULL)
 		FROM council_meetings m
 		%s
 		ORDER BY m.date DESC
@@ -222,7 +229,7 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 		var ms MeetingSummary
 		if err := rows.Scan(&ms.ID, &ms.Date, &ms.Title, &ms.Term, &ms.MinutesURL,
 			&ms.Summary, &ms.MotionCount, &ms.RecordedVotes, &ms.CarriedCount, &ms.LostCount,
-			&ms.HeadlineCount, &ms.NotableCount, &ms.RoutineCount, &ms.ProceduralCount); err != nil {
+			&ms.HeadlineCount, &ms.NotableCount, &ms.RoutineCount, &ms.ProceduralCount, &ms.MediaCount); err != nil {
 			return nil, 0, err
 		}
 		meetings = append(meetings, ms)
@@ -237,30 +244,76 @@ type MeetingDetail struct {
 	Title      string
 	Term       string
 	MinutesURL string
+	Summary    string // LLM meeting summary (same field used on the minutes index)
 	Motions    []MotionRow
+}
+
+// MeetingSlug builds a URL-safe slug from a meeting title and date.
+// e.g. "City Council" + "2026-02-17" → "city-council-2026-02-17"
+func MeetingSlug(title, date string) string {
+	s := strings.ToLower(title)
+	s = strings.ReplaceAll(s, " ", "-")
+	return s + "-" + date
+}
+
+// ParseMeetingSlug extracts title prefix and date from a slug.
+// "city-council-2026-02-17" → ("city council", "2026-02-17")
+func ParseMeetingSlug(slug string) (title, date string, ok bool) {
+	// Date is always the last 10 chars: YYYY-MM-DD
+	if len(slug) < 11 || slug[len(slug)-11] != '-' {
+		return "", "", false
+	}
+	date = slug[len(slug)-10:]
+	// Validate date format
+	if len(date) != 10 || date[4] != '-' || date[7] != '-' {
+		return "", "", false
+	}
+	prefix := slug[:len(slug)-11]
+	title = strings.ReplaceAll(prefix, "-", " ")
+	return title, date, true
+}
+
+// GetMeetingBySlug returns a meeting by its slug (e.g. "city-council-2026-02-17").
+func (s *Store) GetMeetingBySlug(ctx context.Context, slug string) (*MeetingDetail, error) {
+	title, date, ok := ParseMeetingSlug(slug)
+	if !ok {
+		return nil, pgx.ErrNoRows
+	}
+	md := &MeetingDetail{}
+	err := s.db.QueryRow(ctx, `
+		SELECT id, date::text, title, term, COALESCE(minutes_url, ''), COALESCE(llm_summary, '')
+		FROM council_meetings WHERE date = $1::date AND LOWER(title) = $2 ORDER BY id LIMIT 1`, date, title,
+	).Scan(&md.ID, &md.Date, &md.Title, &md.Term, &md.MinutesURL, &md.Summary)
+	if err != nil {
+		return nil, err
+	}
+	return s.loadMeetingMotions(ctx, md)
 }
 
 // GetMeetingByID returns a single meeting with all its motions + vote summaries.
 func (s *Store) GetMeetingByID(ctx context.Context, id string) (*MeetingDetail, error) {
 	md := &MeetingDetail{}
 	err := s.db.QueryRow(ctx, `
-		SELECT id, date::text, title, term, COALESCE(minutes_url, '')
+		SELECT id, date::text, title, term, COALESCE(minutes_url, ''), COALESCE(llm_summary, '')
 		FROM council_meetings WHERE id = $1`, id,
-	).Scan(&md.ID, &md.Date, &md.Title, &md.Term, &md.MinutesURL)
+	).Scan(&md.ID, &md.Date, &md.Title, &md.Term, &md.MinutesURL, &md.Summary)
 	if err != nil {
 		return nil, err
 	}
+	return s.loadMeetingMotions(ctx, md)
+}
 
+func (s *Store) loadMeetingMotions(ctx context.Context, md *MeetingDetail) (*MeetingDetail, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT mo.id, m.date::text, m.term, m.id, COALESCE(m.minutes_url, ''),
-		       mo.agenda_item, COALESCE(mo.llm_summary, ''), mo.moved_by, mo.seconded_by, mo.motion_text, mo.result,
+		       mo.agenda_item, COALESCE(mo.llm_label, ''), COALESCE(mo.llm_summary, ''), mo.moved_by, mo.seconded_by, mo.motion_text, mo.result,
 		       mo.significance, mo.media_url,
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'for'), 0),
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'against'), 0)
 		FROM council_motions mo
 		JOIN council_meetings m ON m.id = mo.meeting_id
 		WHERE mo.meeting_id = $1
-		ORDER BY mo.motion_index`, id)
+		ORDER BY mo.motion_index`, md.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +322,7 @@ func (s *Store) GetMeetingByID(ctx context.Context, id string) (*MeetingDetail, 
 	for rows.Next() {
 		var mr MotionRow
 		if err := rows.Scan(&mr.ID, &mr.Date, &mr.Term, &mr.MeetingID, &mr.MinutesURL,
-			&mr.AgendaItem, &mr.Summary, &mr.MovedBy, &mr.SecondedBy, &mr.Text, &mr.Result,
+			&mr.AgendaItem, &mr.Label, &mr.Summary, &mr.MovedBy, &mr.SecondedBy, &mr.Text, &mr.Result,
 			&mr.Significance, &mr.MediaURL, &mr.YeaCount, &mr.NayCount); err != nil {
 			return nil, err
 		}
@@ -296,6 +349,7 @@ type MotionRow struct {
 	MeetingID    string
 	MinutesURL   string
 	AgendaItem   string
+	Label        string // LLM-generated short title, fallback when AgendaItem empty
 	Summary      string
 	MovedBy      string
 	SecondedBy   string
@@ -385,7 +439,7 @@ func (s *Store) SearchMotions(ctx context.Context, f MotionFilter) ([]MotionRow,
 
 	dataSQL := fmt.Sprintf(`
 		SELECT mo.id, m.date::text, m.term, m.id, COALESCE(m.minutes_url, ''),
-		       mo.agenda_item, COALESCE(mo.llm_summary, ''), mo.moved_by, mo.seconded_by, mo.motion_text, mo.result,
+		       mo.agenda_item, COALESCE(mo.llm_label, ''), COALESCE(mo.llm_summary, ''), mo.moved_by, mo.seconded_by, mo.motion_text, mo.result,
 		       mo.significance, mo.media_url,
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'for'), 0),
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'against'), 0)
@@ -403,7 +457,7 @@ func (s *Store) SearchMotions(ctx context.Context, f MotionFilter) ([]MotionRow,
 	for rows.Next() {
 		var mr MotionRow
 		if err := rows.Scan(&mr.ID, &mr.Date, &mr.Term, &mr.MeetingID, &mr.MinutesURL,
-			&mr.AgendaItem, &mr.Summary, &mr.MovedBy, &mr.SecondedBy, &mr.Text, &mr.Result,
+			&mr.AgendaItem, &mr.Label, &mr.Summary, &mr.MovedBy, &mr.SecondedBy, &mr.Text, &mr.Result,
 			&mr.Significance, &mr.MediaURL, &mr.YeaCount, &mr.NayCount); err != nil {
 			return nil, 0, err
 		}
@@ -773,6 +827,7 @@ type HeadlineVote struct {
 	MediaURL   string
 	MeetingID  string
 	MotionID   int64
+	Date       string
 }
 
 // HeadlineVotes returns motions with significance='headline' for a term.
@@ -781,7 +836,7 @@ func (s *Store) HeadlineVotes(ctx context.Context, term string) ([]HeadlineVote,
 		SELECT COALESCE(NULLIF(mo.agenda_item, ''), LEFT(mo.motion_text, 80)),
 		       mo.result,
 		       COALESCE(mo.media_url, ''),
-		       m.id, mo.id,
+		       m.id, mo.id, m.date::text,
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'for'), 0),
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'against'), 0)
 		FROM council_motions mo
@@ -797,7 +852,7 @@ func (s *Store) HeadlineVotes(ctx context.Context, term string) ([]HeadlineVote,
 	for rows.Next() {
 		var hv HeadlineVote
 		var yea, nay int
-		if err := rows.Scan(&hv.AgendaItem, &hv.Result, &hv.MediaURL, &hv.MeetingID, &hv.MotionID, &yea, &nay); err != nil {
+		if err := rows.Scan(&hv.AgendaItem, &hv.Result, &hv.MediaURL, &hv.MeetingID, &hv.MotionID, &hv.Date, &yea, &nay); err != nil {
 			return nil, err
 		}
 		if yea+nay > 0 {

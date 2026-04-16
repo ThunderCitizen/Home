@@ -4,13 +4,13 @@
   const tc = ThemeColors();
 
   const WARD_COLORS = {
-    "Current River": "#2563eb",
-    "McIntyre": "#059669",
-    "McKellar": "#d97706",
-    "Westfort": "#dc2626",
-    "Neebing": "#7c3aed",
-    "Northwood": "#0891b2",
-    "Red River": "#be185d",
+    "Current River": "#60a5fa",
+    "McIntyre":      "#4ade80",
+    "McKellar":      "#fbbf24",
+    "Westfort":      "#f87171",
+    "Neebing":       "#c084fc",
+    "Northwood":     "#22d3ee",
+    "Red River":     "#f472b6",
   };
 
   const el = document.getElementById("ward-map");
@@ -24,12 +24,23 @@
   let geojsonLayer = null;
   let activeWard = null;
 
+  // Ward → councillor name lookup, embedded by the template.
+  const WARD_COUNCILLORS = (function () {
+    const el = document.getElementById("ward-councillors");
+    if (!el) return {};
+    try { return JSON.parse(el.textContent || "{}"); } catch (e) { return {}; }
+  })();
+
   function showInfo(name) {
     if (!infoBar || !name) return;
     const color = WARD_COLORS[name] || tc.statusMuted;
+    const councillor = WARD_COUNCILLORS[name];
+    const line = councillor
+      ? '<span class="ward-name">' + name + ' Ward</span>' +
+        '<span class="ward-councillor">' + councillor + '</span>'
+      : '<span class="ward-name">' + name + ' Ward</span>';
     infoBar.innerHTML =
-      '<span class="ward-dot" style="background:' + color + '"></span>' +
-      '<span class="ward-name">' + name + ' Ward</span>';
+      '<span class="ward-dot" style="background:' + color + '"></span>' + line;
     infoBar.classList.add("info-bar-visible");
   }
 

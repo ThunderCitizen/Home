@@ -14,7 +14,8 @@ type Councillor struct {
 	Name         string
 	Position     string // Role or ward name (e.g., "Budget Chair", "Current River")
 	Term         string // e.g., "5th term"
-	Status       string // e.g., "Not seeking re-election"
+	Status       string // e.g., "Stepping down", "Not seeking re-election"
+	StatusURL    string // optional source link (e.g. announcement article)
 	Summary      string
 	ShortSummary string // one-liner for map popups
 	Photo        string // filename in static/councillors/ (e.g., "boshcoff.jpg")

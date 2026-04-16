@@ -1,0 +1,32 @@
+package components
+
+// HeroStatsProps defines a terminal-styled hero card for prominent page-level
+// statistics. Wraps TermPanel with hero-sized stat numbers. Pass a StatGrid
+// (or any stat layout) as children.
+//
+// Usage:
+//
+//	@components.HeroStats(components.HeroStatsProps{
+//	    Title: "Council Meeting Minutes",
+//	    Lead:  "Browse council meetings and motions.",
+//	    Footer: disclaimerComponent(),
+//	}) {
+//	    @components.StatGrid(...)
+//	}
+type HeroStatsProps struct {
+	Title  string          // terminal header label
+	Lead   string          // optional prose paragraph below stats
+	Footer templ.Component // optional footer slot (disclaimer, source)
+	Accent string          // optional left-border accent color
+}
+
+templ HeroStats(props HeroStatsProps) {
+	@TermPanel(TermPanelProps{Title: props.Title, Accent: props.Accent, Footer: props.Footer}) {
+		<div class="hero-stats">
+			{ children... }
+			if props.Lead != "" {
+				<p class="hero-stats-lead">{ props.Lead }</p>
+			}
+		</div>
+	}
+}

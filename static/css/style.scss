@@ -15,6 +15,7 @@
 @use "budget";
 @use "transit";
 @use "council";
+@use "pages";
 
 // ==========================================================================
 // SKELETON LOADING
@@ -42,6 +43,10 @@
 // LAYOUT
 // ==========================================================================
 
+html {
+  overflow-x: clip; // iOS scroll propagation backstop — body clip alone isn't enough
+}
+
 body {
   min-height: 100vh;
   display: flex;
@@ -49,6 +54,7 @@ body {
   margin: 0;
   background: var(--thunder-50);
   color: var(--thunder-800);
+  overflow-x: clip; // safety net — no rogue child creates page-level side-scroll
   background-image: repeating-linear-gradient(
     0deg,
     transparent,
@@ -70,7 +76,7 @@ body {
 
 #main {
   flex: 1;
-  padding: 2rem 1rem;
+  padding: var(--main-padding-block) var(--page-gutter-x);
 }
 
 .container {
@@ -849,6 +855,50 @@ a.card-link {
   }
 }
 
+// Hero stats — prominent page-level numbers inside a TermPanel.
+// Drop `HeroStats` component in any page; children (StatGrid etc.) get
+// scaled-up values in accent color.
+.hero-stats {
+  .stat-grid { gap: 0.75rem; }
+
+  .stat-value {
+    font-size: var(--text-xl);
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    margin: 0;
+
+    @media (min-width: 768px) {
+      font-size: var(--text-2xl);
+    }
+  }
+
+  .stat-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--thunder-500);
+    margin: 0.2rem 0 0;
+    padding-top: 0.3rem;
+    border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .stat-note {
+    font-size: var(--text-2xs);
+    color: var(--thunder-400);
+  }
+}
+
+.hero-stats-lead {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--thunder-600);
+  line-height: 1.5;
+  margin: 0.75rem 0 0;
+  text-align: center;
+}
+
 // ==========================================================================
 // ACCORDION (using native <details>/<summary>)
 // ==========================================================================
@@ -876,6 +926,11 @@ details.accordion-item {
       display: none;
     }
 
+    &::after {
+      @include theme-chevron(1rem);
+      margin-left: 0.5rem;
+    }
+
     .accordion-right {
       margin-left: auto;
       display: flex;
@@ -883,6 +938,10 @@ details.accordion-item {
       gap: 0.4rem;
     }
 
+  }
+
+  &[open] > summary::after {
+    transform: rotate(0);
   }
 
   .accordion-content {
@@ -1291,18 +1350,19 @@ html:has(dialog[open].motion-modal) {
 }
 
 .motion-modal-content {
-  padding: 1.5rem;
+  padding: 1rem 1rem 0;
   margin: 0;
   position: relative;
+  overflow: clip;
 }
 
 .motion-modal-close {
   all: unset;
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 1.75rem;
-  height: 1.75rem;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1316,19 +1376,19 @@ html:has(dialog[open].motion-modal) {
 }
 
 .motion-modal-header {
-  padding-right: 2rem;
-  margin-bottom: 0.75rem;
+  padding-right: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .motion-modal-result {
   display: inline-block;
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-  margin-bottom: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  margin-bottom: 0.3rem;
 
   &.motion-modal-result--carried { background: tint(var(--status-ok)); color: var(--status-ok); }
   &.motion-modal-result--lost { background: tint(var(--status-error)); color: var(--status-error); }
@@ -1337,22 +1397,22 @@ html:has(dialog[open].motion-modal) {
 
 .motion-modal-title {
   font-family: var(--font-prose);
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 600;
   text-transform: none;
   letter-spacing: normal;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--thunder-800);
   margin: 0;
 }
 
 .motion-modal-summary {
   font-family: var(--font-prose);
-  font-size: 0.88rem;
+  font-size: 0.75rem;
   color: var(--thunder-600);
-  line-height: 1.5;
-  margin: 0 0 1rem;
-  padding-bottom: 1rem;
+  line-height: 1.4;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--thunder-100);
 }
 
@@ -1394,13 +1454,114 @@ html:has(dialog[open].motion-modal) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8rem;
-  color: var(--thunder-400);
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  margin-top: var(--space-3);
+  padding: 0.5rem 0.75rem;
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
+    #0a0a0a;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 
-  a {
-    font-weight: 500;
+  // Scanline overlay
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.03) 3px
+    );
+    pointer-events: none;
+  }
+
+  // Edge glow
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  > * { position: relative; } // lift above scanline
+}
+
+.motion-modal-date {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--accent) 70%, var(--term-fg));
+
+  &::before {
+    content: '> ';
+    color: var(--accent);
+    opacity: 0.6;
+  }
+}
+
+.motion-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.motion-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  border: 1px solid currentColor;
+
+  &:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
     text-decoration: none;
-    &:hover { text-decoration: underline; }
+  }
+
+  &:active { transform: translateY(0); }
+
+  &[hidden] { display: none; }
+}
+
+.motion-modal-btn-primary {
+  color: #0a0a0a;
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
+
+  &:hover {
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+}
+
+.motion-modal-btn-media {
+  color: #60a5fa;
+  background: color-mix(in srgb, #60a5fa 12%, #0a0a0a);
+  text-shadow: 0 0 4px color-mix(in srgb, #60a5fa 60%, transparent);
+
+  &:hover {
+    box-shadow: 0 0 10px color-mix(in srgb, #60a5fa 50%, transparent);
   }
 }
 
@@ -1434,50 +1595,81 @@ html:has(dialog[open].motion-modal) {
 // BADGES/LABELS
 // ==========================================================================
 
+// Badge base + hue variants. Light mode emits a dark CRT pill with a pastel
+// phosphor text; dark mode gets the saturated phosphor. Hues live in
+// $badge-hues (see _mixins.scss). Sass expands the concrete color-mix values
+// per variant so no runtime var() inheritance is involved.
 .badge {
   @extend %badge-base;
-  background: color-mix(in srgb, var(--status-warn) 20%, var(--thunder-50));
-  color: var(--status-warn);
-  border-color: var(--status-warn);
+  @include badge-light-hue(#fbbf24);
 
-  &-carried { background: tint(var(--status-ok)); color: var(--status-ok); border-color: var(--status-ok); }
-  &-lost { background: tint(var(--status-error)); color: var(--status-error); border-color: var(--status-error); }
-  &-tie { background: color-mix(in srgb, var(--status-warn) 20%, var(--thunder-50)); color: var(--status-warn); border-color: var(--status-warn); }
-  &-headline { background: tint(var(--status-info)); color: var(--status-info); border-color: var(--status-info); }
-  &-notable { background: tint(var(--status-early-dep)); color: var(--status-early-dep); border-color: var(--status-early-dep); }
-  &-vote { background: var(--thunder-50); color: var(--thunder-700); border-color: var(--thunder-200); }
-  &-muted { background: var(--thunder-100); color: var(--thunder-400); border-color: var(--thunder-200); }
+  &-carried  { @include badge-light-hue(#4ade80); }
+  &-lost     { @include badge-light-hue(#f87171); }
+  &-tie      { @include badge-light-hue(#fbbf24); }
+  &-headline { @include badge-light-hue(#60a5fa); }
+  &-notable  { @include badge-light-hue(#c084fc); }
+  &-vote     { @include badge-light-hue(#073642); } // solarized base02 = term-fg-bright light
+  &-muted    { @include badge-light-hue(#93a1a1); } // thunder-400 light
 
-  // Term badges — taekwondo belt progression (domain data colors with dark mode overrides)
-  &-term-1 { background: #fef9c3; color: #854d0e; border-color: #facc15; }    // Yellow belt
-  &-term-2 { background: #ffedd5; color: #9a3412; border-color: #fb923c; }    // Orange belt
-  &-term-3 { background: #dcfce7; color: #166534; border-color: #4ade80; }    // Green belt
-  &-term-4 { background: #dbeafe; color: #1e40af; border-color: #60a5fa; }    // Blue belt
-  &-term-5 { background: #f3e8ff; color: #6b21a8; border-color: #a855f7; }    // Purple belt
-  &-term-6 { background: #f3ebe3; color: #6b3a1f; border-color: #a67c52; }    // Brown belt
-  &-term-7 { background: #1f2937; color: #f9fafb; border-color: #4b5563; }    // Black belt
-  &-term-8 { background: #1f2937; color: #f9fafb; border-color: #4b5563; }    // Black belt (8th+)
+  &-term-1 { @include badge-light-hue(#facc15); } // yellow
+  &-term-2 { @include badge-light-hue(#fb923c); } // orange
+  &-term-3 { @include badge-light-hue(#4ade80); } // green
+  &-term-4 { @include badge-light-hue(#60a5fa); } // blue
+  &-term-5 { @include badge-light-hue(#c084fc); } // purple
+  &-term-6 { @include badge-light-hue(#d4a574); } // warm brown
+  &-term-7 { @include badge-light-hue(#e5e7eb); } // white phosphor
+  &-term-8 { @include badge-light-hue(#e5e7eb); }
+}
+
+// Ward subtitle badges — ward-specific hues
+[data-ward="Current River"] .accordion-subtitle { @include badge-light-hue(#60a5fa); }
+[data-ward="McIntyre"]      .accordion-subtitle { @include badge-light-hue(#4ade80); }
+[data-ward="McKellar"]      .accordion-subtitle { @include badge-light-hue(#fbbf24); }
+[data-ward="Westfort"]      .accordion-subtitle { @include badge-light-hue(#f87171); }
+[data-ward="Neebing"]       .accordion-subtitle { @include badge-light-hue(#c084fc); }
+[data-ward="Northwood"]     .accordion-subtitle { @include badge-light-hue(#22d3ee); }
+[data-ward="Red River"]     .accordion-subtitle { @include badge-light-hue(#f472b6); }
+
+// Dark mode: swap pastel text/border for saturated phosphor (fill stays dark).
+@mixin badge-dark-overrides {
+  .badge              { @include badge-dark-hue(#fbbf24); }
+  .badge-carried      { @include badge-dark-hue(#4ade80); }
+  .badge-lost         { @include badge-dark-hue(#f87171); }
+  .badge-tie          { @include badge-dark-hue(#fbbf24); }
+  .badge-headline     { @include badge-dark-hue(#60a5fa); }
+  .badge-notable      { @include badge-dark-hue(#c084fc); }
+  .badge-vote         { @include badge-dark-hue(#86efac); } // term-fg-bright dark
+  .badge-muted        { @include badge-dark-hue(#9ca3af); }
+  .badge-term-1       { @include badge-dark-hue(#facc15); }
+  .badge-term-2       { @include badge-dark-hue(#fb923c); }
+  .badge-term-3       { @include badge-dark-hue(#4ade80); }
+  .badge-term-4       { @include badge-dark-hue(#60a5fa); }
+  .badge-term-5       { @include badge-dark-hue(#c084fc); }
+  .badge-term-6       { @include badge-dark-hue(#d4a574); }
+  .badge-term-7       { @include badge-dark-hue(#e5e7eb); }
+  .badge-term-8       { @include badge-dark-hue(#e5e7eb); }
+  [data-ward="Current River"] .accordion-subtitle { @include badge-dark-hue(#60a5fa); }
+  [data-ward="McIntyre"]      .accordion-subtitle { @include badge-dark-hue(#4ade80); }
+  [data-ward="McKellar"]      .accordion-subtitle { @include badge-dark-hue(#fbbf24); }
+  [data-ward="Westfort"]      .accordion-subtitle { @include badge-dark-hue(#f87171); }
+  [data-ward="Neebing"]       .accordion-subtitle { @include badge-dark-hue(#c084fc); }
+  [data-ward="Northwood"]     .accordion-subtitle { @include badge-dark-hue(#22d3ee); }
+  [data-ward="Red River"]     .accordion-subtitle { @include badge-dark-hue(#f472b6); }
+  // Motion filter pills (active state only; inactive uses neutral --thunder-* vars)
+  .motion-filter-pill--all:has(input:checked)        { @include badge-dark-hue(#4ade80); }
+  .motion-filter-pill--carried:has(input:checked)    { @include badge-dark-hue(#4ade80); }
+  .motion-filter-pill--defeated:has(input:checked)   { @include badge-dark-hue(#f87171); }
+  .motion-filter-pill--recorded:has(input:checked)   { @include badge-dark-hue(#86efac); }
+  .motion-filter-pill--procedural:has(input:checked) { @include badge-dark-hue(#d4a574); }
+  .next-meeting-links a { @include badge-dark-hue(#4ade80); }
+  .meeting-row-btn { @include badge-dark-hue(#4ade80); }
+  .meeting-row-btn-external { @include badge-dark-hue(#60a5fa); }
 }
 
 @media (prefers-color-scheme: dark) {
-  .badge-term-1 { background: #854d0e; color: #fef9c3; border-color: #facc15; }
-  .badge-term-2 { background: #9a3412; color: #ffedd5; border-color: #fb923c; }
-  .badge-term-3 { background: #166534; color: #dcfce7; border-color: #4ade80; }
-  .badge-term-4 { background: #1e40af; color: #dbeafe; border-color: #60a5fa; }
-  .badge-term-5 { background: #6b21a8; color: #f3e8ff; border-color: #a855f7; }
-  .badge-term-6 { background: #6b3a1f; color: #f3ebe3; border-color: #a67c52; }
-  .badge-term-7 { background: #f9fafb; color: #1f2937; border-color: #9ca3af; }
-  .badge-term-8 { background: #f9fafb; color: #1f2937; border-color: #9ca3af; }
+  :root:not([data-theme]) { @include badge-dark-overrides; }
 }
-
-// Ward subtitle badges — match ward-map.js WARD_COLORS
-[data-ward="Current River"] .accordion-subtitle { background: tint(#2563eb); color: #2563eb; border-color: #2563eb; }
-[data-ward="McIntyre"]      .accordion-subtitle { background: tint(#059669); color: #059669; border-color: #059669; }
-[data-ward="McKellar"]      .accordion-subtitle { background: tint(#d97706); color: #d97706; border-color: #d97706; }
-[data-ward="Westfort"]      .accordion-subtitle { background: tint(#dc2626); color: #dc2626; border-color: #dc2626; }
-[data-ward="Neebing"]       .accordion-subtitle { background: tint(#7c3aed); color: #7c3aed; border-color: #7c3aed; }
-[data-ward="Northwood"]     .accordion-subtitle { background: tint(#0891b2); color: #0891b2; border-color: #0891b2; }
-[data-ward="Red River"]     .accordion-subtitle { background: tint(#be185d); color: #be185d; border-color: #be185d; }
+:root[data-theme="dark"] { @include badge-dark-overrides; }
 
 // ==========================================================================
 // WARD MAP
@@ -1538,6 +1730,13 @@ html:has(dialog[open].motion-modal) {
   color: var(--accent);
 }
 
+.map-subtitle {
+  font-size: 0.65rem;
+  color: var(--term-fg-dim);
+  letter-spacing: 0.02em;
+  margin-right: auto;
+}
+
 .ward-info-bar {
   position: absolute;
   bottom: 0;
@@ -1570,20 +1769,46 @@ html:has(dialog[open].motion-modal) {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+
+  &.ward-dot-muted {
+    background: var(--thunder-400);
+  }
 }
 
 .ward-name {
   font-weight: 600;
 }
 
+.ward-councillor {
+  font-weight: 700;
+  color: var(--accent);
+  margin-left: 0.35rem;
+}
+
+#ward-map .leaflet-interactive {
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.18));
+  transition: filter 0.2s ease;
+
+  &:hover {
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.35));
+  }
+}
+
 .leaflet-tooltip.ward-label {
-  background: none;
-  border: none;
-  box-shadow: none;
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: #fff;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7), -1px -1px 3px rgba(0, 0, 0, 0.7);
+  @extend %frosted-glass;
+  border: 1px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--term-fg-bright);
+  text-shadow: 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent);
+
+  &::before { display: none; } // suppress Leaflet tooltip arrow
 }
 
 // Reset Pico styles on Leaflet zoom controls
@@ -1799,8 +2024,16 @@ html:has(dialog[open].motion-modal) {
 
 .no-results {
   text-align: center;
-  color: var(--thunder-500);
-  padding: 2rem 1rem;
+  color: var(--accent);
+  padding: 2.5rem 1rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  animation: fade-slide-in 0.2s ease both;
+}
+
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 // --- Route comparison chart ---
@@ -1879,462 +2112,6 @@ html:has(dialog[open].motion-modal) {
   white-space: nowrap;
 }
 
-// ==========================================================================
-// NOT FOUND PAGE (the Clerk)
-// ==========================================================================
-
-.nf-intro {
-  margin: 0.5rem 0 1.25rem;
-  max-width: 60ch;
-  color: var(--term-fg);
-  font-family: var(--font-prose);
-  line-height: 1.55;
-}
-
-.nf-log {
-  margin: 0;
-  white-space: pre-wrap;
-  line-height: 1.6;
-  color: var(--term-fg);
-  background: transparent;
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-}
-
-.nf-prompt { color: var(--accent); font-weight: 700; }
-.nf-dim    { color: var(--status-muted); }
-.nf-warn   { color: var(--status-warn); }
-.nf-err    { color: var(--status-error); }
-.nf-ok     { color: var(--accent); }
-
-.nf-aside {
-  margin: 0 0 0.75rem;
-  color: var(--status-muted);
-  font-size: 0.82rem;
-}
-
-.nf-path {
-  display: inline-block;
-  padding: 0.1rem 0.4rem;
-  background: color-mix(in srgb, var(--status-error) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--status-error) 35%, transparent);
-  border-radius: var(--radius-sm);
-  word-break: break-all;
-  color: var(--status-error);
-}
-
-.nf-match-table {
-  width: 100%;
-  margin: 0;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  font-family: var(--font-mono);
-
-  th, td {
-    padding: 0.3rem 0.6rem;
-    border-bottom: 1px solid var(--thunder-100);
-    vertical-align: baseline;
-  }
-
-  thead th {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--status-muted);
-    text-align: left;
-    border-bottom: 1px solid var(--thunder-200);
-  }
-
-  tbody tr:last-child td { border-bottom: none; }
-
-  tbody tr:hover td {
-    background: color-mix(in srgb, var(--accent) 6%, transparent);
-  }
-
-  // Rank #1 — highlight with accent color on the row.
-  tbody tr[data-rank="1"] {
-    .nf-col-rank { color: var(--accent); font-weight: 800; }
-    .nf-col-path a { text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent); }
-  }
-
-  a {
-    color: var(--accent);
-    text-decoration: none;
-    font-weight: 700;
-  }
-  a:hover { text-decoration: underline; }
-
-  .nf-col-rank { width: 2.5rem; color: var(--status-muted); }
-  .nf-col-dist { width: 3rem; text-align: right; color: var(--status-muted); font-variant-numeric: tabular-nums; }
-  .nf-col-path { word-break: break-all; }
-  .nf-col-label {
-    font-family: var(--font-prose);
-    color: var(--term-fg);
-    font-size: 0.82rem;
-  }
-}
-
-// ==========================================================================
-// HEALTH PAGE
-// ==========================================================================
-
-.hc-boot-badge {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  column-gap: 1rem;
-  row-gap: 0.25rem;
-  margin: 0;
-  font-size: 0.85rem;
-  font-family: var(--font-mono);
-
-  dt {
-    color: var(--status-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.72rem;
-    align-self: center;
-  }
-
-  dd {
-    margin: 0;
-    word-break: break-all;
-    color: var(--term-fg);
-
-    code {
-      background: transparent;
-      padding: 0;
-      color: var(--accent);
-    }
-  }
-}
-
-.hc-empty {
-  margin: 0;
-  color: var(--status-muted);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-}
-
-.hc-pct-strip {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 1fr;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.hc-pct {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--term-border);
-  border-radius: var(--radius-md);
-  background: var(--term-bg-deep);
-  text-align: center;
-  font-family: var(--font-mono);
-}
-
-.hc-pct-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--status-muted);
-  margin-bottom: 0.25rem;
-}
-
-.hc-pct-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-
-.hc-pct-hero {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent) inset,
-              0 0 14px color-mix(in srgb, var(--accent) 35%, transparent);
-
-  .hc-pct-label {
-    color: var(--accent);
-    font-weight: 700;
-  }
-
-  .hc-pct-value {
-    font-size: 2rem;
-    text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
-  }
-}
-
-.hc-latency-svg {
-  display: block;
-  width: 100%;
-  height: 220px;
-  background: var(--term-bg-deep);
-  border: 1px solid var(--term-border);
-  border-radius: var(--radius-md);
-  position: relative;
-  color: var(--accent); // used by currentColor in the gradient
-  @extend %term-scanlines;
-
-  .hc-grid line {
-    stroke: var(--term-border);
-    stroke-width: 0.5;
-    stroke-dasharray: 2 4;
-    opacity: 0.55;
-    vector-effect: non-scaling-stroke;
-  }
-
-  .hc-grid-v line {
-    stroke: var(--term-border);
-    stroke-width: 0.5;
-    opacity: 0.22;
-    vector-effect: non-scaling-stroke;
-  }
-
-  .hc-line {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 1.6;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    vector-effect: non-scaling-stroke;
-    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 65%, transparent));
-  }
-
-  .hc-line-fill {
-    fill: url(#hc-area-gradient);
-    stroke: none;
-  }
-
-  .hc-dots circle {
-    fill: var(--term-bg-deep);
-    stroke: var(--accent);
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;
-  }
-
-  .hc-pct-mark {
-    stroke-width: 1;
-    stroke-dasharray: 3 3;
-    vector-effect: non-scaling-stroke;
-  }
-  .hc-pct-mark-p50 { stroke: color-mix(in srgb, var(--accent) 70%, var(--term-bg-deep)); }
-  .hc-pct-mark-p90 {
-    stroke: var(--status-warn);
-    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--status-warn) 70%, transparent));
-  }
-  .hc-pct-mark-p99 { stroke: var(--status-error); }
-
-  .hc-pct-legend {
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }
-  .hc-pct-legend-p50 { fill: color-mix(in srgb, var(--accent) 85%, var(--term-bg-deep)); }
-  .hc-pct-legend-p90 { fill: var(--status-warn); }
-  .hc-pct-legend-p99 { fill: var(--status-error); }
-
-  .hc-max-badge {
-    font-family: var(--font-mono);
-    font-size: 9px;
-    fill: var(--status-muted);
-    letter-spacing: 0.05em;
-  }
-
-  .hc-axis-tick {
-    stroke: var(--status-muted);
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;
-  }
-
-  .hc-axis-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    fill: var(--status-muted);
-  }
-}
-
-.hc-chart {
-  position: relative;
-  display: flex;
-  gap: 2px;
-  height: 232px;
-  margin-bottom: 1rem;
-  overflow-x: auto;
-  background: var(--term-bg-deep);
-  border: 1px solid var(--term-border);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 0.5rem 0.25rem;
-  @extend %term-scanlines;
-}
-
-.hc-col {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 56px;
-  text-align: center;
-  color: var(--accent);
-}
-
-.hc-val {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--term-fg);
-  margin-bottom: 0.25rem;
-}
-
-.hc-col-track {
-  position: relative;
-  flex: 1;
-  width: 100%;
-  background: color-mix(in srgb, var(--term-border) 30%, transparent);
-  border: 1px solid var(--term-border);
-  border-radius: 3px 3px 0 0;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-.hc-col-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: currentColor;
-  transition: height 0.3s ease;
-  filter: drop-shadow(0 0 3px color-mix(in srgb, currentColor 40%, transparent));
-}
-
-// Heights for the bars are set via data-h="<pct>" (templ rejects dynamic
-// style attributes without a sanitizer). Values are snapped to nearest
-// 5% in the view model so we only emit 21 rules.
-@for $h from 0 through 20 {
-  $p: $h * 5;
-  .hc-col-bar[data-h="#{$p}"] { height: $p * 1%; }
-}
-
-.hc-4xx {
-  color: var(--status-error);
-}
-
-.hc-col-4xx {
-  color: var(--status-error);
-
-  .hc-label { color: var(--status-error); }
-}
-
-.hc-label {
-  margin-top: 0.3rem;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  color: var(--status-muted);
-  letter-spacing: 0.04em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0 0.1rem;
-}
-
-.hc-table {
-  width: 100%;
-  margin: 0;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-  font-family: var(--font-mono);
-
-  th, td {
-    padding: 0.3rem 0.6rem;
-    border-bottom: 1px solid var(--thunder-100);
-  }
-
-  thead th {
-    text-align: left;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--status-muted);
-    border-bottom: 1px solid var(--thunder-200);
-  }
-
-  tbody tr:last-child td { border-bottom: none; }
-
-  .hc-num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  code {
-    background: transparent;
-    padding: 0;
-    color: var(--accent);
-  }
-}
-
-.hc-feeds-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-
-  th, td {
-    padding: 0.35rem 0.5rem;
-    border-bottom: 1px solid var(--thunder-200);
-  }
-
-  th {
-    text-align: left;
-    font-size: 0.6rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--thunder-600);
-    font-weight: 700;
-  }
-
-  tbody tr:last-child td { border-bottom: none; }
-
-  .hc-num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  code {
-    background: transparent;
-    padding: 0;
-    color: var(--accent);
-  }
-
-  .hc-feed-error-row td {
-    padding-top: 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--thunder-200);
-    color: var(--status-error);
-  }
-}
-
-.hc-feed-badge {
-  display: inline-block;
-  padding: 0.1rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: color-mix(in srgb, var(--status-muted) 15%, var(--thunder-50));
-  color: var(--status-muted);
-
-  &.hc-feed-badge-ok {
-    background: color-mix(in srgb, var(--status-ok) 18%, var(--thunder-50));
-    color: var(--status-ok);
-  }
-
-  &.hc-feed-badge-stale {
-    background: color-mix(in srgb, var(--status-warn) 18%, var(--thunder-50));
-    color: var(--status-warn);
-  }
-
-  &.hc-feed-badge-error {
-    background: color-mix(in srgb, var(--status-error) 18%, var(--thunder-50));
-    color: var(--status-error);
-  }
-}
 
 // ==========================================================================
 // PAGESPEED INSPECTION PASS CERTIFICATE (/about)

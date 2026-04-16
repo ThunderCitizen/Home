@@ -2362,19 +2362,14 @@ tr.route-tp-canceled {
   }
 
   // Source column: make the link itself the visible heading so it
-  // can't blend into the surrounding text. Drop the bold/dark td color
-  // override that was fighting with --accent on cream backgrounds.
-  // The ↗ glyph signals "external link" — same convention motion.templ
-  // and councillors.templ use for outbound links.
+  // can't blend into the surrounding text. Appends the shared external-link
+  // icon (square + escaping arrow) after the link text.
   td:first-child a {
     font-weight: 600;
 
     &::after {
-      content: "\2197"; // ↗
-      display: inline-block;
-      margin-left: 0.25em;
-      font-size: 0.85em;
-      text-decoration: none;
+      @include ext-link-icon;
+      margin-left: 0.3em;
     }
   }
 }

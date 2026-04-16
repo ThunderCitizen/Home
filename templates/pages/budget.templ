@@ -8,21 +8,38 @@ import (
 	"thundercitizen/templates/components"
 )
 
+func budgetHeroItems(vm views.BudgetViewModel) []components.StatItem {
+	items := []components.StatItem{
+		{Value: vm.TopLine.PropertyTax, Label: "Property Tax", Note: vm.TopLine.TaxPct},
+	}
+	if vm.TopLine.OtherSources != "" {
+		items = append(items, components.StatItem{Value: vm.TopLine.OtherSources, Label: "Other Sources", Note: vm.TopLine.OtherPct})
+	}
+	if vm.TopLine.HasSpending {
+		items = append(items, components.StatItem{Value: vm.TopLine.Operating, Label: "Operating", Note: "day-to-day services"})
+	}
+	return items
+}
+
+func budgetHeroCols(vm views.BudgetViewModel) int {
+	n := 1
+	if vm.TopLine.OtherSources != "" {
+		n++
+	}
+	if vm.TopLine.HasSpending {
+		n++
+	}
+	return n
+}
+
+templ budgetHeroFooter() {
+	<span>Source: <a href="https://www.thunderbay.ca/en/city-hall/resources/Budget/Original-2026-Budget---Operating-Budget-Final.pdf" target="_blank" rel="noopener">City of Thunder Bay — 2026 Operating Budget</a></span>
+}
+
 templ budgetExpandToggle() {
 	<div class="layer-bar-group">
 		<button type="button" class="layer-bar-btn" id="toggle-all-highlights">Expand all</button>
 	</div>
-}
-
-templ revenueFooter() {
-	<div class="term-metric-grid cols-2">
-		<span>Municipal tax levy</span>
-		<span>Grants, fees, transfers</span>
-	</div>
-}
-
-templ spendingFooter() {
-	<span>Day-to-day services from the city ledger</span>
 }
 
 templ Budget(vm views.BudgetViewModel) {
@@ -55,30 +72,14 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 					<p>The ledger has no entries for this fiscal year. The page is rendered entirely from <code>budget_ledger</code> — there is no static fallback. Apply the relevant data patch (<code>./bin/patches apply</code>) to populate it.</p>
 				</article>
 			} else {
-			<div class="budget-topline" data-section="stats">
-				@components.TermPanel(components.TermPanelProps{Title: "Revenue · " + vm.TopLine.TotalRevenue, Accent: "var(--status-ok)", Footer: revenueFooter()}) {
-					@components.TermMetricGrid(components.TermMetricGridProps{Cols: 2}) {
-						@components.TermMetric(components.TermMetricProps{Value: vm.TopLine.PropertyTax, Label: "Property Tax", Note2: vm.TopLine.TaxPct})
-						if vm.TopLine.OtherSources != "" {
-							@components.TermMetric(components.TermMetricProps{Value: vm.TopLine.OtherSources, Label: "Other Sources", Note2: vm.TopLine.OtherPct})
-						}
-					}
-				}
-				if vm.TopLine.HasSpending {
-					@components.TermPanel(components.TermPanelProps{Title: "Spending · " + vm.TopLine.TotalRevenue, Accent: "var(--status-error)", Footer: spendingFooter()}) {
-						@components.TermMetricGrid(components.TermMetricGridProps{Cols: 1}) {
-							@components.TermMetric(components.TermMetricProps{Value: vm.TopLine.Operating, Label: "Operating", Note: "operating budget only"})
-						}
-					}
-				}
-			</div>
-			@components.Card(components.CardProps{Title: "Operating Budget"}) {
-				<p class="budget-sankey-note">
-					Sankey diagram mapping revenue to services. Flows assume a proportional split, except where revenue is earmarked (e.g. transit fares → transit).
-				</p>
-				<p class="budget-source-note">
-					Source: <a href="https://www.thunderbay.ca/en/city-hall/resources/Budget/Original-2026-Budget---Operating-Budget-Final.pdf" target="_blank" rel="noopener">City of Thunder Bay — 2026 Operating Budget</a>.
-				</p>
+			@components.HeroStats(components.HeroStatsProps{
+				Title: fmt.Sprintf("%d Operating Budget · %s", vm.Year, vm.TopLine.TotalRevenue),
+				Footer: budgetHeroFooter(),
+			}) {
+				@components.StatGrid(components.StatGridProps{
+					Items: budgetHeroItems(vm),
+					Columns: budgetHeroCols(vm),
+				})
 			}
 			<div class="budget-flow-view">
 				<article class="term-panel budget-sankey-panel">

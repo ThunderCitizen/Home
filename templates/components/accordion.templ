@@ -11,6 +11,7 @@ type AccordionItemProps struct {
 	NoteClass string // extra CSS class for the note badge
 	Badge      string // optional status badge
 	BadgeClass string // extra CSS class for the badge
+	BadgeURL   string // optional: if set, badge renders as an external link
 	WardName  string // optional: links to ward map
 }
 
@@ -102,7 +103,18 @@ templ AccordionItem(props AccordionItemProps) {
 			<strong>{ props.Title }</strong>
 			<span class="accordion-right">
 				if props.Badge != "" {
-					<span class={ "badge", "accordion-status", props.BadgeClass }>{ props.Badge }</span>
+					if props.BadgeURL != "" {
+						<a
+							href={ templ.SafeURL(props.BadgeURL) }
+							class={ "badge", "accordion-status", props.BadgeClass }
+							target="_blank"
+							rel="noopener"
+							title="Source"
+							onclick="event.stopPropagation()"
+						>{ props.Badge }</a>
+					} else {
+						<span class={ "badge", "accordion-status", props.BadgeClass }>{ props.Badge }</span>
+					}
 				}
 				if props.Subtitle != "" {
 					<span class="badge accordion-subtitle">{ props.Subtitle }</span>

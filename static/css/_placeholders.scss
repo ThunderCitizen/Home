@@ -2,6 +2,8 @@
 // PLACEHOLDERS — reusable %extend targets
 // ==========================================================================
 
+@use "mixins" as *;
+
 // Reusable terminal tokens — extend on any container that needs the VT100 palette
 %term-tokens {
   --term-bg: #fdf6e3;
@@ -35,21 +37,85 @@
   }
 }
 
-// Reusable frosted glass surface — extend on any element needing the glass look
+// Reusable frosted glass surface.
+// Uses backdrop-filter when possible; falls back to --glass-bg-solid (a high-
+// opacity surface) when inside overflow:clip/hidden containers or opaque parents
+// that prevent the blur from reaching underlying content.
+// Callers inside opaque cards/panels should add `.frosted-solid` to opt into
+// the solid fallback explicitly.
 %frosted-glass {
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
+
+  // Solid fallback — works inside opaque parents where backdrop-filter is inert.
+  &.frosted-solid,
+  .term-panel &,
+  article & {
+    background: var(--glass-bg-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
-// Reusable badge base — extend for status badges, tags, pills
+// Reusable badge base — phosphor pill.
+// Each modifier sets `--badge-hue`; all color/fill/border/glow derives from it
+// via theme-scoped `--badge-*` tokens (see _tokens.scss + dark-theme mixin).
 %badge-base {
   display: inline-block;
-  padding: 0.125rem var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  border: 1px solid;
+  padding: 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid var(--badge-border);
+  background: var(--badge-fill);
+  color: var(--badge-text);
+  white-space: nowrap;
+  filter: var(--badge-glow-filter);
+  text-shadow: var(--badge-text-shadow);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--badge-scanline) 2px,
+      var(--badge-scanline) 3px
+    );
+    pointer-events: none;
+    opacity: 0.4;
+  }
+}
+
+// Link badges get an external-link glyph + hover brightening
+a.badge {
+  text-decoration: none;
+  cursor: pointer;
+
+  &::after {
+    @include ext-link-icon(0.8em);
+    margin-left: 0.3em;
+    opacity: 0.85;
+  }
+
+  &:hover {
+    filter: drop-shadow(0 0 2px currentColor) brightness(1.15);
+    text-decoration: none;
+  }
+}
+
+// Inline external-link icon for template use: <span class="ext-link-icon" aria-hidden="true"></span>
+.ext-link-icon {
+  @include ext-link-icon;
+  margin-left: 0.25em;
 }
 
 // Reusable card with accent border — extend for directory items, proposal cards

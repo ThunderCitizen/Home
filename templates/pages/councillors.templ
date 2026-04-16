@@ -25,6 +25,15 @@ func wardLayerGroups() []components.MapLayerGroup {
 	}}
 }
 
+// wardCouncillorMap builds a {wardName: councillorName} lookup for the ward map's hover info bar.
+func wardCouncillorMap(councillors []views.CouncillorView) map[string]string {
+	out := make(map[string]string, len(councillors))
+	for _, c := range councillors {
+		out[c.Position] = c.Name
+	}
+	return out
+}
+
 // matrixColSpan returns the total number of columns (2 fixed + councillors) as a string.
 // matrixColSpan returns the total column count (3 fixed + councillors) as a string.
 func matrixColSpan(numRows int) string {
@@ -34,17 +43,6 @@ func matrixColSpan(numRows int) string {
 // matrixDateColSpan returns the colspan for date rows (total - 1 for the leading td).
 func matrixDateColSpan(numRows int) string {
 	return fmt.Sprintf("%d", numRows+1)
-}
-
-// voteNames collects councillor names with a given position at a column index.
-func voteNames(rows []views.VoteMatrixRow, colIdx int, position string) string {
-	var names []string
-	for _, r := range rows {
-		if r.Cells[colIdx] == position {
-			names = append(names, r.Name)
-		}
-	}
-	return strings.Join(names, ",")
 }
 
 func voteTally(rows []views.VoteMatrixRow, colIdx int) string {
@@ -133,10 +131,12 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 			ID:        "ward-map",
 			AriaLabel: "Map of Thunder Bay ward boundaries",
 			Title:     "Ward Map",
+			Subtitle:  "Council: 1 mayor · 5 at-large · 7 ward",
 			Layers:    wardLayerGroups(),
 			Scripts:   []string{"/static/councillors/ward-map.js"},
 		}) {
 			<div id="ward-info-bar" class="ward-info-bar"></div>
+			@templ.JSONScript("ward-councillors", wardCouncillorMap(vm.WardCouncillors))
 		}
 	</article>
 }
@@ -152,6 +152,7 @@ templ wardCouncillorItem(c views.CouncillorView) {
 		NoteClass: c.TermClass,
 		Badge:      c.Status,
 		BadgeClass: statusBadgeClass(c.Status),
+		BadgeURL:   c.StatusURL,
 		WardName:   c.Position,
 	}) {
 		<p>{ c.Summary }</p>
@@ -170,6 +171,7 @@ templ councillorItem(c views.CouncillorView) {
 		NoteClass:  c.TermClass,
 		Badge:      c.Status,
 		BadgeClass: statusBadgeClass(c.Status),
+		BadgeURL:   c.StatusURL,
 	}) {
 		<p>{ c.Summary }</p>
 		@councillorVoteStats(c)
@@ -211,8 +213,8 @@ templ voteMatrix(vm *views.VoteMatrixViewModel) {
 								data-motion-date={ col.Date }
 								data-motion-result={ col.Result }
 								data-motion-url={ col.URL }
-								data-motion-for={ voteNames(vm.Rows, colIdx, "for") }
-								data-motion-against={ voteNames(vm.Rows, colIdx, "against") }
+								data-motion-media={ col.MediaURL }
+								data-motion-id={ fmt.Sprintf("%d", col.MotionID) }
 							>
 								<td class="vote-matrix-result-cell">
 									if col.Result == "Lost" || col.Result == "Tie" {
@@ -221,7 +223,7 @@ templ voteMatrix(vm *views.VoteMatrixViewModel) {
 										<span class="vote-matrix-result-badge vote-matrix-result--carried">Carried</span>
 									}
 									if col.MediaURL != "" {
-										<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="vote-matrix-media-badge" title="Press coverage">TBNews <span class="media-arrow">&#x2197;</span></a>
+										<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="vote-matrix-media-badge" title="Press coverage">TBNews <span class="ext-link-icon" aria-hidden="true"></span></a>
 									}
 								</td>
 								<th class="vote-matrix-motion" scope="row">
@@ -243,6 +245,19 @@ templ voteMatrix(vm *views.VoteMatrixViewModel) {
 			</div>
 	</div>
 	@voteMatrixMobile(vm)
+	@voteMatrixRosterTemplates(vm)
+}
+
+// voteMatrixRosterTemplates emits one hidden <template> per motion.
+// The modal JS clones the matching template by id into the slot when a row is clicked.
+templ voteMatrixRosterTemplates(vm *views.VoteMatrixViewModel) {
+	for _, col := range vm.Columns {
+		if col.Roster != nil {
+			<template id={ fmt.Sprintf("vote-roster-%d", col.MotionID) }>
+				@components.VoteRoster(*col.Roster)
+			</template>
+		}
+	}
 }
 
 templ voteMatrixMobile(vm *views.VoteMatrixViewModel) {
@@ -260,8 +275,8 @@ templ voteMatrixMobile(vm *views.VoteMatrixViewModel) {
 				data-motion-date={ col.Date }
 				data-motion-result={ col.Result }
 				data-motion-url={ col.URL }
-				data-motion-for={ voteNames(vm.Rows, colIdx, "for") }
-				data-motion-against={ voteNames(vm.Rows, colIdx, "against") }
+				data-motion-media={ col.MediaURL }
+				data-motion-id={ fmt.Sprintf("%d", col.MotionID) }
 			>
 				<div class="vote-matrix-card-top">
 					if col.Result == "Lost" || col.Result == "Tie" {
@@ -273,7 +288,7 @@ templ voteMatrixMobile(vm *views.VoteMatrixViewModel) {
 				</div>
 				<div class="vote-matrix-card-bottom">
 					if col.MediaURL != "" {
-						<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="vote-matrix-media-badge" title="Press coverage" onclick="event.stopPropagation()">TBNews <span class="media-arrow">&#x2197;</span></a>
+						<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="vote-matrix-media-badge" title="Press coverage" onclick="event.stopPropagation()">TBNews <span class="ext-link-icon" aria-hidden="true"></span></a>
 					}
 					<span class="vote-matrix-card-tally">{ voteTally(vm.Rows, colIdx) }</span>
 				</div>
@@ -338,20 +353,17 @@ templ voteMatrixModal() {
 				<h3 id="vote-modal-title" class="motion-modal-title"></h3>
 			</div>
 			<p id="vote-modal-summary" class="motion-modal-summary"></p>
-			<div class="motion-modal-vote-split">
-				<div class="motion-modal-side motion-modal-for">
-					<span class="motion-modal-side-label">For</span>
-					<div id="vote-modal-for" class="motion-modal-names"></div>
-				</div>
-				<div class="motion-modal-divider"></div>
-				<div class="motion-modal-side motion-modal-against">
-					<span class="motion-modal-side-label">Against</span>
-					<div id="vote-modal-against" class="motion-modal-names"></div>
-				</div>
-			</div>
+			<div id="vote-modal-roster" class="motion-modal-roster"></div>
 			<div class="motion-modal-footer">
-				<span id="vote-modal-date"></span>
-				<a id="vote-modal-link" href="#">View full minutes</a>
+				<span id="vote-modal-date" class="motion-modal-date"></span>
+				<div class="motion-modal-actions">
+					<a id="vote-modal-media" class="motion-modal-btn motion-modal-btn-media" href="#" target="_blank" rel="noopener" hidden>
+						TBNews <span class="ext-link-icon" aria-hidden="true"></span>
+					</a>
+					<a id="vote-modal-link" class="motion-modal-btn motion-modal-btn-primary" href="#">
+						View full minutes <span aria-hidden="true">&rarr;</span>
+					</a>
+				</div>
 			</div>
 		</article>
 	</dialog>
@@ -382,10 +394,23 @@ templ voteMatrixModal() {
 			document.getElementById('vote-modal-date').textContent = row.dataset.motionDate;
 			document.getElementById('vote-modal-link').href = row.dataset.motionUrl;
 
-			var forNames = row.dataset.motionFor ? row.dataset.motionFor.split(',') : [];
-			var againstNames = row.dataset.motionAgainst ? row.dataset.motionAgainst.split(',') : [];
-			document.getElementById('vote-modal-for').innerHTML = forNames.map(function(n) { return '<span>' + n + '</span>'; }).join('');
-			document.getElementById('vote-modal-against').innerHTML = againstNames.map(function(n) { return '<span>' + n + '</span>'; }).join('');
+			var mediaEl = document.getElementById('vote-modal-media');
+			if (row.dataset.motionMedia) {
+				mediaEl.href = row.dataset.motionMedia;
+				mediaEl.hidden = false;
+			} else {
+				mediaEl.hidden = true;
+			}
+
+			var slot = document.getElementById('vote-modal-roster');
+			slot.innerHTML = '';
+			var motionId = row.dataset.motionId;
+			if (motionId) {
+				var tpl = document.getElementById('vote-roster-' + motionId);
+				if (tpl && tpl.content) {
+					slot.appendChild(tpl.content.cloneNode(true));
+				}
+			}
 
 			modal.showModal();
 		}

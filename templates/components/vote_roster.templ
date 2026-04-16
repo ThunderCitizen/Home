@@ -1,0 +1,72 @@
+package components
+
+import "strconv"
+
+// VoterChip is one councillor in a vote roster row.
+type VoterChip struct {
+	Name     string
+	Initials string
+	Photo    string // "" → render initials avatar
+}
+
+// VoteRosterProps is the enriched, presentation-ready vote breakdown
+// shared by the motion page and the vote-matrix modal.
+type VoteRosterProps struct {
+	For          []VoterChip
+	Against      []VoterChip
+	Absent       []VoterChip
+	Tally        string // "13–0", "7–6"
+	Headline     string // "CARRIED UNANIMOUSLY", "CARRIED", "LOST", "TIED"
+	HeadlineCls  string // "carried" | "lost" | "tie"
+	Unanimous    bool   // one side has ≥1 vote and the other has 0
+	UnanimousFor bool   // direction of unanimity (true = all For, false = all Against)
+}
+
+// VoteRoster renders a vote breakdown as photo strips with names beneath.
+// Unanimous votes collapse to a single strip + headline; split votes show
+// stacked Yea / Nay rows. Absent voters appear as a third muted row.
+templ VoteRoster(p VoteRosterProps) {
+	<div class={ "vote-roster", "vote-roster--" + p.HeadlineCls }>
+		<div class="vote-roster-headline">
+			<span class={ "vote-roster-tally", "vote-roster-tally--" + p.HeadlineCls }>{ p.Headline }</span>
+			<span class="vote-roster-count">{ p.Tally }</span>
+		</div>
+		if p.Unanimous {
+			if p.UnanimousFor {
+				@voteRosterStrip("for", "", p.For)
+			} else {
+				@voteRosterStrip("against", "", p.Against)
+			}
+		} else {
+			if len(p.For) > 0 {
+				@voteRosterStrip("for", "Yea", p.For)
+			}
+			if len(p.Against) > 0 {
+				@voteRosterStrip("against", "Nay", p.Against)
+			}
+		}
+		if len(p.Absent) > 0 {
+			@voteRosterStrip("absent", "Absent", p.Absent)
+		}
+	</div>
+}
+
+templ voteRosterStrip(kind, label string, chips []VoterChip) {
+	<div class={ "vote-roster-row", "vote-roster-row--" + kind }>
+		if label != "" {
+			<span class="vote-roster-label">{ label } ({ strconv.Itoa(len(chips)) })</span>
+		}
+		<div class="vote-roster-strip">
+			for _, c := range chips {
+				<div class="vote-roster-chip" title={ c.Name }>
+					if c.Photo != "" {
+						<img class="vote-roster-avatar" src={ c.Photo } alt={ c.Name } loading="lazy"/>
+					} else {
+						<span class="vote-roster-avatar vote-roster-avatar--initials" aria-hidden="true">{ c.Initials }</span>
+					}
+					<span class="vote-roster-name">{ c.Name }</span>
+				</div>
+			}
+		</div>
+	</div>
+}

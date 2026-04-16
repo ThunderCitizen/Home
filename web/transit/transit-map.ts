@@ -140,6 +140,9 @@ const PLAN_URL = "/api/transit/plan";
 let map: L.Map | null = null;
 let busLayer: L.LayerGroup | null = null; // L.layerGroup for bus markers
 const busMarkers: Record<string, L.Marker> = {};
+// Short slide between sampled positions so buses glide instead of teleport.
+const markerAnims: Record<string, number> = {};
+const TWEEN_MS = 400;
 let routeLines: Record<string, L.LayerGroup> = {}; // route_id -> L.layerGroup
 let routeShapes: RouteShape[] = []; // loaded from JSON
 let lastFeedTimestamp = 0;
@@ -841,6 +844,21 @@ function busIcon(routeId: string, bearing: number, delay: number | null, status:
   });
 }
 
+function tweenMarker(vid: string, toLat: number, toLng: number): void {
+  const marker = busMarkers[vid];
+  if (!marker) return;
+  const from = marker.getLatLng();
+  const start = performance.now();
+  if (markerAnims[vid]) cancelAnimationFrame(markerAnims[vid]);
+  function step(now: number) {
+    const t = Math.min(1, (now - start) / TWEEN_MS);
+    marker.setLatLng([from.lat + (toLat - from.lat) * t, from.lng + (toLng - from.lng) * t]);
+    if (t < 1) markerAnims[vid] = requestAnimationFrame(step);
+    else delete markerAnims[vid];
+  }
+  markerAnims[vid] = requestAnimationFrame(step);
+}
+
 function updateMarkers(vehicles: LocalVehicle[]): void {
   const seen: Record<string, boolean> = {};
 
@@ -849,7 +867,7 @@ function updateMarkers(vehicles: LocalVehicle[]): void {
     seen[v.id] = true;
 
     if (busMarkers[v.id]) {
-      busMarkers[v.id].setLatLng([v.lat, v.lon]);
+      tweenMarker(v.id, v.lat, v.lon);
       busMarkers[v.id].setIcon(busIcon(v.routeId, v.bearing, v.delay, v.status));
     } else {
       busMarkers[v.id] = L.marker([v.lat, v.lon], {
@@ -885,6 +903,7 @@ function updateMarkers(vehicles: LocalVehicle[]): void {
   // Remove markers for vehicles no longer in feed
   for (const id in busMarkers) {
     if (!seen[id]) {
+      if (markerAnims[id]) { cancelAnimationFrame(markerAnims[id]); delete markerAnims[id]; }
       if (busLayer) busLayer.removeLayer(busMarkers[id]);
       else map!.removeLayer(busMarkers[id]);
       delete busMarkers[id];

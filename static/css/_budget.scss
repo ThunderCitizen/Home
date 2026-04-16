@@ -22,9 +22,8 @@
   z-index: 100;
   @extend %frosted-glass;
   padding: 0;
-  width: 100vw;
-  margin-left: calc(-50vw + 50%);
-  margin-top: -2rem;
+  margin-inline: calc(var(--page-gutter-x) * -1);
+  margin-top: calc(var(--main-padding-block) * -1);
   margin-bottom: 0;
   border-bottom: 1px solid var(--glass-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -153,28 +152,14 @@ summary.service-detail-header {
 
   &::marker, &::-webkit-details-marker { display: none; }
 
-  // Override Pico's right-side chevron: center vertically, theme-color it
-  // via mask-image so it follows --accent in both light and dark mode.
+  // Theme-colored chevron, centered vertically in the absolute slot.
   &::after {
+    @include theme-chevron(1rem);
     position: absolute;
     top: 50%;
     right: var(--space-3);
-    width: 1rem;
-    height: 1rem;
     margin: 0;
-    float: none;
-    background-image: none;
-    background-color: var(--accent);
-    mask-image: var(--pico-icon-chevron);
-    -webkit-mask-image: var(--pico-icon-chevron);
-    mask-size: 1rem auto;
-    -webkit-mask-size: 1rem auto;
-    mask-position: center;
-    -webkit-mask-position: center;
-    mask-repeat: no-repeat;
-    -webkit-mask-repeat: no-repeat;
     transform: translateY(-50%) rotate(-90deg);
-    transition: transform var(--pico-transition);
   }
 
   strong { color: var(--thunder-800); white-space: nowrap; }

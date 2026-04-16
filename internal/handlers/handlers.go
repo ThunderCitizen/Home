@@ -48,6 +48,7 @@ type councilStore interface {
 	MotionStats(ctx context.Context, term string) (int, int, int, error)
 	SearchMotions(ctx context.Context, f council.MotionFilter) ([]council.MotionRow, int, error)
 	GetMeetingByID(ctx context.Context, id string) (*council.MeetingDetail, error)
+	GetMeetingBySlug(ctx context.Context, slug string) (*council.MeetingDetail, error)
 	LoadVoteRecords(ctx context.Context, motionID int64) (*council.VoteRecord, error)
 	MeetingIDsByDates(ctx context.Context, dates []string) (map[string]string, error)
 }
@@ -192,7 +193,8 @@ func (h *Handlers) Council(w http.ResponseWriter, r *http.Request) {
 		Term:          term,
 		Query:         r.URL.Query().Get("q"),
 		RecordedVotes: r.URL.Query().Get("votes") == "1",
-		Defeated:      r.URL.Query().Get("defeated") == "1",
+		Headline:      r.URL.Query().Get("headline") == "1",
+		Notable:       r.URL.Query().Get("notable") == "1",
 		Limit:         25,
 	}
 	filter.Offset = pageOffset(r, filter.Limit)
@@ -247,16 +249,33 @@ func (h *Handlers) Motions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) CouncilMeeting(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	if id == "" {
+	slug := r.PathValue("id")
+	if slug == "" {
 		httperr.BadRequest(w, "missing meeting ID")
 		return
 	}
 
 	store := newCouncilStore(h.db)
-	md, err := store.GetMeetingByID(r.Context(), id)
+
+	// Try slug first (e.g. "city-council-2026-02-17")
+	md, err := store.GetMeetingBySlug(r.Context(), slug)
 	if errors.Is(err, pgx.ErrNoRows) {
-		h.NotFound(w, r)
+		// Fall back to UUID for old links — redirect to slug URL
+		md, err = store.GetMeetingByID(r.Context(), slug)
+		if errors.Is(err, pgx.ErrNoRows) {
+			h.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			httperr.Internal(w, err)
+			return
+		}
+		newSlug := council.MeetingSlug(md.Title, md.Date)
+		dest := "/minutes/" + newSlug
+		if frag := r.URL.Fragment; frag != "" {
+			dest += "#" + frag
+		}
+		http.Redirect(w, r, dest, http.StatusMovedPermanently)
 		return
 	}
 	if err != nil {

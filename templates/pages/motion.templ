@@ -4,56 +4,134 @@ import (
 	"fmt"
 	"thundercitizen/internal/views"
 	"thundercitizen/templates"
+	"thundercitizen/templates/components"
 )
 
 templ CouncilMeeting(vm views.MeetingViewModel) {
 	@templates.Layout("Minutes", fmt.Sprintf("%s — Thunder Bay City Council meeting. %d motions with full text, vote breakdowns, and media coverage.", vm.Date, vm.SubstantiveCount)) {
-		<div class="meeting-detail-nav">
-			<a href="/minutes">&larr; Back to Minutes</a>
-			if vm.MinutesURL != "" {
-				<a href={ templ.SafeURL(vm.MinutesURL) } target="_blank" rel="noopener" class="meeting-minutes-link">Official Minutes (PDF) &#x2197;</a>
+		@components.HeroStats(components.HeroStatsProps{
+			Title: vm.Date,
+			Footer: meetingDetailFooter(vm),
+		}) {
+			<div class="meeting-detail-overline-row">
+				<a href="/minutes" class="meeting-detail-back">&larr; Back to Minutes</a>
+				<span class="meeting-detail-overline">{ vm.TermLabel } · { vm.Weekday }</span>
+				if vm.MinutesURL != "" {
+					<a href={ templ.SafeURL(vm.MinutesURL) } target="_blank" rel="noopener" class="meeting-row-btn meeting-row-btn-external">Official Minutes <span class="ext-link-icon" aria-hidden="true"></span></a>
+				}
+			</div>
+			<div class="stat-grid cols-4 meeting-stat-filters" role="radiogroup" aria-label="Filter motions">
+				<button class="stat-item stat-filter active" data-filter="all" role="radio" aria-checked="true">
+					<p class="stat-value">{ fmt.Sprintf("%d", vm.MotionCount) }</p>
+					<p class="stat-label">All</p>
+				</button>
+				<button class="stat-item stat-filter" data-filter="carried" role="radio" aria-checked="false">
+					<p class="stat-value">{ fmt.Sprintf("%d", vm.CarriedCount) }</p>
+					<p class="stat-label">Carried</p>
+				</button>
+				<button class="stat-item stat-filter" data-filter="defeated" role="radio" aria-checked="false">
+					<p class="stat-value">{ fmt.Sprintf("%d", vm.LostCount) }</p>
+					<p class="stat-label">Defeated</p>
+				</button>
+				<button class="stat-item stat-filter" data-filter="notable" role="radio" aria-checked="false">
+					<p class="stat-value">{ fmt.Sprintf("%d", vm.NotableCount) }</p>
+					<p class="stat-label">Notable</p>
+				</button>
+			</div>
+			if vm.Summary != "" {
+				<p class="hero-stats-lead">{ vm.Summary }</p>
 			}
+		}
+		<div id="motion-filter-target" data-filter="all">
+			if vm.SubstantiveCount > 0 {
+				<h2 class="motion-section-heading" data-section="substantive">Motions</h2>
+				<div class="meetings-list" data-list="substantive">
+					for i, m := range vm.Motions {
+						if !m.IsProcedural {
+							@substantiveMotion(m, i)
+						}
+					}
+				</div>
+			}
+			if vm.ProceduralCount > 0 {
+				<h2 class="motion-section-heading" data-section="procedural">Procedural</h2>
+				<div class="meetings-list" data-list="procedural">
+					for i, m := range vm.Motions {
+						if m.IsProcedural {
+							@proceduralMotion(m, i)
+						}
+					}
+				</div>
+			}
+			<p class="no-results motion-filter-empty" hidden>No motions match this filter.</p>
 		</div>
-		<header class="meeting-detail-header">
-			<p class="meeting-detail-overline">{ vm.TermLabel } · { vm.Weekday }</p>
-			<h1>{ vm.Date }</h1>
-			<p class="meeting-detail-title">City Council Meeting</p>
-			<div class="meeting-stats-bar">
-				<span>{ fmt.Sprintf("%d motions", vm.SubstantiveCount) }</span>
-				if vm.ProceduralCount > 0 {
-					<span>· { fmt.Sprintf("%d procedural", vm.ProceduralCount) }</span>
-				}
-				if vm.RecordedVotes > 0 {
-					<span class="badge badge-vote">{ fmt.Sprintf("%d Recorded", vm.RecordedVotes) }</span>
-				}
-			</div>
-		</header>
-		if vm.SubstantiveCount > 0 {
-			<h2>Motions</h2>
-			<div class="meetings-list">
-				for i, m := range vm.Motions {
-					if !m.IsProcedural {
-						@substantiveMotion(m, i)
-					}
-				}
-			</div>
-		}
-		if vm.ProceduralCount > 0 {
-			<h2>Procedural</h2>
-			<div class="meetings-list">
-				for i, m := range vm.Motions {
-					if m.IsProcedural {
-						@proceduralMotion(m, i)
-					}
-				}
-			</div>
-		}
+		@motionFilterScript()
 	}
+}
+
+templ meetingDetailFooter(vm views.MeetingViewModel) {
+	<p class="llm-disclaimer">Summaries are generated with Anthropic AI. Reader discretion is advised.</p>
+}
+
+templ motionFilterScript() {
+	<script>
+	(function () {
+		var root = document.getElementById('motion-filter-target');
+		if (!root) return;
+		var btns = document.querySelectorAll('.stat-filter');
+
+		btns.forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				// Update active state
+				btns.forEach(function (b) {
+					b.classList.remove('active');
+					b.setAttribute('aria-checked', 'false');
+				});
+				btn.classList.add('active');
+				btn.setAttribute('aria-checked', 'true');
+
+				// Fade out visible rows, swap filter, fade in matching rows
+				var rows = root.querySelectorAll('.meeting-row');
+				rows.forEach(function (el) {
+					if (el.offsetParent !== null) {
+						el.style.opacity = '0';
+						el.style.transform = 'translateY(-4px)';
+					}
+				});
+
+				setTimeout(function () {
+					root.dataset.filter = btn.dataset.filter;
+
+					var visible = root.querySelectorAll('.meeting-row');
+					var count = 0;
+					visible.forEach(function (el, i) {
+						if (el.offsetParent === null) return;
+						count++;
+						el.style.opacity = '0';
+						el.style.transform = 'translateY(8px)';
+						setTimeout(function () {
+							el.style.opacity = '1';
+							el.style.transform = 'translateY(0)';
+						}, 30 + i * 25);
+					});
+
+					var empty = root.querySelector('.motion-filter-empty');
+					if (empty) empty.hidden = count > 0;
+				}, 80);
+			});
+		});
+	})();
+	</script>
 }
 
 // proceduralMotion renders a compact procedural item.
 templ proceduralMotion(m views.MotionView, index int) {
-	<div class="meeting-row motion-procedural-row" id={ fmt.Sprintf("motion-%d", m.ID) }>
+	<div
+		class="meeting-row motion-procedural-row"
+		id={ fmt.Sprintf("motion-%d", m.ID) }
+		data-result={ m.Result }
+		data-recorded={ fmt.Sprintf("%t", m.HasVote) }
+	>
 		<div class="motion-row-header">
 			<a href={ templ.SafeURL(fmt.Sprintf("#motion-%d", m.ID)) } class="motion-index" title="Link to this motion">{ fmt.Sprintf("#%d", index+1) }</a>
 			if m.Result != "" {
@@ -80,9 +158,15 @@ templ proceduralMotion(m views.MotionView, index int) {
 
 // substantiveMotion renders a full motion card with clause breakdown.
 templ substantiveMotion(m views.MotionView, index int) {
-	<div class={ "meeting-row motion-substantive", templ.KV("motion-lost", m.Result == "LOST"), templ.KV("motion-voted", m.HasVote && m.Result != "LOST") } id={ fmt.Sprintf("motion-%d", m.ID) }>
-		if m.AgendaItem != "" {
-			<h3 class="motion-heading">{ m.AgendaItem }</h3>
+	<div
+		class={ "meeting-row motion-substantive", templ.KV("motion-lost", m.Result == "LOST"), templ.KV("motion-voted", m.HasVote && m.Result != "LOST") }
+		id={ fmt.Sprintf("motion-%d", m.ID) }
+		data-result={ m.Result }
+		data-notable={ fmt.Sprintf("%t", m.MediaURL != "") }
+		data-recorded={ fmt.Sprintf("%t", m.HasVote) }
+	>
+		if m.Heading != "" {
+			<h3 class="motion-heading">{ m.Heading }</h3>
 		}
 		<div class="motion-row-header">
 			<a href={ templ.SafeURL(fmt.Sprintf("#motion-%d", m.ID)) } class="motion-index" title="Link to this motion">{ fmt.Sprintf("#%d", index+1) }</a>
@@ -90,14 +174,24 @@ templ substantiveMotion(m views.MotionView, index int) {
 				<span class={ "badge", "badge-" + m.ResultClass }>{ m.Result }</span>
 			}
 			if m.Significance == "headline" || m.Significance == "notable" {
-				<span class={ "badge", "badge-" + m.Significance }>{ m.Significance }</span>
+				if m.MediaURL == "" {
+					<span class={ "badge", "badge-" + m.Significance }>{ m.Significance }</span>
+				}
 			}
 			if m.HasVote {
 				<span class="badge badge-vote">Recorded vote: { m.VoteSummary }</span>
 			}
+			if m.MediaURL != "" {
+				<a href={ templ.SafeURL(m.MediaURL) } target="_blank" rel="noopener" class="badge badge-headline motion-media-link">media</a>
+			}
 		</div>
+		if m.Roster != nil {
+			@components.VoteRoster(*m.Roster)
+		}
 		if m.Summary != "" {
+			<div class="motion-divider" aria-hidden="true"><span>Summary</span></div>
 			<p class="motion-row-summary">{ m.Summary }</p>
+			<div class="motion-divider" aria-hidden="true"><span>Full text</span></div>
 		}
 		if len(m.TextClauses) > 1 {
 			<p class="motion-text">{ m.TextClauses[0] }</p>
@@ -116,42 +210,6 @@ templ substantiveMotion(m views.MotionView, index int) {
 					, seconded by <strong>{ m.SecondedBy }</strong>
 				}
 			</span>
-			if m.MediaURL != "" {
-				<a href={ templ.SafeURL(m.MediaURL) } target="_blank" rel="noopener" class="meeting-row-btn">Media coverage &#x2197;</a>
-			}
 		</div>
-		if m.Votes != nil {
-			<details class="vote-details" open>
-				<summary>Vote breakdown ({ m.VoteSummary })</summary>
-				<div class="grid">
-					<div>
-						<h4>Yea ({ fmt.Sprintf("%d", m.YeaCount) })</h4>
-						<ul>
-							for _, name := range m.Votes.For {
-								<li>{ name }</li>
-							}
-						</ul>
-					</div>
-					<div>
-						<h4>Nay ({ fmt.Sprintf("%d", m.NayCount) })</h4>
-						<ul>
-							for _, name := range m.Votes.Against {
-								<li>{ name }</li>
-							}
-						</ul>
-					</div>
-					if len(m.Votes.Absent) > 0 {
-						<div>
-							<h4>Absent ({ fmt.Sprintf("%d", len(m.Votes.Absent)) })</h4>
-							<ul>
-								for _, name := range m.Votes.Absent {
-									<li>{ name }</li>
-								}
-							</ul>
-						</div>
-					}
-				</div>
-			</details>
-		}
 	</div>
 }

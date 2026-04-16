@@ -96,6 +96,20 @@ Dark mode is defined via `@mixin dark-theme` applied to both `@media (prefers-co
 - **Vanilla JS**: `var tc = ThemeColors();` then `tc.statusOk`, `tc.accent`, `tc.termAccent`, etc. (`static/js/theme-colors.js` loaded globally)
 - **TypeScript**: `import { readThemeColors } from "../theme-colors";` then call after DOMContentLoaded
 
+### Phosphor Pills
+
+All colored pill/badge/label elements use the **phosphor pill system** — two Sass mixins that emit `--badge-*` CSS tokens consumed by `%badge-base` (in `_placeholders.scss`).
+
+**Light mode** (`badge-light-hue($hue)`) — ward-map aesthetic: washed tinted fill (22% hue on cream), solid hue border, darkened hue text, no glow.
+
+**Dark mode** (`badge-dark-hue($hue)`) — CRT aesthetic: dark near-black fill (14% hue tint), saturated phosphor text + border, drop-shadow glow, scanline overlay.
+
+**To add a new pill variant:**
+1. Component SCSS: `@extend %badge-base; @include badge-light-hue(#hex);`
+2. Add dark override to `@mixin badge-dark-overrides` in `style.scss`: `@include badge-dark-hue(#hex);`
+
+Existing consumers: `.badge-*` (result/significance/term), ward subtitle badges, `.motion-filter-pill--*` (active state). Full docs in `_mixins.scss`.
+
 ### What NOT to tokenize
 - **Route identity colors** (ROUTE_COLORS maps) — GTFS data, not theme. Also used for Sankey budget nodes.
 - **Ward identity colors** — data

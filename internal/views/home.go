@@ -32,13 +32,20 @@ var NextCouncilMeeting = &NextMeeting{
 	Date:      "Tuesday, April 21",
 	Time:      "6:30 PM",
 	Type:      "City Council",
-	AgendaURL: "", // agenda not yet posted on eSCRIBE
+	AgendaURL: "https://pub-thunderbay.escribemeetings.com/Meeting.aspx?Id=3c773247-1c29-4757-a367-0fe53fcce424&Agenda=Agenda&lang=English",
 	EventURL:  "https://calendar.thunderbay.ca/default/Detail/2026-04-21-1830-City-Council",
-	Summary:   "Regular council session. Agenda will be posted to eSCRIBE roughly one week before the meeting.",
+	Summary:   "Zoning changes, a tourism tax update, and a proposed 2.7% council pay raise.",
+	KeyItems: []string{
+		"Rezoning at 116-222 Coady Ave and 1240 Dawson Rd",
+		"Tourism & Municipal Accommodation Tax update",
+		"2026 Council Remuneration — 2.7% increase proposed",
+		"$68K in external funding for poverty reduction & food security",
+	},
 }
 
 // RecentMeetingView is a compact meeting row for the home page.
 type RecentMeetingView struct {
+	Slug    string
 	ID      string
 	Date    string
 	Summary string
@@ -58,6 +65,7 @@ func NewHomeViewModel(recentMeetings []council.MeetingSummary) HomeViewModel {
 			summary = summary[:cut] + "..."
 		}
 		recent[i] = RecentMeetingView{
+			Slug:    council.MeetingSlug(m.Title, m.Date),
 			ID:      m.ID,
 			Date:    humanDate(m.Date),
 			Summary: summary,

@@ -60,12 +60,10 @@ templ transitMethodology() {
 				We store every position, delay, and cancellation as a raw event.
 			</p>
 			<p>
-				All metrics are measured at <strong>timepoint stops</strong>
-				(<code>timepoint=true</code> in GTFS) &mdash; the 3&ndash;5 stops
-				per direction that Thunder Bay Transit publishes as the
-				measured checkpoints. Times at the stops in between are
-				interpolated from travel distance, not promised, so we only
-				grade the bus on the stops the agency itself commits to.
+				A background job periodically rolls the raw events into
+				the aggregates shown on the Metrics tab. All metrics are
+				measured at <strong>timepoint stops</strong> (the ones
+				marked <code>timepoint=true</code> in the GTFS feed).
 			</p>
 		</article>
 
@@ -249,16 +247,17 @@ templ transitMethodology() {
 			<header class="methods-header"><h3>Headway Covariance</h3><span class="methods-tag methods-tag-regularity">Regularity</span></header>
 			<p>
 				This metric measures how evenly spaced buses are along a route. If buses
-				arrived exactly on schedule, they'd be evenly spaced and this number would
-				be zero. In practice, buses bunch up or leave big gaps &mdash; the higher
-				the number, the more unpredictable your wait becomes.
+				arrive at perfectly even intervals, this number is zero &mdash; regardless
+				of whether those intervals match the published schedule. In practice,
+				buses bunch up or leave big gaps &mdash; the higher the number, the more
+				unpredictable your wait becomes.
 			</p>
 			<p>
-				Think of it like darts. The bullseye is the scheduled headway. Each
-				bus arrival is a throw. Low covariance means the darts cluster around
-				the bullseye &mdash; buses arrive close to when they should. High
-				covariance means darts scattered across the board &mdash; arrivals are
-				all over the place.
+				Think of it like darts. The bullseye is the average gap between buses.
+				Each actual arrival is a throw. Low covariance means the darts cluster
+				around the bullseye &mdash; gaps between buses stay consistent. High
+				covariance means darts scattered across the board &mdash; gaps are all
+				over the place.
 			</p>
 			<div class="cv-dartboards" id="cv-dartboards" aria-label="Dartboard analogy for headway covariance"></div>
 			<script>

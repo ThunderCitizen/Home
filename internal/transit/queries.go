@@ -592,7 +592,23 @@ func RouteTimepointSchedule(ctx context.Context, db *pgxpool.Pool, routeID strin
 		}
 		main[bestIdx] = mergeDirection(main[bestIdx], s)
 	}
+
+	sort.Slice(main, func(i, j int) bool {
+		return directionFirstTime(main[i]) < directionFirstTime(main[j])
+	})
 	return main, nil
+}
+
+// directionFirstTime returns the earliest scheduled departure across all
+// trips in a direction, used to order direction sections chronologically.
+func directionFirstTime(s TimepointSchedule) string {
+	earliest := "99:99"
+	for _, t := range s.Trips {
+		if ft := firstTime(t); ft < earliest {
+			earliest = ft
+		}
+	}
+	return earliest
 }
 
 // findBestMergeTarget returns the index of the main direction sharing the most stops.

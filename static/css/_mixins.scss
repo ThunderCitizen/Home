@@ -27,6 +27,120 @@ $bp-lg: 1024px;
   @return color-mix(in srgb, #{$color} #{$amount}, #{$base});
 }
 
+// ==========================================================================
+// PHOSPHOR PILL SYSTEM
+// ==========================================================================
+// Shared styling for every phosphor-colored pill site-wide (badges, term tags,
+// filter pills, ward labels). Two mixins — `badge-light-hue` + `badge-dark-hue`
+// — emit the `--badge-*` CSS custom properties that `%badge-base`
+// (in _placeholders.scss) reads.
+//
+// ### How to add a new phosphor pill:
+//
+//   1. In your component:
+//        .my-pill { @extend %badge-base; @include badge-light-hue(#60a5fa); }
+//
+//   2. Add the dark-mode override to `@mixin badge-dark-overrides` in style.scss:
+//        .my-pill { @include badge-dark-hue(#60a5fa); }
+//
+// ### What the mixins set:
+//
+// **badge-light-hue($hue)** — light mode (ward-map aesthetic):
+//   --badge-fill:   22% hue on cream        (washed tinted fill)
+//   --badge-text:   70% hue on near-black   (readable saturated text)
+//   --badge-border: solid $hue              (crisp colored edge)
+//   Scanline / glow / text-shadow: off
+//
+// **badge-dark-hue($hue)** — dark mode (phosphor CRT aesthetic):
+//   --badge-fill:   14% hue on near-black   (dark CRT tint)
+//   --badge-text:   $hue                    (saturated phosphor)
+//   --badge-border: $hue                    (matching phosphor)
+//   Scanline: on, text-shadow glow: on, drop-shadow: on
+//
+// ### What %badge-base provides (defined in _placeholders.scss):
+//   border-radius: full pill, mono font, uppercase tracking, scanline ::before
+//   overlay, responsive to --badge-fill / --badge-text / --badge-border /
+//   --badge-scanline / --badge-text-shadow / --badge-glow-filter tokens.
+// ==========================================================================
+$badge-hues: (
+  'base':     #fbbf24,
+  'carried':  #4ade80,
+  'lost':     #f87171,
+  'tie':      #fbbf24,
+  'headline': #60a5fa,
+  'notable':  #c084fc,
+  'term-1':   #facc15,
+  'term-2':   #fb923c,
+  'term-3':   #4ade80,
+  'term-4':   #60a5fa,
+  'term-5':   #c084fc,
+  'term-6':   #d4a574,
+  'term-7':   #e5e7eb,
+  'term-8':   #e5e7eb,
+  'ward-current-river': #60a5fa,
+  'ward-mcintyre':      #4ade80,
+  'ward-mckellar':      #fbbf24,
+  'ward-westfort':      #f87171,
+  'ward-neebing':       #c084fc,
+  'ward-northwood':     #22d3ee,
+  'ward-red-river':     #f472b6,
+);
+
+// Light-mode phosphor: washed-out tinted pill with a crisp phosphor edge
+// (visual language lifted from the ward map — semi-transparent polygon fill
+// with a solid stroke). All solid colors; no runtime opacity.
+@mixin badge-light-hue($phosphor) {
+  --badge-fill:        color-mix(in srgb, #{$phosphor} 22%, #fdf6e3);
+  --badge-text:        color-mix(in srgb, #{$phosphor} 70%, #1a1a1a);
+  --badge-border:      #{$phosphor};
+  --badge-scanline:    color-mix(in srgb, #{$phosphor} 8%, transparent);
+  --badge-text-shadow: none;
+  --badge-glow-filter: none;
+}
+
+// Theme-colored accordion chevron. Replaces Pico's default gray chevron with
+// the --accent color via mask-image. Caller positions (inline-block for flex
+// rows, absolute + top:50% for padded blocks). Use together with a rotation
+// rule for the open state: transform: rotate(0).
+@mixin theme-chevron($size: 1rem) {
+  content: '';
+  display: inline-block;
+  width: $size;
+  height: $size;
+  background-image: none;
+  background-color: var(--accent);
+  mask: var(--pico-icon-chevron) center / contain no-repeat;
+  -webkit-mask: var(--pico-icon-chevron) center / contain no-repeat;
+  transform: rotate(-90deg);
+  transition: transform var(--pico-transition);
+  float: none;
+}
+
+// External-link icon — square with arrow escaping top-right (Lucide style).
+// Uses mask-image so background-color: currentColor paints the icon, letting
+// it inherit the parent's text color. Single shared definition for the whole
+// site; applied via `.ext-link-icon` class or as a pseudo-element ::after.
+@mixin ext-link-icon($size: 0.85em) {
+  content: '';
+  display: inline-block;
+  width: $size;
+  height: $size;
+  background-color: currentColor;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/><polyline points='15 3 21 3 21 9'/><line x1='10' y1='14' x2='21' y2='3'/></svg>") center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/><polyline points='15 3 21 3 21 9'/><line x1='10' y1='14' x2='21' y2='3'/></svg>") center / contain no-repeat;
+  vertical-align: -0.08em;
+  flex-shrink: 0;
+}
+
+@mixin badge-dark-hue($hue) {
+  --badge-fill:        color-mix(in srgb, #{$hue} 14%, #0a0a0a);
+  --badge-text:        #{$hue};
+  --badge-border:      #{$hue};
+  --badge-scanline:    rgba(0, 0, 0, 0.2);
+  --badge-text-shadow: 0 0 2px color-mix(in srgb, #{$hue} 40%, transparent);
+  --badge-glow-filter: drop-shadow(0 0 0.5px #{$hue});
+}
+
 // motion-card-variant: 3px left border + soft bg tint for result variants.
 // Used by .motion-card (on page bg) and .motion-substantive (on card bg).
 @mixin motion-card-variant($base: var(--thunder-50)) {
@@ -98,6 +212,7 @@ $bp-lg: 1024px;
     --card-shadow-hover: 0 10px 24px rgba(0, 0, 0, 0.4), 0 0 12px rgba(74, 222, 128, 0.08);
 
     --glass-bg: rgba(13, 26, 13, 0.25);
+    --glass-bg-solid: rgba(20, 30, 20, 0.92); // opaque fallback — dark phosphor card surface
     --glass-border: rgba(74, 222, 128, 0.08);
 
     // Surface dark — green-black

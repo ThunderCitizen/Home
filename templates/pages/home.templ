@@ -106,7 +106,7 @@ templ Home(vm views.HomeViewModel) {
 						for _, m := range vm.RecentMeetings {
 							<div class="recent-meeting">
 								<div class="recent-meeting-header">
-									<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.ID)) }>
+									<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) }>
 										<strong>{ m.Date }</strong>
 									</a>
 									<span class="recent-meeting-count">{ fmt.Sprintf("%d motions", m.Motions) }</span>

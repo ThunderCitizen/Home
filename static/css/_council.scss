@@ -130,11 +130,23 @@
   }
 
   .next-meeting-links {
-    margin: 0.2rem 0 0;
+    margin: 0.5rem 0 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
-    font-size: 0.9rem;
+    gap: 0.6rem;
+
+    a {
+      @extend %badge-base;
+      @include badge-light-hue(#4a6100);
+      font-size: 0.72rem;
+      padding: 0.3rem 0.75rem;
+      text-decoration: none;
+      cursor: pointer;
+
+      &:hover {
+        filter: brightness(1.1);
+      }
+    }
   }
 }
 
@@ -174,6 +186,62 @@
   display: block;
   padding: 0.6rem 0.75rem;
   background: var(--pico-card-background-color);
+  transition: opacity 0.25s ease, transform 0.25s ease, filter 0.25s ease;
+}
+
+// CRT page-turn: old content flickers out, new rows phosphor-fade in
+@keyframes crt-flicker-out {
+  0%   { opacity: 1; filter: brightness(1); }
+  30%  { opacity: 0.6; filter: brightness(1.4); }
+  60%  { opacity: 0.3; filter: brightness(0.8); }
+  100% { opacity: 0; filter: brightness(0.5); }
+}
+
+@keyframes crt-line-in {
+  0%   { opacity: 0; filter: brightness(2) blur(2px); transform: scaleY(0.7); }
+  40%  { opacity: 0.7; filter: brightness(1.3) blur(0px); transform: scaleY(1.02); }
+  70%  { opacity: 0.9; filter: brightness(1.05); transform: scaleY(1); }
+  100% { opacity: 1; filter: brightness(1); transform: scaleY(1); }
+}
+
+.meeting-row--fade-out {
+  animation: crt-flicker-out 0.15s ease-out forwards;
+}
+
+.meeting-row--fade-in {
+  animation: crt-line-in 0.3s ease-out forwards;
+}
+
+// Divider separating LLM summary from verbatim motion text
+.motion-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+
+  span {
+    flex-shrink: 0;
+    padding: 0 0.4rem;
+    text-shadow: 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent));
+  }
+
+  &::after {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 60%, transparent), transparent);
+  }
 }
 
 .meeting-row-summary {
@@ -181,15 +249,21 @@
   font-size: 0.85rem;
   line-height: 1.6;
   color: var(--thunder-700);
-  font-family: var(--font-prose);
+}
+
+.llm-disclaimer-footer {
+  margin: 0.75rem -1rem -1rem;     // bleed to card edges (Pico article padding = 1rem)
+  padding: 0.45rem 1rem;
+  border-top: 1px solid var(--thunder-200);
+  background: color-mix(in srgb, var(--accent) 4%, var(--pico-card-background-color));
 }
 
 .llm-disclaimer {
-  margin-top: 0.75rem;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--thunder-400);
-  font-family: var(--font-prose);
+  margin: 0;
+  font-size: 0.6rem;
+  line-height: 1.4;
+  color: var(--accent);
+  letter-spacing: 0.04em;
 }
 
 .meeting-row-meta {
@@ -201,7 +275,7 @@
 }
 
 .meeting-row-date {
-  font-weight: 600;
+  margin: 0 0 0.15rem;
 }
 
 .meeting-row-count {
@@ -212,81 +286,207 @@
 }
 
 .meeting-row-btn {
-  margin-left: auto;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.15rem 0.5rem;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  color: var(--accent);
+  @extend %badge-base;
+  @include badge-light-hue(#4a6100);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.65rem;
   text-decoration: none;
-  transition: background 0.12s, color 0.12s;
 
-  &:hover {
-    background: var(--accent);
-    color: #fff;
-    text-decoration: none;
-  }
+  &:hover { filter: brightness(1.1); }
 
   &-external {
-    margin-left: 0;
-    border-color: var(--thunder-300);
-    color: var(--thunder-500);
+    @include badge-light-hue(#60a5fa);
+    margin-left: auto;
 
-    &:hover {
-      background: var(--thunder-200);
-      color: var(--thunder-800);
-    }
+    &:hover { filter: brightness(1.1); }
   }
 }
 
 .motion-heading {
   font-family: var(--font-prose);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   text-transform: none;
-  letter-spacing: normal;
-  color: var(--thunder-800);
-  margin: 0 0 0.25rem;
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+  color: var(--accent);
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-.meeting-detail-nav {
+// Unified meeting detail header: nav bar + date + summary + stats in one panel.
+.meeting-detail-header {
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--thunder-200);
+  border-radius: var(--radius-md);
+  background: var(--pico-card-background-color);
+
+  h1 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.2;
+  }
+}
+
+.meeting-detail-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
-  font-size: 0.8rem;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  font-size: 0.72rem;
 }
 
-.meeting-detail-header {
-  margin-bottom: 1.5rem;
+.meeting-detail-back {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 
-  h1 {
-    font-size: 1rem;
-    font-weight: 800;
-    margin: 0;
-  }
+  &:hover { text-decoration: underline; }
+}
+
+.meeting-detail-overline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.72rem;
 }
 
 .meeting-detail-overline {
   font-size: 0.7rem;
   color: var(--thunder-500);
-  margin: 0 0 0.15rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex: 1;
 }
 
-.meeting-detail-title {
-  font-size: 0.8rem;
-  font-family: var(--font-prose);
-  color: var(--thunder-600);
-  margin: 0.15rem 0 0.5rem;
+.motion-media-link {
+  margin-left: auto;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.65rem;
+
+  &:hover { filter: brightness(1.15); }
 }
 
-.meeting-stats-bar {
+// Clickable stat-grid items that double as motion filters.
+.stat-filter {
+  all: unset;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--thunder-500);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem;
+  transition: background 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  &.active {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 0 -2px 0 var(--accent);
+
+    .stat-value { color: var(--accent); }
+  }
+
+  .stat-value, .stat-label {
+    pointer-events: none;
+  }
+}
+
+// Radio-group filter bar sitting at the bottom of the meeting header.
+// Each pill wraps a hidden <input type="radio">; :checked drives the active
+// state. Container toggles [data-filter] on change, and per-filter CSS rules
+// below hide non-matching motion rows + section headings.
+.motion-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend { display: none; }
+}
+
+// Phosphor pill treatment. Inactive pills use a flat neutral surface
+// (no transparency, no color) so they recede; :has(input:checked) flips
+// them to the saturated phosphor badge treatment with a per-category hue.
+.motion-filter-pill {
+  @extend %badge-base;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
+
+  // Inactive: solid surface, muted text, visible border. Overrides %badge-base
+  // so the default pill doesn't try to render a hue-tinted CRT fill.
+  --badge-fill:        var(--pico-card-background-color);
+  --badge-text:        var(--thunder-500);
+  --badge-border:      var(--thunder-300);
+  --badge-scanline:    transparent;
+  --badge-text-shadow: none;
+  --badge-glow-filter: none;
+
+  input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0; height: 0;
+  }
+
+  &:hover { --badge-text: var(--thunder-800); --badge-border: var(--accent); }
+
+  &:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  // Active: same phosphor pill system as .badge — light-hue for light mode,
+  // dark-hue for dark mode (applied via badge-dark-overrides in style.scss).
+  &--all:has(input:checked)        { @include badge-light-hue(#4ade80); }
+  &--carried:has(input:checked)    { @include badge-light-hue(#4ade80); }
+  &--defeated:has(input:checked)   { @include badge-light-hue(#f87171); }
+  &--recorded:has(input:checked)   { @include badge-light-hue(#86efac); }
+  &--procedural:has(input:checked) { @include badge-light-hue(#d4a574); }
+}
+
+.motion-filter-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+// Filter visibility rules.
+#motion-filter-target {
+  &[data-filter="carried"] {
+    .meeting-row:not([data-result="CARRIED"]) { display: none; }
+    [data-section="procedural"], [data-list="procedural"] { display: none; }
+  }
+  &[data-filter="defeated"] {
+    .meeting-row:not([data-result="LOST"]) { display: none; }
+    [data-section="procedural"], [data-list="procedural"] { display: none; }
+  }
+  &[data-filter="recorded"] {
+    .meeting-row:not([data-recorded="true"]) { display: none; }
+  }
+  &[data-filter="notable"] {
+    .meeting-row:not([data-notable="true"]) { display: none; }
+    [data-section="procedural"], [data-list="procedural"] { display: none; }
+  }
+  &[data-filter="procedural"] {
+    [data-section="substantive"], [data-list="substantive"] { display: none; }
+  }
 }
 
 .meeting-minutes-link {
@@ -366,10 +566,22 @@
   top: var(--year-selector-h);
   z-index: 50;
   @extend %frosted-glass;
+  // Override the solid fallback that %frosted-glass applies inside .term-panel —
+  // this bar bleeds to full width so backdrop-filter works fine.
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   border-bottom: 1px solid var(--glass-border);
-  padding: 0.35rem calc(50vw - 50%);
-  margin: 0 calc(-50vw + 50%) 0.75rem;
-  width: 100vw;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  // Bleed through both .term-panel-body padding (--space-3 = 0.75rem)
+  // AND Pico's article padding (--pico-block-spacing-horizontal = 1rem).
+  --_bleed: calc(var(--space-3) + var(--pico-block-spacing-horizontal, 1rem));
+  padding: 0.45rem var(--_bleed);
+  margin: calc(var(--_bleed) * -1) calc(var(--_bleed) * -1) 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 
   input[type="search"] {
     font-size: 0.82rem;
@@ -380,7 +592,10 @@
     background: var(--term-bg-deep);
     color: var(--thunder-700);
     border-radius: 4px;
-    width: 100%;
+    width: auto;
+    min-width: 10rem;
+    max-width: 16rem;
+    flex: 1;
     height: auto;
     transition: border-color 0.12s;
 
@@ -395,6 +610,22 @@
       font-style: italic;
     }
   }
+
+  .meeting-filters {
+    margin-bottom: 0;
+    margin-left: auto;
+  }
+
+  // Pulsing accent border during HTMX request (search debounce feedback).
+  &.htmx-request input[type="search"] {
+    border-color: var(--accent);
+    animation: search-pulse 0.6s ease-in-out infinite;
+  }
+}
+
+@keyframes search-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+  50%      { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 60%, transparent); }
 }
 
 .meetings-controls {
@@ -403,11 +634,8 @@
   z-index: 10;
   @extend %frosted-glass;
   border-bottom: 1px solid var(--glass-border);
-  padding: 0.4rem 0;
-  margin: 0 calc(-50vw + 50%);
-  width: 100vw;
-  padding-left: calc(50vw - 50%);
-  padding-right: calc(50vw - 50%);
+  padding: 0.4rem var(--page-gutter-x);
+  margin: 0 calc(var(--page-gutter-x) * -1);
 }
 
 .meeting-filters {
@@ -473,5 +701,174 @@
   justify-content: space-between;
   gap: 1rem;
   margin-top: 1rem;
+}
+
+// ==========================================================================
+// VOTE ROSTER — shared photo-strip display for motion vote breakdowns.
+// Used on the motion detail page and inside the vote-matrix modal.
+// Visual language lifted from .vote-cell scanline + .motion-modal-result tally.
+// ==========================================================================
+
+.vote-roster {
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.vote-roster-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.vote-roster-tally {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+
+  &.vote-roster-tally--carried { background: tint(var(--status-ok)); color: var(--status-ok); }
+  &.vote-roster-tally--lost    { background: tint(var(--status-error)); color: var(--status-error); }
+  &.vote-roster-tally--tie     { background: tint(var(--status-warn)); color: var(--status-warn); }
+}
+
+.vote-roster-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--thunder-600);
+  letter-spacing: 0.02em;
+}
+
+.vote-roster-row {
+  position: relative;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--pico-muted-border-color);
+  // Reuse the same scanline overlay as .vote-cell for visual continuity.
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--term-scanline) 2px,
+    var(--term-scanline) 4px
+  );
+
+  &.vote-roster-row--for {
+    background-color: tint(var(--status-ok), 12%);
+    border-color: tint(var(--status-ok), 35%);
+  }
+  &.vote-roster-row--against {
+    background-color: tint(var(--status-error), 12%);
+    border-color: tint(var(--status-error), 35%);
+  }
+  &.vote-roster-row--absent {
+    background-color: var(--thunder-100);
+    border-color: var(--thunder-200);
+    opacity: 0.85;
+  }
+}
+
+.vote-roster-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+
+  .vote-roster-row--for     & { color: var(--status-ok); }
+  .vote-roster-row--against & { color: var(--status-error); }
+  .vote-roster-row--absent  & { color: var(--thunder-500); }
+}
+
+.vote-roster-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.6rem;
+}
+
+.vote-roster-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 3.4rem;
+  text-align: center;
+}
+
+.vote-roster-avatar {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--thunder-100);
+  border: 2px solid var(--pico-muted-border-color);
+  box-sizing: content-box;
+
+  .vote-roster-row--for     & { border-color: var(--status-ok); }
+  .vote-roster-row--against & { border-color: var(--status-error); }
+  .vote-roster-row--absent  & { border-color: var(--thunder-300); filter: grayscale(0.5); }
+}
+
+.vote-roster-avatar--initials {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--thunder-700);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.vote-roster-name {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.66rem;
+  line-height: 1.15;
+  color: var(--thunder-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+// In the modal, the roster sits in the slot we replaced the old vote-split with.
+// Modal scopes override the roster to a more compact layout — the motion page
+// keeps the full-size version.
+.motion-modal-roster {
+  margin-bottom: 0.6rem;
+
+  .vote-roster { margin-top: 0; gap: 0.35rem; }
+  .vote-roster-headline { gap: 0.35rem; }
+  .vote-roster-tally {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+  }
+  .vote-roster-count { font-size: 0.68rem; }
+  .vote-roster-row {
+    padding: 0.35rem 0.45rem;
+  }
+  .vote-roster-label {
+    font-size: 0.6rem;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.05em;
+  }
+  .vote-roster-strip { gap: 0.35rem 0.45rem; }
+  .vote-roster-chip { width: 2.6rem; }
+  .vote-roster-avatar {
+    width: 1.7rem;
+    height: 1.7rem;
+    border-width: 1.5px;
+  }
+  .vote-roster-avatar--initials { font-size: 0.6rem; }
+  .vote-roster-name {
+    font-size: 0.58rem;
+    margin-top: 0.15rem;
+  }
 }
 

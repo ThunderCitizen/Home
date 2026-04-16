@@ -36,6 +36,7 @@ type CouncillorView struct {
 	Term         string
 	TermClass    string // CSS class for term badge color, e.g. "badge-term-1"
 	Status       string
+	StatusURL    string
 	Summary      string
 	ShortSummary string
 	ID           string
@@ -57,17 +58,25 @@ func termBadgeClass(term string) string {
 	return ""
 }
 
+// formatTerm swaps the single space in a term string like "3rd term" for a
+// non-breaking space so the badge never wraps to two lines.
+func formatTerm(term string) string {
+	return strings.Replace(term, " ", "\u00A0", 1)
+}
+
 // VoteMatrixColumn is a single motion (row in the flipped matrix).
 type VoteMatrixColumn struct {
+	MotionID   int64  // used to key the modal roster template
 	Label      string // short label for the grid row
 	FullTitle  string // full agenda item for modal
 	Summary    string // LLM summary for modal
 	Date       string
-	Result     string // "Carried" / "Lost"
-	URL        string // /minutes/{meetingID}#motion-{id}
-	MeetingURL string // /minutes/{meetingID}
-	IsKeyVote  bool   // headline significance
-	MediaURL   string // press coverage link
+	Result     string                      // "Carried" / "Lost"
+	URL        string                      // /minutes/{meetingID}#motion-{id}
+	MeetingURL string                      // /minutes/{meetingID}
+	IsKeyVote  bool                        // headline significance
+	MediaURL   string                      // press coverage link
+	Roster     *components.VoteRosterProps // pre-rendered into a hidden <template> for the modal
 }
 
 // VoteMatrixRow is a single councillor row in the vote matrix.
@@ -170,6 +179,21 @@ func NewCouncillorsViewModel(termYear int, vd TermVoteData) CouncillorsViewModel
 	return vm
 }
 
+// PhotoByName returns a map of councillor full name → /static photo URL,
+// built from data.CouncilByTerm. Empty Photo entries are omitted.
+func PhotoByName() map[string]string {
+	out := make(map[string]string)
+	for _, term := range data.CouncilByTerm {
+		all := append(append([]models.Councillor{term.Mayor}, term.AtLarge...), term.Ward...)
+		for _, c := range all {
+			if c.Photo != "" {
+				out[c.Name] = "/static/councillors/" + c.Photo
+			}
+		}
+	}
+	return out
+}
+
 // lastName extracts the last word from a full name for matching against vote records.
 func lastName(fullName string) string {
 	parts := strings.Fields(fullName)
@@ -265,7 +289,7 @@ func buildVoteStatsView(
 			Position: titleCase(nv.Position),
 			Result:   resultDisplay(nv.Result),
 			Date:     nv.Date,
-			URL:      "/minutes/" + nv.MeetingID,
+			URL:      "/minutes/" + council.MeetingSlug("City Council", nv.Date),
 		})
 	}
 
@@ -280,9 +304,10 @@ func councillorToView(c models.Councillor, index int) CouncillorView {
 	return CouncillorView{
 		Name:         c.Name,
 		Position:     c.Position,
-		Term:         c.Term,
+		Term:         formatTerm(c.Term),
 		TermClass:    termBadgeClass(c.Term),
 		Status:       c.Status,
+		StatusURL:    c.StatusURL,
 		Summary:      c.Summary,
 		ShortSummary: c.ShortSummary,
 		ID:           CouncillorID(string(c.Type), index),
@@ -317,7 +342,30 @@ func BuildVoteMatrix(
 		}
 	}
 
-	// Build columns
+	// Group records by councillor (for the matrix rows) and by motion (for the modal roster)
+	byCouncillor := make(map[string][]council.VoteMatrixRecord)
+	byMotion := make(map[int64]*council.VoteRecord)
+	for _, r := range records {
+		byCouncillor[r.Councillor] = append(byCouncillor[r.Councillor], r)
+		rec := byMotion[r.MotionID]
+		if rec == nil {
+			rec = &council.VoteRecord{}
+			byMotion[r.MotionID] = rec
+		}
+		switch r.Position {
+		case "for":
+			rec.For = append(rec.For, r.Councillor)
+		case "against":
+			rec.Against = append(rec.Against, r.Councillor)
+		case "absent":
+			rec.Absent = append(rec.Absent, r.Councillor)
+		}
+	}
+
+	// Build councillor order and photo lookup from council data (mayor → at-large → ward)
+	photos := PhotoByName()
+
+	// Build columns (after photos so modal rosters can be enriched)
 	columns := make([]VoteMatrixColumn, len(motions))
 	motionIndex := make(map[int64]int) // motion ID → column index
 	for i, m := range motions {
@@ -326,35 +374,25 @@ func BuildVoteMatrix(
 			mediaURL = headlineMedia[m.ID]
 		}
 		columns[i] = VoteMatrixColumn{
+			MotionID:   m.ID,
 			Label:      m.AgendaItem,
 			FullTitle:  m.FullTitle,
 			Summary:    m.Summary,
 			Date:       humanDate(m.Date),
 			Result:     resultDisplay(m.Result),
-			URL:        fmt.Sprintf("/minutes/%s#motion-%d", m.MeetingID, m.ID),
-			MeetingURL: fmt.Sprintf("/minutes/%s", m.MeetingID),
+			URL:        fmt.Sprintf("/minutes/%s#motion-%d", council.MeetingSlug("City Council", m.Date), m.ID),
+			MeetingURL: fmt.Sprintf("/minutes/%s", council.MeetingSlug("City Council", m.Date)),
 			IsKeyVote:  m.Significance == "headline",
 			MediaURL:   mediaURL,
+			Roster:     BuildVoteRoster(byMotion[m.ID], m.Result, photos),
 		}
 		motionIndex[m.ID] = i
 	}
-
-	// Group records by councillor
-	byCouncillor := make(map[string][]council.VoteMatrixRecord)
-	for _, r := range records {
-		byCouncillor[r.Councillor] = append(byCouncillor[r.Councillor], r)
-	}
-
-	// Build councillor order and photo lookup from council data (mayor → at-large → ward)
-	photoByName := make(map[string]string)
 	var councillorOrder []string
 	seen := make(map[string]bool)
 	for _, term := range data.CouncilByTerm {
 		all := append(append([]models.Councillor{term.Mayor}, term.AtLarge...), term.Ward...)
 		for _, c := range all {
-			if c.Photo != "" {
-				photoByName[c.Name] = "/static/councillors/" + c.Photo
-			}
 			// Add to order if they have vote records and aren't already listed
 			if !seen[c.Name] && len(byCouncillor[c.Name]) > 0 {
 				seen[c.Name] = true
@@ -382,7 +420,7 @@ func BuildVoteMatrix(
 		rows[i] = VoteMatrixRow{
 			Name:     name,
 			Initials: Initials(name),
-			Photo:    photoByName[name],
+			Photo:    photos[name],
 			Cells:    cells,
 		}
 	}
@@ -403,7 +441,7 @@ func buildKeyVotes(static []models.KeyVote, headlines []council.HeadlineVote) []
 				Result:   resultDisplay(hv.Result),
 				Vote:     hv.VoteTally,
 				MediaURL: hv.MediaURL,
-				URL:      fmt.Sprintf("/minutes/%s#motion-%d", hv.MeetingID, hv.MotionID),
+				URL:      fmt.Sprintf("/minutes/%s#motion-%d", council.MeetingSlug("City Council", hv.Date), hv.MotionID),
 			}
 		}
 		return views
