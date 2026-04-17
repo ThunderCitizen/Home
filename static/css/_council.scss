@@ -134,14 +134,18 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
+    justify-content: flex-end;
 
     a {
       @extend %badge-base;
-      @include badge-light-hue(#4a6100);
+      @include badge-light-hue(#4ade80);
       font-size: 0.72rem;
       padding: 0.3rem 0.75rem;
       text-decoration: none;
       cursor: pointer;
+
+      &.meeting-link-agenda { @include badge-light-hue(#60a5fa); }
+      &.meeting-link-event  { @include badge-light-hue(#4ade80); }
 
       &:hover {
         filter: brightness(1.1);

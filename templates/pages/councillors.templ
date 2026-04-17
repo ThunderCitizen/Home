@@ -120,7 +120,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	}
 
 	if vm.VoteMatrix != nil && len(vm.VoteMatrix.Columns) > 0 {
-		@components.TermPanel(components.TermPanelProps{Title: "Notable Votes"}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes"}) {
 			@voteMatrix(vm.VoteMatrix)
 		}
 	}

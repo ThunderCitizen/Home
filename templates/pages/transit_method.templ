@@ -348,9 +348,7 @@ templ transitMethodology() {
 				&mdash; that schedule is a promise. EWT measures how many extra minutes
 				you actually wait beyond that promise because buses aren&rsquo;t arriving
 				at regular intervals. It&rsquo;s the gap between what was committed to
-				and what was delivered, which is why transit agencies worldwide treat it
-				as a north-star metric
-				(<a href="https://transitcenter.org/improve-transit-smart-delays/" target="_blank" rel="noopener">TransitCenter</a>).
+				and what was delivered.
 			</p>
 			<p>
 				If a route runs every 15 minutes, you'd expect to wait 7.5 minutes on
@@ -441,12 +439,9 @@ templ transitMethodology() {
 			})();
 			</script>
 			<p>
-				The calculation squares each gap, sums those squares, and divides
-				by twice the total time. This gives the wait riders arriving at
-				random times actually experience. Subtract the scheduled wait (half the planned headway)
-				and the remainder is the excess. Bigger gaps get disproportionate
-				weight because more riders accumulate during them &mdash; double
-				the gap, quadruple the rider-minutes lost.
+				Bigger gaps hurt more because more riders show up during them. EWT captures
+				that &mdash; it weights each gap by how many people it affects, then subtracts
+				the wait you&rsquo;d expect if buses ran on time.
 			</p>
 
 		</article>
@@ -458,11 +453,11 @@ templ transitMethodology() {
 			<p>
 				The route finder uses <strong>RAPTOR</strong> (Round-bAsed Public Transit
 				Optimized Router), an algorithm developed at Microsoft Research for
-				computing optimal multi-leg transit journeys. Unlike graph-based
-				approaches, RAPTOR works directly on the timetable &mdash; scanning
-				routes round by round, where each round adds one more vehicle. Round 1
-				finds all destinations reachable by a single bus, round 2 finds
-				journeys with one transfer, and so on.
+				computing optimal multi-leg transit journeys. RAPTOR works directly
+				on the timetable &mdash; scanning routes round by round, where each
+				round adds one more vehicle. Round 1 finds all destinations reachable
+				by a single bus, round 2 finds journeys with one transfer, and so on.
+				Because of this, RAPTOR is more efficient compared to graph-based approaches like Dijkstra or A* for transit routing.
 			</p>
 		</article>
 

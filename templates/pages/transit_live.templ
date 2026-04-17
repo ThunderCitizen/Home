@@ -8,6 +8,14 @@ import (
 	"thundercitizen/templates/components"
 )
 
+func pillBorderStyle(color string) templ.Attributes {
+	return templ.Attributes{"style": "border-left-color:" + color}
+}
+
+func pillIdStyle(bg string) templ.Attributes {
+	return templ.Attributes{"style": "background:" + bg}
+}
+
 func transitLayerGroups() []components.MapLayerGroup {
 	return []components.MapLayerGroup{{
 		Label: "Layers",
@@ -106,11 +114,12 @@ templ TransitLive(vm transit.LiveViewModel) {
 					</label>
 					if upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips) > 0 {
 						<label for="term-tab-cancels" class="terminal-tab-label" role="tab" id="tab-cancels" aria-selected="false" tabindex="-1" aria-controls="panel-cancels">
-							<span id="terminal-cancel-count" class="terminal-badge-num">{ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips)) }</span> Cancelled
+							<span id="terminal-cancel-count" class="terminal-badge-num">{ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips)) }</span>
+							if upcomingCancellationCount(vm.CancelledTrips) > 0 {
+								<span class="terminal-cancels-upcoming">({ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips)) })</span>
+							}
+							Cancelled
 						</label>
-						if upcomingCancellationCount(vm.CancelledTrips) > 0 {
-							<span id="terminal-cancel-upcoming" class="terminal-cancels-upcoming">{ fmt.Sprintf("%d upcoming", upcomingCancellationCount(vm.CancelledTrips)) }</span>
-						}
 					}
 				</div>
 			</div>
@@ -118,12 +127,27 @@ templ TransitLive(vm transit.LiveViewModel) {
 				<div class="terminal-tab-panel" id="panel-routes" role="tabpanel" aria-labelledby="tab-routes" tabindex="0">
 					<div class="route-legend-bar">
 						<div id="route-grid" class="route-legend" role="list" aria-label="Bus routes — click to filter map">
-							<span class="skeleton-pill" style="width:7rem"></span>
-							<span class="skeleton-pill" style="width:8rem"></span>
-							<span class="skeleton-pill" style="width:6rem"></span>
-							<span class="skeleton-pill" style="width:9rem"></span>
-							<span class="skeleton-pill" style="width:7rem"></span>
-							<span class="skeleton-pill" style="width:8rem"></span>
+							for _, rt := range vm.RouteMeta {
+								<button type="button" class="route-pill route-pill-inactive" role="listitem" data-route={ rt.RouteID } { pillBorderStyle(rt.Color)... }>
+									<span class="route-pill-id" { pillIdStyle(rt.Color)... }>{ rt.RouteID }</span>
+									if rt.Name != "" && rt.Name != rt.RouteID {
+										<span class="route-pill-name">{ rt.Name }</span>
+									}
+									if len(rt.Terminals) > 0 {
+										<span class="route-pill-term-from">{ rt.Terminals[0] }</span>
+										if len(rt.Terminals) > 1 && rt.Terminals[1] != rt.Terminals[0] {
+											<span class="route-pill-term-to">{ rt.Terminals[1] }</span>
+										}
+									}
+									<span class="route-pill-footer">
+										<span class="route-pill-ft"><span class="route-pill-ft-val">0</span><span class="route-pill-ft-label">buses</span></span>
+										<span class="route-pill-ft-sep"></span>
+										<span class="route-pill-ft"><span class="route-pill-ft-val">0</span><span class="route-pill-ft-label">cancel</span></span>
+										<span class="route-pill-ft-sep"></span>
+										<span class="route-pill-ft"><span class="route-pill-ft-val">0</span><span class="route-pill-ft-label">upcoming</span></span>
+									</span>
+								</button>
+							}
 						</div>
 					</div>
 					<div id="route-schedule-inline" class="route-schedule-inline" hidden></div>

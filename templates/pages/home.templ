@@ -30,10 +30,10 @@ templ nextMeetingCard(m views.NextMeeting) {
 		}
 		<p class="next-meeting-links">
 			if m.AgendaURL != "" {
-				<a href={ templ.SafeURL(m.AgendaURL) } target="_blank" rel="noopener">Agenda &rarr;</a>
+				<a href={ templ.SafeURL(m.AgendaURL) } target="_blank" rel="noopener" class="meeting-link-agenda">Agenda <span class="ext-link-icon" aria-hidden="true"></span></a>
 			}
 			if m.EventURL != "" {
-				<a href={ templ.SafeURL(m.EventURL) } target="_blank" rel="noopener">Event details &rarr;</a>
+				<a href={ templ.SafeURL(m.EventURL) } target="_blank" rel="noopener" class="meeting-link-event">Event details <span class="ext-link-icon" aria-hidden="true"></span></a>
 			}
 		</p>
 	</div>

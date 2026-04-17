@@ -97,6 +97,11 @@ document.documentElement.classList.remove('no-js');
 			<header class="site-header">
 				<nav aria-label="Main navigation">
 					<a href="/" class="site-title">Thunder Citizen <svg class="site-logo" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path d="M19 2L7 16h7l-4 14L26 14h-8z" fill="currentColor" stroke-linejoin="round"/></svg></a>
+					<button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+						<span class="nav-toggle-bar"></span>
+						<span class="nav-toggle-bar"></span>
+						<span class="nav-toggle-bar"></span>
+					</button>
 					<ul class="nav-links">
 						@navLink("/budget", "Budget", title)
 						@navLink("/councillors", "Councillors", title)
@@ -105,6 +110,33 @@ document.documentElement.classList.remove('no-js');
 						@navLink("/about", "About", title)
 					</ul>
 				</nav>
+				<script>
+				(function(){
+					var btn = document.querySelector('.nav-toggle');
+					var nav = document.querySelector('.nav-links');
+					if (!btn || !nav) return;
+					btn.addEventListener('click', function(){
+						var open = nav.classList.toggle('nav-open');
+						btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+						btn.classList.toggle('nav-toggle-open', open);
+					});
+
+					// Tap flash — brief glow before navigation
+					nav.addEventListener('click', function(e){
+						var a = e.target.closest('a');
+						if (!a || a.getAttribute('aria-current') === 'page') return;
+						var href = a.getAttribute('href');
+						if (!href) return;
+						e.preventDefault();
+						a.classList.add('nav-tap-flash');
+						requestAnimationFrame(function(){
+							requestAnimationFrame(function(){
+								window.location.href = href;
+							});
+						});
+					});
+				})();
+				</script>
 			</header>
 			<main id="main">
 				<div class="container">

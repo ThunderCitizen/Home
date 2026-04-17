@@ -96,7 +96,8 @@ templ MapLayerBar(groups []MapLayerGroup) {
 
 // mapScrollZoomScript disables scroll-wheel zoom until the map is clicked,
 // adds a visible focus ring via the map-active class, and moves zoom controls
-// to bottom-left.
+// to bottom-left. On touch devices, requires two-finger gesture to pan
+// (single finger scrolls the page) with an overlay hint.
 templ mapScrollZoomScript(id string) {
 	<script data-map-id={ id }>
 	(function(){
@@ -121,8 +122,47 @@ templ mapScrollZoomScript(id string) {
 			el.setAttribute("tabindex", "0");
 			var isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
 			if (isTouch) {
-				// Touch devices have no scroll wheel; Leaflet handles pinch-zoom directly.
-				m.scrollWheelZoom.enable();
+				// Tap to activate: map starts locked (page scrolls through it).
+				// Tap once to unlock full pan/zoom. Locks again after 5s idle
+				// or when user scrolls the page.
+				m.dragging.disable();
+				m.scrollWheelZoom.disable();
+				var overlay = document.createElement("div");
+				overlay.className = "map-gesture-overlay visible";
+				overlay.textContent = "Tap map to interact";
+				el.appendChild(overlay);
+				var active = false;
+				var idleTimer;
+				function activate() {
+					active = true;
+					m.dragging.enable();
+					el.classList.add("map-active");
+					overlay.classList.remove("visible");
+					clearTimeout(idleTimer);
+					idleTimer = setTimeout(deactivate, 5000);
+				}
+				function deactivate() {
+					active = false;
+					m.dragging.disable();
+					el.classList.remove("map-active");
+					overlay.classList.add("visible");
+					clearTimeout(idleTimer);
+				}
+				function resetIdle() {
+					if (!active) return;
+					clearTimeout(idleTimer);
+					idleTimer = setTimeout(deactivate, 5000);
+				}
+				el.addEventListener("click", function(e) {
+					if (!active) {
+						e.stopPropagation();
+						activate();
+					}
+				});
+				el.addEventListener("touchmove", resetIdle, { passive: true });
+				window.addEventListener("scroll", function() {
+					if (active) deactivate();
+				}, { passive: true });
 			} else {
 				el.addEventListener("click", function(){ m.scrollWheelZoom.enable(); el.classList.add("map-active"); });
 				el.addEventListener("blur", function(){ m.scrollWheelZoom.disable(); el.classList.remove("map-active"); });

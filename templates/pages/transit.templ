@@ -80,7 +80,7 @@ templ dateRangeNav(dr transit.DateRange) {
 		if dr.PrevURL != "" {
 			<a href={ templ.SafeURL(dr.PrevURL) } class="drb-arrow drb-prev" aria-label="Previous week">&lsaquo;</a>
 		} else {
-			<span class="drb-arrow drb-prev drb-disabled" aria-disabled="true">&lsaquo;</span>
+			<span class="drb-arrow drb-prev drb-disabled" aria-disabled="true" title="No earlier data available">&lsaquo;</span>
 		}
 		<span class="drb-label">{ dr.Label }</span>
 		if dr.NextURL != "" {
@@ -95,8 +95,8 @@ func routeCardStyle(color string) templ.Attributes {
 	return templ.Attributes{"style": "--route-color: " + color}
 }
 
-func routeIdStyle(color string) templ.Attributes {
-	return templ.Attributes{"style": "color: " + color}
+func routeIdStyle(bg string) templ.Attributes {
+	return templ.Attributes{"style": "background:" + bg}
 }
 
 func cancelLeadClass(leadMin int) string {

@@ -1042,7 +1042,7 @@ function updateRouteGrid(vehicles: LocalVehicle[]): void {
       '<button type="button" class="' + cls + '" role="listitem" data-route="' + escapeHtml(id) + '"' +
       ' style="border-left-color:' + color + '"' +
       ' title="' + titleParts + '">' +
-      '<span class="route-pill-id" style="color:' + color + '">' + escapeHtml(id) + '</span>' +
+      '<span class="route-pill-id" style="background:' + color + '">' + escapeHtml(id) + '</span>' +
       nameSpan +
       rightCol +
       footer +
@@ -1153,6 +1153,28 @@ function loadRouteSchedule(route: string | null): void {
         badge.style.background = badge.dataset.bg || '';
         badge.style.color = badge.dataset.fg || '';
       }
+      // Inject live bus count into the schedule header
+      const counts = getRouteCounts(lastVehicles);
+      const busCount = counts[route] || 0;
+      const header = container.querySelector('.route-detail-header');
+      if (header) {
+        const status = document.createElement('span');
+        status.className = 'route-inline-bus-count' + (busCount === 0 ? ' route-inline-no-buses' : '');
+        status.textContent = busCount + ' bus' + (busCount !== 1 ? 'es' : '') + ' running';
+        header.appendChild(status);
+      }
+      // If schedule is below the viewport, show a bouncing chevron
+      // at the bottom of the route grid to hint content appeared below.
+      requestAnimationFrame(function () {
+        const rect = container.getBoundingClientRect();
+        if (rect.top > window.innerHeight) {
+          const hint = document.createElement('div');
+          hint.className = 'scroll-hint-chevron';
+          hint.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+          document.body.appendChild(hint);
+          setTimeout(function () { hint.remove(); }, 800);
+        }
+      });
     })
     .catch(function () {
       if (scheduleRouteId !== route) return;
@@ -1476,12 +1498,14 @@ function updateStopOccupancy(vehicles: LocalVehicle[]): void {
 function stopRadius(): number {
   if (!map) return 3;
   const z = map.getZoom();
-  if (z >= 18) return 8;
-  if (z >= 17) return 7;
-  if (z >= 16) return 6;
-  if (z >= 15) return 5;
-  if (z >= 14) return 4;
-  return 3;
+  const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const pad = touch ? 3 : 0;
+  if (z >= 18) return 8 + pad;
+  if (z >= 17) return 7 + pad;
+  if (z >= 16) return 6 + pad;
+  if (z >= 15) return 5 + pad;
+  if (z >= 14) return 4 + pad;
+  return 3 + pad;
 }
 
 function updateStopVisibility(): void {
@@ -1647,9 +1671,19 @@ function onLocateClick(openPlanner?: boolean): void {
       if (err.code === 1) msg = "Location permission denied";
       else if (err.code === 2) msg = "Location unavailable";
       else if (err.code === 3) msg = "Location request timed out";
-      // Show error in info bar briefly
-      lockInfoBar('<span class="info-late">' + msg + '</span>');
-      setTimeout(unlockInfoBar, 3000);
+      if (openPlanner) {
+        // Show error inline in the From input
+        const fromInput = document.getElementById("trip-from") as HTMLInputElement | null;
+        if (fromInput) {
+          fromInput.value = msg;
+          fromInput.classList.add("trip-input-error");
+          setTimeout(function () { fromInput.classList.remove("trip-input-error"); }, 3000);
+        }
+        openTripPlanner();
+      } else {
+        lockInfoBar('<span class="info-late">' + msg + '</span>');
+        setTimeout(unlockInfoBar, 3000);
+      }
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
   );
