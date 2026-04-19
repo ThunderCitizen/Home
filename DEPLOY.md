@@ -1,189 +1,87 @@
-# Deploy to DigitalOcean App Platform
+# Deploy
 
-ThunderCitizen runs on **DigitalOcean App Platform** (hosted containers, managed TLS) backed by **DigitalOcean Managed Postgres**. Container images are built by GitHub Actions (`.github/workflows/build-image.yml`) and published to GHCR; App Platform pulls the `:latest` tag.
+The stack is `docker-compose.prod.yml` — Postgres + app + Caddy — and runs on any Debian-family box with a public IP, a domain pointing at it, and ports 80/443 open. The scripts in `scripts/` do the actual work; this doc is the order to run them in.
 
-Why this setup: DO owns the TLS cert, DO owns database backups, and the app image is built once in CI and deployed as-is — no droplet, no ssh, no reverse proxy.
-
-## Prerequisites
-
-- [`doctl`](https://docs.digitalocean.com/reference/doctl/how-to/install/) authenticated against your DO team (`doctl auth init`)
-- `psql` on your workstation (to enable extensions and apply patches once)
-- DNS control for `thundercitizen.ca` (to point it at the App Platform app)
-- The GHCR package `ghcr.io/<owner>/thundercitizen` set to **public** visibility (Package settings → Change visibility → Public). Otherwise App Platform needs a registry pull secret.
-
-## 1. Managed Postgres (one-time)
-
-Create the database via dashboard (**Databases → Create → PostgreSQL 16**) or:
+## Dev
 
 ```bash
-doctl databases create thundercitizen-db \
-    --engine pg --version 16 \
-    --region tor1 --size db-s-1vcpu-1gb --num-nodes 1
+docker compose up          # db + app, app on :8080
 ```
 
-Tor1 (Toronto) keeps latency low for Thunder Bay readers. `db-s-1vcpu-1gb` is the smallest Managed Postgres tier — check DO's pricing page for current rates before you commit.
+Full dev workflow (dev container, `make dev`, hot reload, test commands) lives in [docs/development.md](docs/development.md).
 
-Once the database is provisioned, grab its connection string:
+## Prod
+
+On a fresh Debian box as root:
 
 ```bash
-doctl databases connection thundercitizen-db --format URI
+# 1. DNS first — point the hostnames in docker-compose.prod.yml's Caddyfile
+#    block at this box's public IP. TLS won't issue until DNS resolves.
+
+# 2. Clone
+mkdir -p /opt && cd /opt
+apt-get update -qq && apt-get install -y -qq git
+git clone --depth 1 https://github.com/thundercitizen/home.git
+cd ThunderCitizen
+
+# 3. Harden (ufw + fail2ban + unattended-upgrades; idempotent)
+./scripts/harden.sh
+
+# 4. Docker
+curl -fsSL https://get.docker.com | sh
+
+# 5. (Optional) override defaults
+cat > .env <<'EOF'
+ACME_EMAIL=you@example.com
+TC_IMAGE_TAG=sha-3d84894       # pin an immutable build
+EOF
+
+# 6. Bring it up
+./scripts/deploy.sh
 ```
 
-Then enable the two extensions `migrations/000001_schema.up.sql` expects (they ship with DO's PostGIS-enabled image but must be activated per database):
+`deploy.sh` is idempotent: cold-boots the full stack on first run, hot-bounces only the app container on subsequent runs. Use it for every rollout too — `./scripts/deploy.sh` after `git pull` is the full update path.
 
-```bash
-psql "<connection-uri>" -c 'CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS pg_trgm;'
-```
+### Env overrides
 
-Your workstation's IP must be on the database's **Trusted Sources** allow-list for this to work — add it in the dashboard (**Databases → thundercitizen-db → Settings → Trusted Sources**) or via `doctl databases firewalls append`.
-
-## 2. App Platform app (one-time)
-
-Create the app from the dashboard: **Apps → Create App → Container Image → GitHub Container Registry**.
-
-Fill in:
-
-| Field | Value |
+| Var | Default |
 |---|---|
-| Registry | `ghcr.io` |
-| Repository | `<owner>/thundercitizen` |
-| Tag | `latest` |
-| HTTP port | `8080` |
-| Instance size | Basic XXS (512 MB) or Basic XS (1 GB) |
-| Instance count | 1 |
-| Health check path | `/health` |
-| Region | `tor1` (same as the DB) |
+| `ACME_EMAIL` | `eric@decompiled.dev` |
+| `POSTGRES_USER` | `thundercitizen` |
+| `POSTGRES_DB` | `thundercitizen` |
+| `TC_IMAGE_TAG` | `latest` |
 
-Attach the Managed Postgres database as a component of the app — in the dashboard: **Add resources → Database → Existing Database → thundercitizen-db**. Once attached, App Platform makes a binding reference available as `${thundercitizen-db.DATABASE_URL}` that you can wire into the app's env vars.
+The canonical domain and redirect aliases are hardcoded in the inlined Caddyfile inside `docker-compose.prod.yml` — edit the compose file, not an env var. The Postgres password auto-generates on first boot into `./secrets/postgres_password`.
 
-### Environment variables
-
-Set these on the **app component** (not the database component):
-
-| Variable | Scope | Value |
-|---|---|---|
-| `DATABASE_URL` | RUN_TIME | `${thundercitizen-db.DATABASE_URL}` (binding reference, not a literal) |
-| `ENVIRONMENT`  | RUN_TIME | `production` |
-| `PORT`         | RUN_TIME | `8080` |
-
-`internal/config` reads env vars first and falls back to `secrets.conf` if present. The runtime image does not bake in `secrets.conf`, so the env-var values above are what the server sees.
-
-**Do not set `ANTHROPIC_API_KEY` on the running app** — it is only needed by `cmd/summarize`, which is an operator tool, not part of the web service. Keep it in your local `secrets.conf`.
-
-### Custom domain
-
-In the app's **Domains** tab, add `thundercitizen.ca` and (optionally) `www.thundercitizen.ca`. DO gives you a CNAME target like `<app-name>.ondigitalocean.app`. Point your DNS at it. The Let's Encrypt cert is provisioned automatically once DNS resolves — usually within a minute or two of propagation.
-
-## 3. PMTiles basemap
-
-`static/thunderbay.pmtiles` is committed to the repo (~8 MB — a Thunder Bay bbox extract of the Protomaps global basemap) and copied into the image by the existing `COPY --from=builder /src/static /app/static` line in the Dockerfile. No extra build step needed.
-
-Regenerate it locally when Protomaps ships a new global snapshot (infrequent):
+### Backups
 
 ```bash
-pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles \
-    static/thunderbay.pmtiles \
-    --bbox=-89.85,48.10,-88.75,48.65 --maxzoom=15
-git add static/thunderbay.pmtiles && git commit -m "Refresh basemap snapshot"
+./scripts/backup.sh            # → ./backups/thundercitizen-<UTC>.sql.gz
 ```
 
-## 4. Data storage (DO Spaces)
+Daily cron at 04:00 UTC:
 
-Curated data ships as a **signed muni bundle** served from `data.thundercitizen.ca` (a DO Spaces bucket with CDN). The server downloads the bundle on boot (throttled to once per 24h via `muni_fetch_state`), verifies the Ed25519 signature against the public key baked into the binary, and applies any new datasets — no manual DB step needed.
+```cron
+0 4 * * * cd /opt/ThunderCitizen && ./scripts/backup.sh >> /var/log/tc-backup.log 2>&1
+```
 
-### One-time setup
+Off-host shipping and retention pruning are intentionally not in the script — wire those to whatever you already use.
 
-Create the Space via dashboard (**Spaces → Create → `thundercitizen-data`**, region `tor1`).
-
-1. **Enable CDN** on the Space (Settings → CDN → Enable)
-2. **Custom subdomain**: add `data.thundercitizen.ca` as a custom CDN endpoint. DO provisions a Let's Encrypt cert automatically.
-3. **DNS**: CNAME `data.thundercitizen.ca` → the CDN endpoint DO gives you (e.g. `thundercitizen-data.tor1.cdn.digitaloceanspaces.com`)
-4. **Generate a signing keypair** once: `./bin/munisign keygen`. Commit the public key (used by the server to verify) and keep the private key in `.signing-key.pub` locally — do NOT commit the private key.
-
-### Publish a bundle
-
-After refreshing source data and regenerating the dev DB:
+### Restore
 
 ```bash
-make muni-extract                                    # dev DB → data/muni/*.tsv + BOD.tsv
-./bin/munisign sign -key .signing-key.pub data/muni  # writes SIGNATURE
-make muni-publish                                    # zip + upload to DO Spaces
-./bin/muni publish -dry-run                          # preview without uploading
+docker compose -f docker-compose.prod.yml stop app
+gunzip -c backups/thundercitizen-<timestamp>.sql.gz | \
+  docker compose -f docker-compose.prod.yml exec -T db \
+  psql -U thundercitizen -d thundercitizen
+docker compose -f docker-compose.prod.yml start app
 ```
 
-Requires `s3cmd` or `aws` CLI configured for DO Spaces. The next server boot picks up the new bundle automatically. Idempotent — already-applied datasets are a no-op; checksum drift on a previously-applied dataset is a hard error.
-
-### Environment variables
-
-The server resolves the bundle URL from config — no env var needed in typical deploys, but override for staging or testing:
-
-| Variable | Scope | Default | Notes |
-|---|---|---|---|
-| `MUNI_URL` | RUN_TIME | `https://data.thundercitizen.ca/index.json` | Override to point at an alternate bundle index |
-
-## 5. Verify
+### Logs
 
 ```bash
-# App health
-curl -I https://thundercitizen.ca/health
-
-# Version + commit (should match the GHA image tag for the deployed release)
-curl -s https://thundercitizen.ca/version
-
-# Live logs
-doctl apps logs <app-id> --follow
-
-# App + deployment status
-doctl apps get <app-id>
+docker compose -f docker-compose.prod.yml logs -f     # all services
+tail -f caddy-logs/access.log                         # filtered access log
 ```
 
-Find `<app-id>` with `doctl apps list`.
-
-## Updating
-
-1. Merge to `main` — GitHub Actions builds a new image and pushes it to GHCR as `:latest`, `:main`, and `:sha-<short>`.
-2. App Platform pulls the new `:latest` automatically if **Auto-Deploy** is enabled on the component (dashboard → Settings → Auto Deploy). Otherwise trigger manually:
-
-   ```bash
-   doctl apps create-deployment <app-id>
-   ```
-
-Schema migrations run on server startup (`cmd/server/main.go:runMigrations`) against the Managed DB. No manual step.
-
-If you changed any curated data (councillors, budget ledger, votes, wards), republish the muni bundle: `make muni-extract && ./bin/munisign sign -key .signing-key.pub data/muni && make muni-publish`. The next server boot picks it up automatically.
-
-## Rollback
-
-Roll back to a previous deployment via the dashboard (**Apps → thundercitizen → Deployments → … → Rollback**) or:
-
-```bash
-doctl apps list-deployments <app-id>
-doctl apps create-deployment <app-id> --force-rebuild  # to rebuild from a specific tag
-```
-
-For a fast rollback to a known-good image, override the component's image tag to a specific `:sha-<short>` from the GHA history instead of `:latest`, then redeploy.
-
-**Schema migrations are forward-only.** Rolling back the app image does NOT roll back a schema migration that was already applied on startup. If a deploy includes a destructive migration, plan the rollback path before merging.
-
-## Backups
-
-DO Managed Postgres takes automated backups on every tier (daily full + transaction logs for point-in-time recovery). Inspect and restore from the dashboard (**Databases → thundercitizen-db → Backups**) or via doctl:
-
-```bash
-doctl databases backups list thundercitizen-db
-# Restore via the dashboard — doctl can list backups but not restore into place;
-# restores always create a new cluster that you then swap the app binding to.
-```
-
-`scripts/backup.sh --dev` runs `pg_dump` via `docker exec` against the containerized dev DB. Don't use it for production; DO's snapshots are the production backup story. (`scripts/backup.sh` without `--dev` targets the prod compose stack; see DEPLOY-DROPLET.md.)
-
-## Monitoring
-
-- **Logs** — `doctl apps logs <app-id> --follow` or the **Runtime Logs** tab in the dashboard
-- **Metrics** — App Platform dashboard shows request rate, latency, memory, CPU
-- **Health** — `/health` returns 200 when the DB pool is up
-- **Version** — `/version` returns `{commit, build_time}` from the GHA-built image's ldflags
-
-## Local testing
-
-`docker compose up` still works for local integration testing against the containerized Postgres — see `docker-compose.yml`. It has nothing to do with production; the compose file is a dev convenience only.
+Database seeding is automatic — on boot the app downloads the signed muni bundle from `data.thundercitizen.ca`, verifies the signature, and applies any new datasets. Nothing to do by hand.

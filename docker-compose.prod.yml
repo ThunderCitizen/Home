@@ -274,7 +274,7 @@ services:
     # default compose network (i.e. the `app` container, as host `db`).
 
   app:
-    image: ghcr.io/eric-decompiled/thundercitizen:${TC_IMAGE_TAG:-latest}
+    image: ghcr.io/thundercitizen/home:${TC_IMAGE_TAG:-latest}
     restart: unless-stopped
     logging: *default-logging
     environment:
@@ -286,7 +286,7 @@ services:
       # running. Docker doesn't expose the running image ref to the
       # container, so we bake it in at compose parse time from the
       # same TC_IMAGE_TAG variable that selects the image above.
-      TC_IMAGE: ghcr.io/eric-decompiled/thundercitizen:${TC_IMAGE_TAG:-latest}
+      TC_IMAGE: ghcr.io/thundercitizen/home:${TC_IMAGE_TAG:-latest}
     volumes:
       - ./secrets:/run/secrets:ro
     # The published image's ENTRYPOINT is /usr/local/bin/server. Override it

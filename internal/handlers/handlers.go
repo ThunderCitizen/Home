@@ -339,7 +339,7 @@ func (h *Handlers) Health(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", cache.Live)
 		vm := views.NewHealthViewModel(
-			valueOr(os.Getenv("TC_IMAGE"), "ghcr.io/eric-decompiled/thundercitizen:latest"),
+			valueOr(os.Getenv("TC_IMAGE"), "ghcr.io/thundercitizen/home:latest"),
 			Commit,
 			BuildTime,
 			h.recorder.Snapshot(),

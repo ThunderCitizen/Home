@@ -21,7 +21,7 @@ set -euo pipefail
 #     docker requires it; a separate non-root user adds operational
 #     friction with no real benefit on a single-purpose box.
 #   - Install docker. Use `curl -fsSL https://get.docker.com | sh` for
-#     that — see DEPLOY-DROPLET.md.
+#     that — see DEPLOY.md.
 #
 # Usage:
 #   sudo ./scripts/harden.sh

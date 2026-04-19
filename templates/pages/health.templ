@@ -59,7 +59,7 @@ templ Health(vm views.HealthViewModel) {
 					if vm.Commit == "dev" || vm.Commit == "" {
 						<code>dev</code>
 					} else {
-						<a href={ templ.SafeURL("https://github.com/eric-decompiled/ThunderCitizen/commit/" + vm.Commit) } target="_blank" rel="noopener" title={ vm.Commit }>
+						<a href={ templ.SafeURL("https://github.com/thundercitizen/home/commit/" + vm.Commit) } target="_blank" rel="noopener" title={ vm.Commit }>
 							<code>{ shortCommit(vm.Commit) }</code>
 						</a>
 					}

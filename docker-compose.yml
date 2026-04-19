@@ -26,7 +26,7 @@ services:
     #     (published on every push to main by .github/workflows/build-image.yml).
     # Whichever you ran last wins in your local image cache. Pin a specific
     # build with TC_IMAGE_TAG=sha-<short> (defaults to `latest`).
-    image: ghcr.io/eric-decompiled/thundercitizen:${TC_IMAGE_TAG:-latest}
+    image: ghcr.io/thundercitizen/home:${TC_IMAGE_TAG:-latest}
     build:
       context: .
     ports:

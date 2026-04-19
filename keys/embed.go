@@ -11,11 +11,6 @@
 // of the normal release flow. Moving a key file from approved/ to
 // revoked/ and releasing a new binary retroactively invalidates every
 // bundle that key ever signed, from the moment that binary boots.
-//
-// The directory layout intentionally mirrors ~/.ssh/authorized_keys:
-// files are in authorized_keys format, one key per file. This keeps the
-// option open to reuse the same store for SSH-based server access
-// controls without restructuring later.
 package keys
 
 import "embed"

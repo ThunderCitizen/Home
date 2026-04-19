@@ -201,5 +201,4 @@ When the table is inside `overflow-x: auto` (for horizontal scrolling), `positio
 - [docs/accessibility.md](docs/accessibility.md) - WCAG 2.2 AA targets and compliance notes
 - [cmd/fetcher/README.md](cmd/fetcher/README.md) - Manual fetcher CLI and programmatic API
 - [cmd/seedtransit/README.md](cmd/seedtransit/README.md) - Synthetic transit chunks for dev
-- [DEPLOY.md](DEPLOY.md) - Production deployment runbook (App Platform)
-- [DEPLOY-DROPLET.md](DEPLOY-DROPLET.md) - Alternative deployment runbook (single droplet + Caddy)
+- [DEPLOY.md](DEPLOY.md) - Dev + prod deployment (docker-compose on a Debian box + Caddy)
