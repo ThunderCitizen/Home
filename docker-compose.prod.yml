@@ -42,7 +42,7 @@
 #   1. (Optional) Copy this block into a `.env` file beside this compose file
 #      and override any defaults you don't like — none of these are required:
 #
-#        ACME_EMAIL=eric@decompiled.dev       # default if unset
+#        ACME_EMAIL=ops@thundercitizen.ca     # default if unset
 #        POSTGRES_USER=thundercitizen         # default if unset
 #        POSTGRES_DB=thundercitizen           # default if unset
 #        # Pin to a specific build for reproducibility. `latest` and `main`
@@ -98,7 +98,7 @@ configs:
     # is baked into the container at create time, not read from disk).
     content: |
       {
-          email ${ACME_EMAIL:-eric@decompiled.dev}
+          email ${ACME_EMAIL:-ops@thundercitizen.ca}
       }
 
       # Canonical site — thundercitizen.ca and its www alias share one cert

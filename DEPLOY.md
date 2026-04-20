@@ -46,7 +46,7 @@ EOF
 
 | Var | Default |
 |---|---|
-| `ACME_EMAIL` | `eric@decompiled.dev` |
+| `ACME_EMAIL` | `ops@thundercitizen.ca` |
 | `POSTGRES_USER` | `thundercitizen` |
 | `POSTGRES_DB` | `thundercitizen` |
 | `TC_IMAGE_TAG` | `latest` |
