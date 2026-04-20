@@ -5,7 +5,7 @@ import (
 
 	"thundercitizen/internal/muni"
 	"thundercitizen/internal/munisign"
-	"thundercitizen/internal/views"
+	"thundercitizen/internal/system"
 	"thundercitizen/templates/pages"
 )
 
@@ -42,6 +42,6 @@ func (h *Handlers) DataPacks(w http.ResponseWriter, r *http.Request) {
 		status = h.muniStatus.Snapshot()
 	}
 
-	vm := views.NewDataPacksViewModel(status, packs, approved, revoked, signerFile)
+	vm := system.NewDataPacksViewModel(status, packs, approved, revoked, signerFile)
 	renderPage(w, r, pages.DataPacksPartial(vm), pages.DataPacks(vm))
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"thundercitizen/internal/views"
+	"thundercitizen/internal/system"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
@@ -36,7 +36,7 @@ func ghcrPackageURL(image string) string {
 	return "https://github.com/" + parts[0] + "/" + parts[1] + "/pkgs/container/" + parts[1]
 }
 
-templ Health(vm views.HealthViewModel) {
+templ Health(vm system.HealthViewModel) {
 	@templates.Layout("Health", "Thunder Citizen system health and data freshness status.") {
 		@components.PageHeader(components.PageHeaderProps{
 			Title: "Health",
@@ -69,7 +69,7 @@ templ Health(vm views.HealthViewModel) {
 				<dt>Booted</dt>
 				<dd><code>{ vm.BootAt.UTC().Format("2006-01-02 15:04:05 UTC") }</code></dd>
 				<dt>Uptime</dt>
-				<dd><code>{ views.FormatUptime(vm.Uptime) }</code></dd>
+				<dd><code>{ system.FormatUptime(vm.Uptime) }</code></dd>
 				<dt>Requests</dt>
 				<dd><code>{ fmt.Sprint(vm.Total) }</code> total, <code>{ fmt.Sprint(vm.Err4xxAll) }</code> 4xx, <code>{ fmt.Sprint(vm.Err5xxAll) }</code> 5xx</dd>
 			</dl>
@@ -117,7 +117,7 @@ templ Health(vm views.HealthViewModel) {
 								<td class="hc-num">{ fmt.Sprint(r.OK) }</td>
 								<td class="hc-num">{ fmt.Sprint(r.Err4xx) }</td>
 								<td class="hc-num">{ fmt.Sprint(r.Err5xx) }</td>
-								<td class="hc-num">{ views.FormatDuration(r.P90) }</td>
+								<td class="hc-num">{ system.FormatDuration(r.P90) }</td>
 							</tr>
 						}
 					</tbody>
@@ -132,19 +132,19 @@ templ Health(vm views.HealthViewModel) {
 				<div class="hc-pct-strip">
 					<div class="hc-pct">
 						<div class="hc-pct-label">p50</div>
-						<div class="hc-pct-value">{ views.FormatDuration(vm.P50) }</div>
+						<div class="hc-pct-value">{ system.FormatDuration(vm.P50) }</div>
 					</div>
 					<div class="hc-pct hc-pct-hero">
 						<div class="hc-pct-label">p90</div>
-						<div class="hc-pct-value">{ views.FormatDuration(vm.P90) }</div>
+						<div class="hc-pct-value">{ system.FormatDuration(vm.P90) }</div>
 					</div>
 					<div class="hc-pct">
 						<div class="hc-pct-label">p99</div>
-						<div class="hc-pct-value">{ views.FormatDuration(vm.P99) }</div>
+						<div class="hc-pct-value">{ system.FormatDuration(vm.P99) }</div>
 					</div>
 				</div>
 
-				<svg class="hc-latency-svg" viewBox={ fmt.Sprintf("0 0 %d %d", views.LatencyChartWidth, views.LatencyChartHeight) } preserveAspectRatio="none" role="img" aria-label="Latency distribution line chart">
+				<svg class="hc-latency-svg" viewBox={ fmt.Sprintf("0 0 %d %d", system.LatencyChartWidth, system.LatencyChartHeight) } preserveAspectRatio="none" role="img" aria-label="Latency distribution line chart">
 					<defs>
 						<linearGradient id="hc-area-gradient" x1="0" y1="0" x2="0" y2="1">
 							<stop offset="0%" stop-color="currentColor" stop-opacity="0.38"></stop>

@@ -1,4 +1,4 @@
-package views
+package system
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"thundercitizen/internal/metrics"
+	"thundercitizen/internal/system/metrics"
 	"thundercitizen/internal/transit"
 )
 

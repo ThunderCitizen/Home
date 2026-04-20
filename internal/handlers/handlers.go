@@ -22,6 +22,7 @@ import (
 	"thundercitizen/internal/logger"
 	"thundercitizen/internal/muni"
 	"thundercitizen/internal/munisign"
+	"thundercitizen/internal/system"
 	"thundercitizen/internal/transit"
 	"thundercitizen/internal/views"
 	"thundercitizen/templates/pages"
@@ -338,7 +339,7 @@ func (h *Handlers) Health(w http.ResponseWriter, r *http.Request) {
 	case strings.Contains(accept, "text/html"):
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", cache.Live)
-		vm := views.NewHealthViewModel(
+		vm := system.NewHealthViewModel(
 			valueOr(os.Getenv("TC_IMAGE"), "ghcr.io/thundercitizen/home:latest"),
 			Commit,
 			BuildTime,

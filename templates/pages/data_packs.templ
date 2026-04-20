@@ -7,12 +7,12 @@ import (
 
 	"thundercitizen/internal/assets"
 	"thundercitizen/internal/muni"
-	"thundercitizen/internal/views"
+	"thundercitizen/internal/system"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
 
-templ DataPacks(vm views.DataPacksViewModel) {
+templ DataPacks(vm system.DataPacksViewModel) {
 	@templates.Layout("Data", "Installed data packs, bundle status, and trust store for Thunder Citizen's signed data pipeline.") {
 		@DataPacksPartial(vm)
 		<script src={ assets.URL("/static/vendor/d3.min.js") }></script>
@@ -20,7 +20,7 @@ templ DataPacks(vm views.DataPacksViewModel) {
 	}
 }
 
-templ DataPacksPartial(vm views.DataPacksViewModel) {
+templ DataPacksPartial(vm system.DataPacksViewModel) {
 	@components.PageHeader(components.PageHeaderProps{
 		Title: "Data",
 		Lead:  "Signed data packs, bundle status, and the trust store that protects them.",
@@ -30,7 +30,7 @@ templ DataPacksPartial(vm views.DataPacksViewModel) {
 		<dl class="data-status">
 			<dt>State</dt>
 			<dd>
-				<span class={ "badge", templ.KV(views.StatusBadgeClass(vm.Status.State), true) }>
+				<span class={ "badge", templ.KV(system.StatusBadgeClass(vm.Status.State), true) }>
 					{ string(vm.Status.State) }
 				</span>
 				if vm.Status.Message != "" {
@@ -101,7 +101,7 @@ templ DataPacksPartial(vm views.DataPacksViewModel) {
 								<small>&nbsp;{ row.UnitLabel }</small>
 							</span>
 							<span class="data-timeline-track">
-								<span class={ "data-timeline-bar", views.UnitKindClass(row.UnitKind) } { timelineBarAttrs(row.OffsetPct, row.WidthPct)... }></span>
+								<span class={ "data-timeline-bar", system.UnitKindClass(row.UnitKind) } { timelineBarAttrs(row.OffsetPct, row.WidthPct)... }></span>
 								<span class="data-timeline-today" { timelineTodayAttrs(row.TodayPct)... } aria-label="today"></span>
 							</span>
 						</li>
@@ -115,9 +115,9 @@ templ DataPacksPartial(vm views.DataPacksViewModel) {
 		<ul class="data-pack-list">
 			for _, group := range vm.Groups {
 				for _, p := range group.Packs {
-					<li class={ "data-pack-item", views.UnitKindClass(p.Kind) } id={ "pack-" + p.ID } data-pack-id={ p.ID }>
+					<li class={ "data-pack-item", system.UnitKindClass(p.Kind) } id={ "pack-" + p.ID } data-pack-id={ p.ID }>
 						<header>
-							<span class={ "badge", views.UnitKindClass(p.Kind) }>{ group.Title }</span>
+							<span class={ "badge", system.UnitKindClass(p.Kind) }>{ group.Title }</span>
 							<code>{ p.ID }</code>
 							<span class="data-pack-unit">{ p.UnitLabel }</span>
 						</header>
@@ -228,7 +228,7 @@ func formatCount(n int64) string {
 	return b.String()
 }
 
-func treemapLabel(vm views.DataPacksViewModel) string {
+func treemapLabel(vm system.DataPacksViewModel) string {
 	signers := len(vm.Treemap.Signers)
 	packs := 0
 	for _, s := range vm.Treemap.Signers {
