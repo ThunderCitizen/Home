@@ -352,7 +352,20 @@
     html += '<th data-sort="notice" class="cl-th-notice">Notice</th>';
     html += '</tr></thead>';
     html += '<tbody></tbody></table>';
-    html += '<div class="cl-summary">' + cancelLogData.length + ' cancelled trips across ' + dates.length + ' day' + (dates.length !== 1 ? 's' : '') + '</div>';
+    var totalScheduled = 0;
+    if (window.transitChunks) {
+      var allChunks = window.transitChunks.loadChunks();
+      for (var s = 0; s < allChunks.length; s++) totalScheduled += allChunks[s].scheduled;
+    }
+    var summary = cancelLogData.length + ' cancelled';
+    if (totalScheduled > 0) {
+      var pct = (cancelLogData.length * 100 / totalScheduled).toFixed(1);
+      summary += ' of ' + totalScheduled.toLocaleString() + ' total trips (' + pct + '%)';
+    } else {
+      summary += ' trips';
+    }
+    summary += ' across ' + dates.length + ' day' + (dates.length !== 1 ? 's' : '');
+    html += '<div class="cl-summary">' + summary + '</div>';
     container.innerHTML = html;
 
     // Wire sort clicks
