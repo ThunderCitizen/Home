@@ -16,6 +16,7 @@ templ DataPacks(vm system.DataPacksViewModel) {
 	@templates.Layout(templates.SocialMeta{
 		Title:       "Data",
 		Description: "Installed data packs, bundle status, and trust store for Thunder Citizen's signed data pipeline.",
+		TextOnly:    true,
 	}) {
 		@DataPacksPartial(vm)
 		<script src={ assets.URL("/static/vendor/d3.min.js") }></script>

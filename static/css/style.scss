@@ -734,7 +734,7 @@ article > header {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 3rem 1.5rem;
+  padding: 3rem 1.5rem 1.25rem;
   min-height: 10rem;
   margin: 0 -1.5rem 1.5rem;
   background:
@@ -769,7 +769,6 @@ article > header {
     font-size: 1.15rem;
     color: inherit;
     opacity: 0.85;
-    margin-top: auto;
     margin-bottom: 0;
   }
 
@@ -781,11 +780,29 @@ article > header {
     opacity: 0.65;
   }
 
+  .theme-picker-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: auto;
+    padding-top: 2.5rem;
+    order: 10;
+  }
+
   .theme-picker {
     display: flex;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    order: 10;
+    gap: 1rem;
+  }
+
+  .theme-picker-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--hero-fg);
+    opacity: 0.8;
+    text-shadow: 0 0 6px color-mix(in srgb, var(--hero-fg) 45%, transparent);
   }
 
   .theme-pick {
@@ -793,41 +810,42 @@ article > header {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 50%;
-    color: inherit;
-    opacity: 0.35;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 4px;
+    border: 2px solid color-mix(in srgb, var(--hero-fg) 35%, transparent);
+    color: var(--hero-fg);
+    opacity: 0.5;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.2s, box-shadow 0.3s;
-    position: relative;
+    transition: opacity 0.2s, filter 0.3s, border-color 0.2s;
 
     svg { pointer-events: none; }
 
     &:hover {
-      opacity: 0.75;
-      transform: scale(1.1);
+      opacity: 0.85;
+      border-color: color-mix(in srgb, var(--hero-fg) 60%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 1px solid color-mix(in srgb, var(--hero-fg) 40%, transparent);
+      outline-offset: 2px;
     }
 
     &.active {
       opacity: 1;
-      transform: scale(1.15);
-      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--hero-fg) 60%, transparent));
-
-      // underline pip
-      &::after {
-        content: "";
-        position: absolute;
-        bottom: -4px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 12px;
-        height: 2px;
-        background: currentColor;
-        border-radius: 1px;
-        box-shadow: 0 0 4px currentColor;
-      }
+      border-color: var(--hero-fg);
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--hero-fg) 55%, transparent));
     }
+  }
+
+  .theme-picker-current {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--hero-fg);
+    opacity: 0.65;
+    min-height: 1em;
+    text-align: center;
   }
 }
 

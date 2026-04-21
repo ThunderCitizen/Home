@@ -115,16 +115,16 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 				}
 			</div>
 
-			<div class="kpi-chart-container" id="cancel-log-container" hidden>
-				<h3>Cancelled Trips</h3>
-				<div id="cancel-log"></div>
-			</div>
-
 			<div class="kpi-chart-container">
 				<h3 id="route-compare-title">Route Comparison</h3>
 				<div id="route-compare-chart"></div>
 			</div>
 			<div id="route-compare-data" hidden></div>
+
+			<div class="kpi-chart-container" id="cancel-log-container" hidden>
+				<h3>Cancelled Trips</h3>
+				<div id="cancel-log"></div>
+			</div>
 		</section>
 
 		@templ.JSONScript("route-meta", vm.RouteMeta)

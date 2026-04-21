@@ -12,10 +12,14 @@ import (
 // Open Graph, and Twitter Card tags. Keep Description under ~160 chars.
 // OGImage is an optional path under /static/og/ (or an absolute URL); an
 // empty value falls back to /static/og/default.png.
+// TextOnly suppresses og:image / twitter:image entirely and downgrades the
+// Twitter card to "summary" — used for utility pages (/health, /data) that
+// have nothing visual worth rendering at 1200×630.
 type SocialMeta struct {
 	Title       string
 	Description string
 	OGImage     string
+	TextOnly    bool
 }
 
 // canonicalURL returns the absolute URL for the current request, built
@@ -70,16 +74,24 @@ templ Layout(meta SocialMeta) {
 			<meta property="og:description" content={ meta.Description }/>
 			<meta property="og:type" content="website"/>
 			<meta property="og:url" content={ canonicalURL(ctx) }/>
-			<meta property="og:image" content={ ogImageURL(ctx, meta.OGImage) }/>
-			<meta property="og:image:width" content="1200"/>
-			<meta property="og:image:height" content="630"/>
-			<meta property="og:image:alt" content={ meta.Title + " — Thunder Citizen" }/>
+			if !meta.TextOnly {
+				<meta property="og:image" content={ ogImageURL(ctx, meta.OGImage) }/>
+				<meta property="og:image:width" content="1200"/>
+				<meta property="og:image:height" content="630"/>
+				<meta property="og:image:alt" content={ meta.Title + " — Thunder Citizen" }/>
+			}
 			<meta property="og:locale" content="en_CA"/>
-			<meta name="twitter:card" content="summary_large_image"/>
+			if meta.TextOnly {
+				<meta name="twitter:card" content="summary"/>
+			} else {
+				<meta name="twitter:card" content="summary_large_image"/>
+			}
 			<meta name="twitter:title" content={ meta.Title + " · Thunder Citizen" }/>
 			<meta name="twitter:description" content={ meta.Description }/>
-			<meta name="twitter:image" content={ ogImageURL(ctx, meta.OGImage) }/>
-			<meta name="twitter:image:alt" content={ meta.Title + " — Thunder Citizen" }/>
+			if !meta.TextOnly {
+				<meta name="twitter:image" content={ ogImageURL(ctx, meta.OGImage) }/>
+				<meta name="twitter:image:alt" content={ meta.Title + " — Thunder Citizen" }/>
+			}
 			<link rel="icon" href={ assets.URL("/static/favicon.svg") } type="image/svg+xml"/>
 			<link rel="stylesheet" href={ assets.URL("/static/css/style.css") }/>
 			<script>
@@ -137,6 +149,8 @@ document.documentElement.classList.remove('no-js');
 			b.classList.toggle("active", isActive);
 			b.setAttribute("aria-checked", isActive ? "true" : "false");
 		}
+		var cur = document.querySelector(".theme-picker-current");
+		if (cur) { cur.textContent = active; }
 	}
 	var saved = localStorage.getItem("theme") || "system";
 	if (saved === "light" || saved === "dark") {
