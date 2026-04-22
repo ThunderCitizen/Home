@@ -42,7 +42,7 @@ migrate-down:
 
 # Build every CLI tool into bin/ (gitignored). One command, one place.
 # Produces: bin/server, bin/fetcher, bin/summarize, bin/auditbudget,
-# bin/buildshapes, bin/gentstypes, bin/perftest, bin/muni, bin/munisign.
+# bin/buildshapes, bin/gentstypes, bin/perftest, bin/muni.
 #
 # Uses a sentinel file (bin/.built) for make incrementality. Re-runs only
 # when any tracked Go or SQL source changes; Go's own build cache then
@@ -60,9 +60,10 @@ bin/.built: $(ALL_SOURCES)
 muni-extract: bin/.built
 	./bin/muni extract -out data/muni
 
-# Sign + zip + upload muni bundle to DO Spaces
+# Extract + sign + zip + upload muni bundle to DO Spaces
+# (signing prompts for your hardware key via ssh-keygen)
 muni-publish: bin/.built
-	./bin/munisign sign -key .signing-key.pub data/muni
+	./bin/muni release -out data/muni
 
 # Build Docker image
 build:

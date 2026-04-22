@@ -21,7 +21,10 @@ templ CouncilMeeting(vm views.MeetingViewModel) {
 				<a href="/minutes" class="meeting-detail-back">&larr; Back to Minutes</a>
 				<span class="meeting-detail-overline">{ vm.TermLabel } · { vm.Weekday }</span>
 				if vm.MinutesURL != "" {
-					<a href={ templ.SafeURL(vm.MinutesURL) } target="_blank" rel="noopener" class="meeting-row-btn meeting-row-btn-external">Official Minutes <span class="ext-link-icon" aria-hidden="true"></span></a>
+					<a href={ templ.SafeURL(vm.MinutesURL) } target="_blank" rel="noopener" class="meeting-row-btn meeting-row-btn-external">PDF Minutes <span class="ext-link-icon" aria-hidden="true"></span></a>
+				}
+				if vm.VideoURL != "" {
+					<a href={ templ.SafeURL(vm.VideoURL) } target="_blank" rel="noopener" class="meeting-row-btn meeting-row-btn-external">Recording <span class="ext-link-icon" aria-hidden="true"></span></a>
 				}
 			</div>
 			<div class="stat-grid cols-4 meeting-stat-filters" role="radiogroup" aria-label="Filter motions">
@@ -76,7 +79,14 @@ templ CouncilMeeting(vm views.MeetingViewModel) {
 }
 
 templ meetingDetailFooter(vm views.MeetingViewModel) {
-	<p class="llm-disclaimer">Summaries are generated with Anthropic AI. Reader discretion is advised.</p>
+	<p class="llm-disclaimer">
+		Summaries are generated with Anthropic AI. Reader discretion is advised.
+		if vm.VideoURL != "" {
+			Watch the
+			<a href={ templ.SafeURL(vm.VideoURL) } target="_blank" rel="noopener">recording</a>
+			for more details.
+		}
+	</p>
 }
 
 templ motionFilterScript() {

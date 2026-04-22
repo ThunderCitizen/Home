@@ -28,6 +28,7 @@ type MeetingViewModel struct {
 	Term             string
 	TermLabel        string
 	MinutesURL       string
+	VideoURL         string
 	Summary          string // LLM meeting summary (same used on index page)
 	Motions          []MotionView
 	MotionCount      int
@@ -46,6 +47,7 @@ type MeetingSummaryView struct {
 	Date            string
 	Term            string
 	MinutesURL      string
+	VideoURL        string
 	Summary         string
 	SummaryPreview  string // first item only, for table display
 	MotionCount     int
@@ -133,6 +135,7 @@ func NewCouncilViewModel(meetings []council.MeetingSummary, total int, stats [3]
 			Date:            humanDate(m.Date),
 			Term:            m.Term,
 			MinutesURL:      m.MinutesURL,
+			VideoURL:        council.VideoURL(m.ID, m.HasVideo),
 			Summary:         m.Summary,
 			SummaryPreview:  preview,
 			MotionCount:     m.MotionCount,
@@ -226,6 +229,7 @@ func NewMeetingViewModel(md *council.MeetingDetail) MeetingViewModel {
 		Term:             md.Term,
 		TermLabel:        humanTerm(md.Term),
 		MinutesURL:       md.MinutesURL,
+		VideoURL:         council.VideoURL(md.ID, md.HasVideo),
 		Summary:          md.Summary,
 		Motions:          motions,
 		MotionCount:      len(motions),

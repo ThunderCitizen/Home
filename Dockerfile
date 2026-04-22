@@ -7,9 +7,9 @@
 #
 # Curated data is NOT bundled — the server downloads a signed muni bundle
 # from MUNI_URL (DO Spaces) on boot, verifies its Ed25519 signature, and
-# applies any new datasets via internal/muni/apply.go. The muni + munisign
-# CLIs are for local dev / CI publishing only and are NOT built into the
-# runtime image.
+# applies any new datasets via internal/muni/apply.go. The muni CLI is
+# for local dev / CI publishing only and is NOT built into the runtime
+# image.
 # Schema migrations ARE bundled as files because golang-migrate reads
 # them from disk on startup (cmd/server/main.go: migrate.New("file://migrations", ...)).
 
@@ -53,10 +53,10 @@ RUN templ generate \
  && npm run css \
  && npm run build:js
 
-# Build every CLI we ship in the runtime image. muni, munisign, seedtransit,
-# and gentstypes are deliberately excluded — muni/munisign run at publish
-# time from a workstation or CI runner, seedtransit is dev-only, and
-# gentstypes is dev-only codegen for the api.gen.ts file.
+# Build every CLI we ship in the runtime image. muni, seedtransit, and
+# gentstypes are deliberately excluded — muni runs at publish time from a
+# workstation or CI runner, seedtransit is dev-only, and gentstypes is
+# dev-only codegen for the api.gen.ts file.
 ARG COMMIT=unknown
 ARG BUILD_TIME=unknown
 

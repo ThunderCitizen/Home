@@ -62,10 +62,8 @@ These are the same functions the CLI subcommands call. Anything more complex tha
 Source data lives in the dev DB and on disk. To ship it to production, republish the signed muni bundle:
 
 ```bash
-make muni-extract                                    # dev DB → data/muni/*.tsv + BOD.tsv
-./bin/munisign sign -key .signing-key.pub data/muni  # writes SIGNATURE
-make muni-publish                                    # zip + upload to DO Spaces
-git add static/...                                   # commit refreshed static JSON (bundle TSVs are not committed)
+make muni-publish       # extract + sign + zip + upload in one step (= muni release)
+git add static/...      # commit refreshed static JSON (bundle TSVs are not committed)
 git commit
 ```
 

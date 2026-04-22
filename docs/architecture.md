@@ -48,8 +48,7 @@ cmd/
     gentstypes/main.go        Generates TypeScript interfaces from Go API structs
     perftest/main.go          Hits every server route, prints latency report
     seedtransit/              Synthetic transit chunks for dev (when GTFS hasn't been loaded)
-    muni/                     CLI: muni {extract,publish} — build & ship the signed data bundle
-    munisign/                 CLI: keygen/sign/verify for muni bundle signatures
+    muni/                     CLI: muni {extract,sign,verify,hash,publish,release} — build, sign, and ship the signed data bundle
 internal/
     config/                   Environment configuration
     database/                 PostgreSQL connection pool + health check

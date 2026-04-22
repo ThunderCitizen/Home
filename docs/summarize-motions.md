@@ -111,12 +111,10 @@ Expected distribution (approximate):
 Write the enriched DB state back into the signed data bundle shipped to production:
 
 ```bash
-make muni-extract
-./bin/munisign sign -key .signing-key.pub data/muni
-make muni-publish
+make muni-publish     # extract + sign + zip + upload in one step (= muni release)
 ```
 
-`muni extract` rewrites the council TSVs under `data/muni/`; `munisign` signs; `muni publish` zips and uploads to DO Spaces. The app re-fetches on the next boot (after the 24h `muni_fetch_state` window expires) and applies new datasets automatically.
+The target chains `muni extract` (rewrites the council TSVs under `data/muni/`), `muni sign` (hardware-key signature over the bundle), and `muni publish` (zip + upload to DO Spaces). The app re-fetches on the next boot (after the 24h `muni_fetch_state` window expires) and applies new datasets automatically.
 
 ### 6. Commit
 
@@ -131,9 +129,7 @@ If you have an `ANTHROPIC_API_KEY` with credits, you can also re-generate summar
 
 ```bash
 go run ./cmd/summarize -force
-make muni-extract
-./bin/munisign sign -key .signing-key.pub data/muni
-make muni-publish
+make muni-publish     # extract + sign + zip + upload
 ```
 
 This upgrades the scraper-generated summaries to cleaner plain-language text and adds short labels for grid display, then republishes the signed bundle.

@@ -78,6 +78,17 @@
 // Reusable badge base — phosphor pill.
 // Each modifier sets `--badge-hue`; all color/fill/border/glow derives from it
 // via theme-scoped `--badge-*` tokens (see _tokens.scss + dark-theme mixin).
+//
+// SIZE SYSTEM — two semantic sizes layered on top of %badge-base:
+//   • %badge-info   → 0.55rem, tight padding. Use for static labels (status,
+//                     tags, counts, result/significance badges). Class names
+//                     read as nouns: `-status`, `-badge`, `-tag`, `-label`.
+//   • %badge-action → 0.72rem, larger padding. Use ONLY on interactive pills
+//                     (a / button). Class names read as actions: `-btn`,
+//                     `-action`, `-link`.
+// If a pill is larger than the reader expects, it should be clickable. If it's
+// smaller, it should be static. Keep that contract — it's an accessibility
+// affordance as much as a visual one.
 %badge-base {
   display: inline-block;
   padding: 0 0.5rem;
@@ -110,6 +121,18 @@
     pointer-events: none;
     opacity: 0.4;
   }
+}
+
+// Info pill — static labels, status, counts, tags.
+%badge-info {
+  font-size: 0.55rem;
+  padding: 0 0.5rem;
+}
+
+// Action pill — interactive <a> / <button> only.
+%badge-action {
+  font-size: 0.72rem;
+  padding: 0.25rem 0.65rem;
 }
 
 // Link badges get an external-link glyph + hover brightening

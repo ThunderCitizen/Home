@@ -58,14 +58,12 @@ Find the motion ID on `/minutes/{meeting_id}` or query the DB. Then re-run `go r
 ### Step 5: Republish the muni bundle
 
 ```bash
-make muni-extract
-./bin/munisign sign -key .signing-key.pub data/muni
-make muni-publish
+make muni-publish     # extract + sign + zip + upload in one step (= muni release)
 git add static/councillors/summaries.json
 git commit -m "Update council vote data through <date>"
 ```
 
-`muni extract` reads the now-enriched dev DB and rewrites `data/muni/councillors.tsv` + `data/muni/council_*.tsv` + `BOD.tsv`. `munisign` signs the bundle, `muni publish` uploads it to DO Spaces. On next boot production fetches the new bundle and applies changed datasets automatically.
+`muni release` rewrites `data/muni/councillors.tsv` + `data/muni/council_*.tsv` + `BOD.tsv` from the now-enriched dev DB, signs the bundle with your hardware key, and uploads it to DO Spaces. On next boot production fetches the new bundle and applies changed datasets automatically.
 
 ---
 

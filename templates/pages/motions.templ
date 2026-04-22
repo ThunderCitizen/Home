@@ -50,7 +50,7 @@ templ Council(vm views.CouncilViewModel) {
 }
 
 templ minutesDisclaimer() {
-	<p class="llm-disclaimer">Summaries are generated with Anthropic AI. Reader discretion is advised.</p>
+	<p class="llm-disclaimer">Summaries are generated with Anthropic AI. Reader discretion is advised. Watch the recording for more details.</p>
 }
 
 templ meetingsSwapAnimation() {
@@ -198,10 +198,7 @@ templ meetingRow(m views.MeetingSummaryView) {
 			if m.LostCount > 0 {
 				<span class="badge badge-lost">{ fmt.Sprintf("%d defeated", m.LostCount) }</span>
 			}
-			if m.MinutesURL != "" {
-				<a href={ templ.SafeURL(m.MinutesURL) } class="meeting-row-btn meeting-row-btn-external" target="_blank" rel="noopener">Official Minutes <span class="ext-link-icon" aria-hidden="true"></span></a>
-			}
-			<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">See Minutes</a>
+			<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">Minutes</a>
 		</div>
 	</div>
 }

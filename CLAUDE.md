@@ -11,8 +11,8 @@ templ generate            # Regenerate templ → Go
 npm run css               # Rebuild SCSS → CSS
 npm run build:js          # Rebuild TS → JS (leaflet shim)
 ./bin/fetcher             # Interactive: refresh source data (budget/gtfs/votes/wards)
-make muni-extract         # Dev DB → signed TSV bundle in data/muni (applied on server boot)
-make muni-publish         # data/muni → zip + upload to DO Spaces
+make muni-extract         # Dev DB → TSV bundle in data/muni (applied on server boot)
+make muni-publish         # data/muni → extract + sign + zip + upload to DO Spaces (= muni release)
 go run ./cmd/perftest     # Latency report (server must be running)
 go run ./cmd/perftest -r  # Record + delta vs last run (saves to perftest/)
 ```
@@ -23,7 +23,7 @@ go run ./cmd/perftest -r  # Record + delta vs last run (saves to perftest/)
 - **pgx/v5** plain SQL, no ORM
 - **templ** templates compile to Go — do not edit `*_templ.go`
 - **Pico CSS** with Sass — do not edit `static/css/style.css`. `style.scss` is a coordinator that `@use`s partials: edit the appropriate one (`_tokens.scss`, `_mixins.scss`, `_placeholders.scss`, `_budget.scss`, `_transit.scss`, `_council.scss`)
-- **Static source → signed muni bundle** for curated data (councillors, budget, council votes, wards). Fetchers in `cmd/fetcher` write `static/*.json` → `./bin/muni extract` emits TSVs + `BOD.tsv` under `data/muni/` → `./bin/munisign sign` + `./bin/muni publish` zips and uploads to DO Spaces. On boot the server downloads the signed bundle, verifies the signature, and applies any new datasets via `internal/muni/apply.go` — tracked per-dataset in `data_patch_log` (checksum + signer), throttled by `muni_fetch_state.last_checked_at` (24h). No manual seed step.
+- **Static source → signed muni bundle** for curated data (councillors, budget, council votes, wards). Fetchers in `cmd/fetcher` write `static/*.json` → `./bin/muni release` runs extract → sign → zip → upload to DO Spaces in one command (or use the underlying `extract`, `sign`, `publish` subcommands individually). On boot the server downloads the signed bundle, verifies the signature, and applies any new datasets via `internal/muni/apply.go` — tracked per-dataset in `data_patch_log` (checksum + signer), throttled by `muni_fetch_state.last_checked_at` (24h). No manual seed step.
 - **Append-only `transit_*` event tables** for GTFS-RT data (recorder writes, everything else reads via SQL)
 - **Standalone Go scripts** live in `cmd/` (e.g. `cmd/buildshapes`, `cmd/gentstypes`), not `scripts/`
 
@@ -107,11 +107,20 @@ All colored pill/badge/label elements use the **phosphor pill system** — two S
 
 **Dark mode** (`badge-dark-hue($hue)`) — CRT aesthetic: dark near-black fill (14% hue tint), saturated phosphor text + border, drop-shadow glow, scanline overlay.
 
+**Size system** — the pill's size signals whether it's clickable. Pick one:
+
+| Placeholder | Size | Use for | Class name pattern |
+|-------------|------|---------|--------------------|
+| `%badge-info` | 0.55rem | Static labels (status, tags, counts) | Nouns: `-status`, `-badge`, `-tag`, `-label`, `-count` |
+| `%badge-action` | 0.72rem | Interactive `<a>` / `<button>` only | Verbs: `-btn`, `-action`, `-link` |
+
+Keep the contract — bigger pills are clickable, smaller pills are not. Mismatched size ↔ interactivity is a bug: fix the class name, not the styles.
+
 **To add a new pill variant:**
-1. Component SCSS: `@extend %badge-base; @include badge-light-hue(#hex);`
+1. Component SCSS: `@extend %badge-base; @extend %badge-info; @include badge-light-hue(#hex);` (swap `%badge-info` → `%badge-action` for interactive pills)
 2. Add dark override to `@mixin badge-dark-overrides` in `style.scss`: `@include badge-dark-hue(#hex);`
 
-Existing consumers: `.badge-*` (result/significance/term), ward subtitle badges, `.motion-filter-pill--*` (active state). Full docs in `_mixins.scss`.
+Existing consumers: `.badge-*` (result/significance/term), ward subtitle badges, `.motion-filter-pill--*` (active state), `.recent-meeting-status` (info), `.meeting-row-btn` (action). Full docs in `_mixins.scss`.
 
 ### What NOT to tokenize
 - **Route identity colors** (ROUTE_COLORS maps) — GTFS data, not theme. Also used for Sankey budget nodes.

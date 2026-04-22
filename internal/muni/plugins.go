@@ -78,8 +78,8 @@ func (CouncilMeetingsPlugin) Name() string { return "council_meetings" }
 
 func (CouncilMeetingsPlugin) Extract(ctx context.Context, pool *pgxpool.Pool, outDir string) ([]Dataset, error) {
 	const file = "council_meetings.tsv"
-	cols := []string{"id", "date", "title", "term", "minutes_url", "pdf_file", "llm_summary", "llm_model", "source"}
-	query := `SELECT id, date::text, title, term, minutes_url, pdf_file,
+	cols := []string{"id", "date", "title", "term", "minutes_url", "has_video", "pdf_file", "llm_summary", "llm_model", "source"}
+	query := `SELECT id, date::text, title, term, minutes_url, has_video, pdf_file,
 	          llm_summary, llm_model, source
 	          FROM council_meetings WHERE term = '2022-2026' ORDER BY date`
 

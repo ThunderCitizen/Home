@@ -1854,10 +1854,8 @@ html:has(dialog[open].motion-modal) {
   .motion-filter-pill--defeated:has(input:checked)   { @include badge-dark-hue(#f87171); }
   .motion-filter-pill--recorded:has(input:checked)   { @include badge-dark-hue(#86efac); }
   .motion-filter-pill--procedural:has(input:checked) { @include badge-dark-hue(#d4a574); }
-  .next-meeting-links a { @include badge-dark-hue(#4ade80); }
-  .meeting-link-agenda { @include badge-dark-hue(#60a5fa); }
-  .meeting-link-event  { @include badge-dark-hue(#4ade80); }
-  .meeting-row-btn { @include badge-dark-hue(#4ade80); }
+  .recent-meeting-status { @include badge-dark-hue(#9ca3af); }
+  .meeting-row-btn { @include badge-dark-hue(#60a5fa); }
   .meeting-row-btn-external { @include badge-dark-hue(#60a5fa); }
   .vote-matrix-media-badge           { @include badge-dark-hue(#60a5fa); }
   .vote-matrix-result--carried       { @include badge-dark-hue(#4ade80); }

@@ -73,12 +73,18 @@ make lint-js   # ESLint only
 Curated state (councillors, budget ledger, council votes, wards) ships as a **signed muni bundle** — a set of TSVs plus `BOD.tsv` (bill-of-datasets), zipped and uploaded to DO Spaces. The server downloads, verifies, and applies it on boot, throttled by `muni_fetch_state.last_checked_at` (24h).
 
 ```bash
-make muni-extract          # dev DB → data/muni/*.tsv + BOD.tsv
-./bin/munisign sign -key .signing-key.pub data/muni
-make muni-publish          # zip data/muni → upload to DO Spaces
+make muni-publish          # extract + sign + zip + upload in one step (= muni release)
 ```
 
-`./bin/muni publish -dry-run` builds the bundle without uploading. Apply path: `internal/muni/apply.go` — skips datasets whose SHA-256 already appears in `data_patch_log`, errors on checksum drift.
+Or drive the stages individually:
+
+```bash
+./bin/muni extract -out data/muni    # dev DB → TSVs + BOD.tsv
+./bin/muni sign data/muni            # writes manifest.sig (autodetects your ~/.ssh key)
+./bin/muni publish -dir data/muni    # zip + upload to DO Spaces
+```
+
+`./bin/muni publish -dry-run` (or `./bin/muni release -dry-run`) builds the bundle without uploading. Apply path: `internal/muni/apply.go` — skips datasets whose SHA-256 already appears in `data_patch_log`, errors on checksum drift.
 
 ### Other binaries
 

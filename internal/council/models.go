@@ -15,9 +15,21 @@ type Meeting struct {
 	Date       string   `json:"date"`
 	Title      string   `json:"title"`
 	MinutesURL string   `json:"minutes_url"`
+	HasVideo   bool     `json:"has_video,omitempty"`
 	PDFFile    string   `json:"pdf_file"`
 	Summary    string   `json:"summary,omitempty"` // LLM meeting summary
 	Motions    []Motion `json:"motions"`
+}
+
+// VideoURL returns the eScribe HTML agenda URL for a meeting, or the empty
+// string when the meeting has no recording. The agenda page embeds the video
+// player and eScribe's native per-item "play from here" controls. The
+// meeting's eScribe GUID doubles as the video/agenda identifier.
+func VideoURL(meetingID string, hasVideo bool) string {
+	if !hasVideo || meetingID == "" {
+		return ""
+	}
+	return baseURL + "/Meeting.aspx?Id=" + meetingID + "&Agenda=Agenda&lang=English"
 }
 
 // Motion represents a council motion (MOVED BY block) with optional recorded vote.

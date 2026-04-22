@@ -37,11 +37,22 @@ $bp-lg: 1024px;
 //
 // ### How to add a new phosphor pill:
 //
-//   1. In your component:
-//        .my-pill { @extend %badge-base; @include badge-light-hue(#60a5fa); }
+//   1. In your component — pick a size (see SIZE SYSTEM below):
+//        .my-status { @extend %badge-base; @extend %badge-info;   @include badge-light-hue(#60a5fa); }
+//        .my-btn    { @extend %badge-base; @extend %badge-action; @include badge-light-hue(#60a5fa); }
 //
 //   2. Add the dark-mode override to `@mixin badge-dark-overrides` in style.scss:
-//        .my-pill { @include badge-dark-hue(#60a5fa); }
+//        .my-status, .my-btn { @include badge-dark-hue(#60a5fa); }
+//
+// ### Size system — the size signals whether the pill is clickable:
+//
+//   %badge-info   (0.55rem) — static label. Class names should be nouns:
+//                             `-status`, `-badge`, `-tag`, `-label`, `-count`.
+//   %badge-action (0.72rem) — interactive (<a> / <button>) only. Class names
+//                             should read as actions: `-btn`, `-action`, `-link`.
+//
+//   Keep the contract: bigger pills are clickable; smaller pills are not.
+//   Mismatched size ↔ interactivity is a bug — fix the class, not the styles.
 //
 // ### What the mixins set:
 //

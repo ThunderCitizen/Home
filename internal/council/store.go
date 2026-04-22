@@ -45,13 +45,14 @@ func (s *Store) saveMeeting(ctx context.Context, tx pgx.Tx, m Meeting) error {
 	term := TermForDate(m.Date)
 
 	_, err := tx.Exec(ctx, `
-		INSERT INTO council_meetings (id, date, title, term, minutes_url, pdf_file, scraped_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		INSERT INTO council_meetings (id, date, title, term, minutes_url, has_video, pdf_file, scraped_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
 		ON CONFLICT (id) DO UPDATE SET
 			minutes_url = EXCLUDED.minutes_url,
+			has_video   = EXCLUDED.has_video,
 			pdf_file    = EXCLUDED.pdf_file,
 			scraped_at  = NOW()`,
-		m.ID, m.Date, m.Title, term, m.MinutesURL, m.PDFFile)
+		m.ID, m.Date, m.Title, term, m.MinutesURL, m.HasVideo, m.PDFFile)
 	if err != nil {
 		return fmt.Errorf("upsert meeting: %w", err)
 	}
@@ -148,6 +149,7 @@ type MeetingSummary struct {
 	Title           string
 	Term            string
 	MinutesURL      string
+	HasVideo        bool
 	Summary         string
 	MotionCount     int
 	RecordedVotes   int
@@ -203,6 +205,7 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 
 	sql := fmt.Sprintf(`
 		SELECT m.id, m.date::text, m.title, m.term, COALESCE(m.minutes_url, ''),
+		       m.has_video,
 		       COALESCE(m.llm_summary, ''),
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id),
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.raw_text != ''),
@@ -228,7 +231,7 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 	for rows.Next() {
 		var ms MeetingSummary
 		if err := rows.Scan(&ms.ID, &ms.Date, &ms.Title, &ms.Term, &ms.MinutesURL,
-			&ms.Summary, &ms.MotionCount, &ms.RecordedVotes, &ms.CarriedCount, &ms.LostCount,
+			&ms.HasVideo, &ms.Summary, &ms.MotionCount, &ms.RecordedVotes, &ms.CarriedCount, &ms.LostCount,
 			&ms.HeadlineCount, &ms.NotableCount, &ms.RoutineCount, &ms.ProceduralCount, &ms.MediaCount); err != nil {
 			return nil, 0, err
 		}
@@ -244,6 +247,7 @@ type MeetingDetail struct {
 	Title      string
 	Term       string
 	MinutesURL string
+	HasVideo   bool
 	Summary    string // LLM meeting summary (same field used on the minutes index)
 	Motions    []MotionRow
 }
@@ -281,9 +285,9 @@ func (s *Store) GetMeetingBySlug(ctx context.Context, slug string) (*MeetingDeta
 	}
 	md := &MeetingDetail{}
 	err := s.db.QueryRow(ctx, `
-		SELECT id, date::text, title, term, COALESCE(minutes_url, ''), COALESCE(llm_summary, '')
+		SELECT id, date::text, title, term, COALESCE(minutes_url, ''), has_video, COALESCE(llm_summary, '')
 		FROM council_meetings WHERE date = $1::date AND LOWER(title) = $2 ORDER BY id LIMIT 1`, date, title,
-	).Scan(&md.ID, &md.Date, &md.Title, &md.Term, &md.MinutesURL, &md.Summary)
+	).Scan(&md.ID, &md.Date, &md.Title, &md.Term, &md.MinutesURL, &md.HasVideo, &md.Summary)
 	if err != nil {
 		return nil, err
 	}
@@ -294,9 +298,9 @@ func (s *Store) GetMeetingBySlug(ctx context.Context, slug string) (*MeetingDeta
 func (s *Store) GetMeetingByID(ctx context.Context, id string) (*MeetingDetail, error) {
 	md := &MeetingDetail{}
 	err := s.db.QueryRow(ctx, `
-		SELECT id, date::text, title, term, COALESCE(minutes_url, ''), COALESCE(llm_summary, '')
+		SELECT id, date::text, title, term, COALESCE(minutes_url, ''), has_video, COALESCE(llm_summary, '')
 		FROM council_meetings WHERE id = $1`, id,
-	).Scan(&md.ID, &md.Date, &md.Title, &md.Term, &md.MinutesURL, &md.Summary)
+	).Scan(&md.ID, &md.Date, &md.Title, &md.Term, &md.MinutesURL, &md.HasVideo, &md.Summary)
 	if err != nil {
 		return nil, err
 	}

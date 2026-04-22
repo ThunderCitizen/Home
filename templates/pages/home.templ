@@ -7,38 +7,6 @@ import (
 	"thundercitizen/templates/components"
 )
 
-templ nextMeetingCard(m views.NextMeeting) {
-	<div class="next-meeting">
-		<div class="next-meeting-when">
-			<strong>{ m.Date }</strong>
-			if m.Time != "" {
-				<span class="next-meeting-time">{ m.Time }</span>
-			}
-			if m.Type != "" {
-				<span class="next-meeting-type">{ m.Type }</span>
-			}
-		</div>
-		if m.Summary != "" {
-			<p class="next-meeting-summary">{ m.Summary }</p>
-		}
-		if len(m.KeyItems) > 0 {
-			<ul class="next-meeting-items">
-				for _, item := range m.KeyItems {
-					<li>{ item }</li>
-				}
-			</ul>
-		}
-		<p class="next-meeting-links">
-			if m.AgendaURL != "" {
-				<a href={ templ.SafeURL(m.AgendaURL) } target="_blank" rel="noopener" class="meeting-link-agenda">Agenda <span class="ext-link-icon" aria-hidden="true"></span></a>
-			}
-			if m.EventURL != "" {
-				<a href={ templ.SafeURL(m.EventURL) } target="_blank" rel="noopener" class="meeting-link-event">Event details <span class="ext-link-icon" aria-hidden="true"></span></a>
-			}
-		</p>
-	</div>
-}
-
 templ Home(vm views.HomeViewModel) {
 	@templates.Layout(templates.SocialMeta{
 		Title:       "Home",
@@ -88,14 +56,6 @@ templ Home(vm views.HomeViewModel) {
 			</div>
 		</section>
 
-		if vm.NextMeeting != nil {
-			<section class="home-section">
-				@components.Card(components.CardProps{Title: "Next Council Meeting"}) {
-					@nextMeetingCard(*vm.NextMeeting)
-				}
-			</section>
-		}
-
 		<div class="home-bottom grid cols-2">
 			@components.Card(components.CardProps{Title: "Notice Board"}) {
 				<div class="notice-welcome">
@@ -108,9 +68,32 @@ templ Home(vm views.HomeViewModel) {
 				</div>
 			}
 
-			if len(vm.RecentMeetings) > 0 {
+			if len(vm.RecentMeetings) > 0 || len(vm.PendingMeetings) > 0 {
 				@components.Card(components.CardProps{Title: "Recent Council Activity"}) {
 					<div class="recent-meetings">
+						for _, m := range vm.PendingMeetings {
+							<div class="recent-meeting recent-meeting--pending">
+								<div class="recent-meeting-header">
+									<strong>{ m.Date }</strong>
+								</div>
+								if m.Summary != "" {
+									<p class="recent-meeting-summary">{ m.Summary }</p>
+								}
+								if len(m.KeyItems) > 0 {
+									<ul class="recent-meeting-items">
+										for _, item := range m.KeyItems {
+											<li>{ item }</li>
+										}
+									</ul>
+								}
+								<div class="recent-meeting-footer">
+									if m.MinutesETA != "" {
+										<span class="recent-meeting-eta">{ m.MinutesETA }</span>
+									}
+									<span class="recent-meeting-status">Pending</span>
+								</div>
+							</div>
+						}
 						for _, m := range vm.RecentMeetings {
 							<div class="recent-meeting">
 								<div class="recent-meeting-header">
@@ -120,6 +103,9 @@ templ Home(vm views.HomeViewModel) {
 									<span class="recent-meeting-count">{ fmt.Sprintf("%d motions", m.Motions) }</span>
 								</div>
 								<p class="recent-meeting-summary">{ m.Summary }</p>
+								<div class="recent-meeting-footer">
+									<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">Minutes</a>
+								</div>
 							</div>
 						}
 					</div>

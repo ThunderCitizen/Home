@@ -1,12 +1,16 @@
-// Command muni extracts municipal data from the dev database and publishes
-// signed TSV bundles to data.thundercitizen.ca.
+// Command muni extracts municipal data from the dev database, signs the
+// bundle against the embedded trust store, and publishes it to
+// data.thundercitizen.ca.
 //
 // Usage:
 //
-//	go run ./cmd/muni extract              # dev DB → data/muni/*.tsv + BOD.tsv
-//	go run ./cmd/muni extract -out <dir>   # custom output dir
-//	go run ./cmd/muni publish              # zip + upload data/muni → DO Spaces
-//	go run ./cmd/muni publish -dry-run     # build but don't upload
+//	muni extract [-out DIR]               # dev DB → TSVs + BOD.tsv
+//	muni sign    [-key <privkey>] <dir>   # write manifest.sig (autodetects ~/.ssh key)
+//	muni verify  -key <pubkey> <dir>      # verify against an explicit pubkey
+//	muni verify  -trust <dir>             # verify against embedded keys/approved
+//	muni hash    <dir>                    # print the bundle's Merkle root
+//	muni publish [-dir DIR] [-dry-run]    # zip + upload to DO Spaces (requires manifest.sig)
+//	muni release [-out DIR] [-dry-run]    # extract + sign + publish — the normal release flow
 package main
 
 import (
@@ -32,8 +36,16 @@ func main() {
 	switch os.Args[1] {
 	case "extract":
 		runExtract(os.Args[2:])
+	case "sign":
+		runSign(os.Args[2:])
+	case "verify":
+		runVerify(os.Args[2:])
+	case "hash":
+		runHash(os.Args[2:])
 	case "publish":
 		runPublish(os.Args[2:])
+	case "release":
+		runRelease(os.Args[2:])
 	default:
 		usage()
 	}
@@ -133,10 +145,15 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `usage: muni <command> [args]
 
 commands:
-  extract [-out DIR]          dev DB → TSV files + BOD.tsv (default: data/muni/)
-  publish [-dir DIR] [-dry-run]
-                              zip + upload bundle to DO Spaces (requires
-                              manifest.sig; run munisign sign first)`)
+  extract [-out DIR]                dev DB → TSV files + BOD.tsv (default: data/muni/)
+  sign    [-key <privkey>] <dir>    write manifest.sig (omit -key to autodetect
+                                    from ~/.ssh against keys/approved/)
+  verify  -key <pubkey> <dir>       verify against a single explicit pubkey
+  verify  -trust <dir>              verify against the embedded keys/ trust store
+  hash    <dir>                     print Merkle root hash
+  publish [-dir DIR] [-dry-run]     zip + upload bundle to DO Spaces
+                                    (requires manifest.sig — run 'muni sign' first)
+  release [-out DIR] [-dry-run]     extract + sign + publish — normal release flow`)
 	os.Exit(2)
 }
 

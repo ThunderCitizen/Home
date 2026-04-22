@@ -32,6 +32,7 @@ type apiMeeting struct {
 	ID           string        `json:"Id"`
 	DateLong     string        `json:"DateLong"`
 	MeetingType  string        `json:"MeetingType"`
+	HasVideo     bool          `json:"HasVideo"`
 	MeetingLinks []meetingLink `json:"MeetingLinks"`
 }
 
@@ -122,6 +123,8 @@ func convertMeeting(m apiMeeting) Meeting {
 			break
 		}
 	}
+
+	mtg.HasVideo = m.HasVideo
 
 	return mtg
 }

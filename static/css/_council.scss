@@ -101,66 +101,44 @@
   font-size: 0.9rem;
 }
 
-.next-meeting {
+.recent-meeting-status {
+  @extend %badge-base;
+  @extend %badge-action;
+  @include badge-light-hue(#9ca3af);
+  padding: 0.1rem 0.65rem;
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.recent-meeting-items {
+  margin: 0.4rem 0 0.5rem;
+  padding-left: 1.1rem;
+  color: var(--thunder-600);
+  font-size: 0.85rem;
+  line-height: 1.5;
+
+  li { margin-bottom: 0.15rem; }
+}
+
+.recent-meeting-footer {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
 
-  .next-meeting-when {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem 0.75rem;
+  .recent-meeting-status,
+  .meeting-row-btn { align-self: flex-end; }
+}
 
-    strong { font-size: 1.05rem; }
-  }
-
-  .next-meeting-time,
-  .next-meeting-type {
-    font-size: 0.8rem;
-    color: var(--thunder-500);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .next-meeting-summary {
-    margin: 0;
-    color: var(--thunder-600);
-    line-height: 1.55;
-    font-size: 0.92rem;
-  }
-
-  .next-meeting-items {
-    margin: 0;
-    padding-left: 1.1rem;
-    color: var(--thunder-600);
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-
-  .next-meeting-links {
-    margin: 0.5rem 0 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-    justify-content: flex-end;
-
-    a {
-      @extend %badge-base;
-      @include badge-light-hue(#4ade80);
-      font-size: 0.72rem;
-      padding: 0.3rem 0.75rem;
-      text-decoration: none;
-      cursor: pointer;
-
-      &.meeting-link-agenda { @include badge-light-hue(#60a5fa); }
-      &.meeting-link-event  { @include badge-light-hue(#4ade80); }
-
-      &:hover {
-        filter: brightness(1.1);
-      }
-    }
-  }
+.recent-meeting-eta {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--thunder-600);
+  opacity: 0.85;
 }
 
 
@@ -288,8 +266,12 @@
   font-size: 0.7rem;
   color: var(--thunder-500);
 
+  .meeting-row-btn { margin-left: auto; }
+
   @media (max-width: 600px) {
     justify-content: flex-end;
+
+    .meeting-row-btn { margin-left: 0; }
   }
 }
 
@@ -310,9 +292,11 @@
 
 .meeting-row-btn {
   @extend %badge-base;
+  @extend %badge-action;
   @include badge-light-hue(#1a6ca8);
-  font-size: 0.72rem;
-  padding: 0.25rem 0.65rem;
+  --badge-fill: #1a6ca8;
+  --badge-text: #fffdf7;
+  padding: 0.1rem 0.65rem;
   text-decoration: none;
 
   &:hover { filter: brightness(1.1); }
