@@ -3018,37 +3018,6 @@ button.trip-locate-active {
 
 
 
-.trip-no-results {
-  text-align: center;
-  padding: 1.5rem 0.5rem;
-  color: var(--term-fg);
-
-  .trip-no-results-icon {
-    font-size: 1.5rem;
-    margin-bottom: 0.4rem;
-  }
-
-  strong {
-    display: block;
-    font-size: 0.78rem;
-    color: var(--term-fg-bright);
-    margin-bottom: 0.3rem;
-  }
-
-  p {
-    font-size: 0.7rem;
-    margin: 0;
-    color: var(--term-fg-dim);
-  }
-
-  .trip-no-results-gmaps {
-    display: inline-block;
-    margin-top: 0.6rem;
-    font-size: 0.72rem;
-    color: var(--accent);
-  }
-}
-
 .trip-itinerary {
   border-bottom: 1px solid var(--term-border);
 
