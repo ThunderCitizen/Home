@@ -93,13 +93,6 @@ templ Health(vm system.HealthViewModel) {
 							<div class="hc-label" title={ r.Pattern }>{ r.Pattern }</div>
 						</div>
 					}
-					<div class="hc-col hc-col-4xx">
-						<div class="hc-val">{ fmt.Sprint(vm.Err4xxAll) }</div>
-						<div class="hc-col-track">
-							<div class="hc-col-bar hc-4xx" data-h={ fmt.Sprint(vm.Err4xxAllHeightPct) }></div>
-						</div>
-						<div class="hc-label">4xx</div>
-					</div>
 				</div>
 
 				<table class="hc-table">
