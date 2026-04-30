@@ -141,7 +141,7 @@ document.documentElement.classList.remove('no-js');
 		var current = document.documentElement.getAttribute("data-theme");
 		window.setTheme(current === "dark" ? "light" : "dark");
 	};
-	function updateThemePicker(active){
+	window.updateThemePicker = function(active){
 		var btns = document.querySelectorAll(".theme-pick");
 		for (var i = 0; i < btns.length; i++) {
 			var b = btns[i];
@@ -151,7 +151,8 @@ document.documentElement.classList.remove('no-js');
 		}
 		var cur = document.querySelector(".theme-picker-current");
 		if (cur) { cur.textContent = active; }
-	}
+	};
+	var updateThemePicker = window.updateThemePicker;
 	var saved = localStorage.getItem("theme") || "system";
 	if (saved === "light" || saved === "dark") {
 		document.documentElement.setAttribute("data-theme", saved);

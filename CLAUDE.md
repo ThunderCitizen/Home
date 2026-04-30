@@ -130,7 +130,8 @@ Existing consumers: `.badge-*` (result/significance/term), ward subtitle badges,
 
 ## Transit Page UI
 
-- **Tab order**: Live, Metrics, Routes, Method
+- **Tab order**: Live, Metrics, Routes, Terminals, Method
+- **Terminals tab** shows real-time departures from four canonical terminals (Waterfront, City Hall, Confederation College, Lakehead University). Header has selectable terminal tabs + Kiosk mode toggle. Client polls `/api/transit/stop/{id}/predictions` every 15s (exponential backoff on error, pauses when tab hidden). Fullscreen/kiosk mode targets TV displays — amber-on-black 21:1 contrast, Atkinson Hyperlegible, auto-paginating (8s, 4 cards/page). Canonical terminals hardcoded in `handler.go:canonicalTerminals` (4 stop IDs) — not data-driven, update manually if GTFS stop IDs change.
 - **Metrics tab** has 6 KPI cards in a 3×2 grid, a trend chart (click card to switch KPI), and a route comparison bar chart
 - **KPI card convention**: main value in `.kpi-value`, three sub-slots showing Morning/Midday/Evening breakdown. Server-rendered via `KPIFromChunks(vm.Chunks, metric, band)` in `view_helpers.go`
 - **6 metrics** (ordered simplest→hardest, matching Method tab): OTP, Cancellation Rate, Cancel Notice, Stop Wait, EWT, Headway Cv

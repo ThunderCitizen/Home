@@ -62,6 +62,22 @@ type MethodViewModel struct {
 	AlertPoll   string
 }
 
+// TerminalCard is one selectable terminal on the terminals selector page.
+type TerminalCard struct {
+	StopID   string
+	StopName string
+}
+
+// TerminalsViewModel contains data for the all-in-one terminals page
+// (/transit/terminals). Renders the four canonical Thunder Bay
+// terminals as tabs at the top of the page; the active tab's
+// departures fill the rest of the viewport. RouteMeta is shipped so
+// route pill colors are correct on first paint.
+type TerminalsViewModel struct {
+	Terminals []TerminalCard
+	RouteMeta []RouteMetaAPI
+}
+
 // NewLiveViewModel creates the view model for the live map page.
 func NewLiveViewModel(alerts []ActiveAlert, cancelledTrips map[string][]CancelledTrip) LiveViewModel {
 	// Build cancelled routes list from trip details + alert-affected routes

@@ -331,7 +331,25 @@ idx_transit_stop_geog           — GiST index on transit.stop for KNN nearest-n
 | `GET /transit/routes` | Route directory (table of all routes) |
 | `GET /transit/method` | Methodology documentation |
 | `GET /transit/route/{id}` | Route detail: metrics, alerts, stop performance, schedule |
+| `GET /transit/terminals` | Live departure boards for all canonical terminals |
 | `GET /transit/report` | Permanent redirect to `/transit` |
+
+### Terminals page (`/transit/terminals`)
+
+Four canonical transit hubs hardcoded in `internal/transit/handler.go` (`canonicalTerminals`):
+
+| Stop ID | Name |
+|---------|------|
+| 1121 | Waterfront Terminal |
+| 1019 | City Hall Terminal |
+| 1231 | Confederation College |
+| 1222 | Lakehead University |
+
+Stop IDs are hardcoded (not read from the `is_terminal` DB flag) to avoid GTFS feed drift. Update manually if Thunder Bay Transit renumbers stops.
+
+Page embeds `RouteMeta` JSON for route pills on first paint, then `terminal-board.js` polls `/api/transit/stop/{id}/predictions` every 15 s. Polling pauses when the tab is hidden (Visibility API), uses exponential backoff (cap 30 s) on errors, and restarts immediately on terminal tab switch.
+
+**Kiosk / fullscreen mode** — triggered by the Kiosk button or the browser fullscreen API. Sets `body.terminal-fullscreen`; hides site chrome; switches to amber-on-black palette (21:1 contrast) with Atkinson Hyperlegible font for readability at 3 m. Cards paginate automatically every 8 s (4 per page) with an SVG countdown ring.
 
 ### API routes (mounted at `/api/transit`)
 

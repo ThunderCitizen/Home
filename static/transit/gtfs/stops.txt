@@ -1,10 +1,10 @@
 ﻿stop_id,stop_name,stop_lat,stop_lon,wheelchair_boarding,stop_code
-1000,Ft. Wm. Rd. & Transit Office,48.41698,-89.23589,1,1000
+1000,Ft. Wm. Rd. & Transit Office,48.417,-89.23603,1,1000
 1002,Ft. Wm. Rd. & Central,48.41436,-89.23756,1,1002
-1003,Ft. Wm. Rd. & Walmart,48.41211,-89.23859,1,1003
-1004,Ft. Wm. Rd. & Harbour Expy,48.40782,-89.24042,1,1004
-1005,Ft. Wm. Rd. & Intercity,48.40517,-89.24158,1,1005
-1006,Intercity Shopping Centre,48.40342,-89.24322,1,1006
+1003,Ft. Wm. Rd. & Walmart,48.41214,-89.23867,1,1003
+1004,Ft. Wm. Rd. & Harbour Expy,48.40782,-89.2405,1,1004
+1005,Ft. Wm. Rd. & Intercity,48.40517,-89.24163,1,1005
+1006,Intercity Shopping Centre,48.40349,-89.2433,1,1006
 1007,Ft. Wm. Rd. & Northern,48.39991,-89.24102,1,1007
 1008,Simpson & Southern,48.39787,-89.23916,1,1008
 1009,Simpson & Assef Ct.,48.39706,-89.23852,1,1009
@@ -88,11 +88,11 @@
 1100,Simpson & Atlantic,48.39607,-89.23757,1,1100
 1101,Simpson & Southern,48.39733,-89.23858,1,1101
 1102,Ft. Wm. Rd. & Isabel,48.40027,-89.24111,1,1102
-1103,Intercity Shopping Centre,48.4035,-89.24309,1,1103
-1104,Ft. Wm. Rd. & Intercity,48.40483,-89.24149,1,1104
+1103,Intercity Shopping Centre,48.40347,-89.24302,1,1103
+1104,Ft. Wm. Rd. & Intercity,48.40477,-89.24145,1,1104
 1105,Ft. Wm. Rd. & Main,48.40573,-89.24104,1,1105
-1106,Ft. Wm. Rd. & Mooney,48.40811,-89.24014,1,1106
-1108,Ft. Wm. Rd. & Central,48.41368,-89.23759,1,1108
+1106,Ft. Wm. Rd. & Mooney,48.40814,-89.24009,1,1106
+1108,Ft. Wm. Rd. & Central,48.41367,-89.23756,1,1108
 1112,Ft. Wm. Rd. & Spofford,48.42202,-89.2331,1,1112
 1113,Ft. Wm. Rd. & Court,48.42442,-89.23308,0,1113
 1114,Court & Wholesale Club,48.42614,-89.23202,0,1114
@@ -102,7 +102,7 @@
 1118,Cumberland & Water,48.43121,-89.22304,1,1118
 1119,Cumberland & Pearl,48.43266,-89.22154,1,1119
 1120,Cumberland & Red River,48.43452,-89.21959,1,1120
-1121,Waterfront Terminal,48.43609,-89.21799,1,1121
+1121,Waterfront Terminal,48.43568,-89.21703,1,1121
 1122,Cumberland & Villa,48.43834,-89.21562,1,1122
 1123,Cumberland & St. James,48.44139,-89.21189,1,1123
 1124,Cumberland & Van Horne,48.44213,-89.21052,1,1124

@@ -146,6 +146,9 @@ func main() {
 		AuditRoute: func(vm transit.AuditRouteViewModel) transit.RenderFunc {
 			return pages.AuditRoute(vm).Render
 		},
+		Terminals: func(vm transit.TerminalsViewModel) transit.RenderFunc {
+			return pages.TransitTerminals(vm).Render
+		},
 		PlanPartial: func(plan *transit.PlanResult, summary bool, fromLat, fromLon, toLat, toLon float64) transit.RenderFunc {
 			return pages.PlanResults(pages.PlanPartialViewModel{
 				Plan: plan, Summary: summary,

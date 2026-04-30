@@ -34,6 +34,7 @@ type Renderer struct {
 	RouteScheduleBodyPartial  func(vm RouteViewModel) RenderFunc
 	AuditIndex                func(vm AuditIndexViewModel) RenderFunc
 	AuditRoute                func(vm AuditRouteViewModel) RenderFunc
+	Terminals                 func(vm TerminalsViewModel) RenderFunc
 	PlanPartial               func(plan *PlanResult, summary bool, fromLat, fromLon, toLat, toLon float64) RenderFunc
 }
 
@@ -70,6 +71,7 @@ func (h *Handler) PageRoutes() chi.Router {
 	r.Get("/method", h.transitMethodPage)
 	r.Get("/report", h.transitReport)
 	r.Get("/route/{id}", h.routePage)
+	r.Get("/terminals", h.transitTerminalsPage)
 	r.Get("/audit/deltas", h.auditIndex)
 	r.Get("/audit/deltas/{id}", h.auditRoute)
 	return r
@@ -232,6 +234,34 @@ func (h *Handler) transitMethodPage(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) transitReport(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/transit", http.StatusMovedPermanently)
+}
+
+// canonicalTerminals is the curated list of Thunder Bay Transit
+// terminals shown on the kiosk picker. Hardcoded by stop_id so the
+// list stays stable regardless of GTFS metadata drift (the upstream
+// feed does not flag any stop as is_terminal=true). If a terminal
+// stop_id ever changes upstream, that's a data event worth a code
+// change anyway — better to fail visibly here than silently drop a
+// terminal from the picker.
+var canonicalTerminals = []TerminalCard{
+	{StopID: "1121", StopName: "Waterfront Terminal"},
+	{StopID: "1019", StopName: "City Hall Terminal"},
+	{StopID: "1231", StopName: "Confederation College"},
+	{StopID: "1222", StopName: "Lakehead University"},
+}
+
+// transitTerminalsPage renders the all-in-one terminals departures
+// page: four tabs at the top, the active terminal's board fills the
+// rest of the viewport. The client polls
+// /api/transit/stop/{id}/predictions for whichever tab is active and
+// re-polls immediately on tab switch. RouteMeta ships with the page so
+// route colors are correct on first paint.
+func (h *Handler) transitTerminalsPage(w http.ResponseWriter, r *http.Request) {
+	vm := TerminalsViewModel{
+		Terminals: canonicalTerminals,
+		RouteMeta: h.svc.RouteMeta(),
+	}
+	h.render.Terminals(vm)(r.Context(), w)
 }
 
 func (h *Handler) routePage(w http.ResponseWriter, r *http.Request) {

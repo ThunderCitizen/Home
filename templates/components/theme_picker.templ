@@ -1,0 +1,59 @@
+package components
+
+type ThemePickerProps struct {
+	LabelID string // aria-labelledby target
+	Label   string // visible label text; defaults to "Theme" if empty
+	Class   string // extra class on .theme-picker-wrap
+	// Kiosk: render the kiosk (amber-on-black, distance-legible) option as a
+	// fourth radio. Used on /transit/terminals where signage-grade legibility
+	// matters more than design-system uniformity.
+	Kiosk bool
+}
+
+func (p ThemePickerProps) label() string {
+	if p.Label != "" {
+		return p.Label
+	}
+	return "Theme"
+}
+
+templ ThemePicker(props ThemePickerProps) {
+	<div class={ "theme-picker-wrap", props.Class }>
+		<span class="theme-picker-label" id={ props.LabelID }>{ props.label() }</span>
+		<div class="theme-picker" role="radiogroup" aria-labelledby={ props.LabelID }>
+			<button class="theme-pick" role="radio" data-theme-pick="light" aria-label="Light theme" title="Light">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+					<circle cx="12" cy="12" r="5"></circle>
+					<line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
+					<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+					<line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
+					<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+				</svg>
+			</button>
+			<button class="theme-pick" role="radio" data-theme-pick="system" aria-label="System theme" title="System">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+					<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+					<line x1="8" y1="21" x2="16" y2="21"></line>
+					<line x1="12" y1="17" x2="12" y2="21"></line>
+				</svg>
+			</button>
+			<button class="theme-pick" role="radio" data-theme-pick="dark" aria-label="Dark theme" title="Dark">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+					<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+				</svg>
+			</button>
+			if props.Kiosk {
+				<button class="theme-pick" role="radio" data-theme-pick="kiosk" aria-label="High-contrast kiosk theme — amber on black for distance legibility" title="Kiosk (high contrast)">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+						<rect x="3" y="3" width="18" height="14" rx="1"></rect>
+						<line x1="3" y1="9" x2="21" y2="9"></line>
+						<line x1="3" y1="13" x2="21" y2="13"></line>
+						<line x1="9" y1="21" x2="15" y2="21"></line>
+						<line x1="12" y1="17" x2="12" y2="21"></line>
+					</svg>
+				</button>
+			}
+		</div>
+		<span class="theme-picker-current" aria-live="polite">system</span>
+	</div>
+}

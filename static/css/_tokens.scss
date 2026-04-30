@@ -167,3 +167,4 @@
   :root:not([data-theme]) { @include dark-theme; }
 }
 :root[data-theme="dark"] { @include dark-theme; }
+:root[data-theme="kiosk"] { @include kiosk-theme; }

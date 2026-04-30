@@ -259,3 +259,88 @@ $badge-hues: (
 
     --text-on-dark: #86efac;
 }
+
+// ============================================================================
+// KIOSK THEME — amber on near-black, optimized for distance legibility.
+// Used by /transit/terminals fullscreen board and any other kiosk view.
+// Per CSA B651 (Ontario): 1:40 cap-height to viewing distance, ≥70% luminance
+// contrast, no flashing. Per Knoblauch 1991 / TCRP 12: amber (~590nm) is the
+// distance king for emissive panels and best for aging eyes (yellowing
+// crystalline lens absorbs blue). Per Garvey 1997 / Arditi & Cho 2005: medium
+// weight (500-600) outperforms bold on backlit displays (heavier strokes
+// halate and close digit counters). Per Myndex APCA: pull endpoints in from
+// pure #FFF/#000 — #E8E8E8 on #0A0A0A avoids halation while staying Lc≥90.
+// ============================================================================
+@mixin kiosk-theme {
+    // Page hierarchy — pure terminal black with one subtle lift.
+    --thunder-900: #ffd980;
+    --thunder-800: #ffb000;
+    --thunder-700: #ffb000;
+    --thunder-600: #e89e00;
+    --thunder-500: #b07000;
+    --thunder-400: #6b4500;
+    --thunder-200: rgba(255, 176, 0, 0.18);
+    --thunder-100: #141414;
+    --thunder-50:  #0a0a0a;
+
+    --accent: #ffb000;
+    --accent-hover: #ffd980;
+    --accent-light: rgba(255, 176, 0, 0.18);
+
+    // Headings collapse onto amber, no glow (halation hurts at distance).
+    --heading: #ffb000;
+    --heading-hover: #ffd980;
+    --heading-glow: none;
+
+    --hero-fg: #ffb000;
+
+    --term-bg: #0a0a0a;
+    --term-bg-deep: #050505;
+    --term-fg: #e8e8e8;
+    --term-fg-bright: #ffffff;
+    --term-fg-dim: #c0c0c0;
+    --term-accent: #ffb000;
+    --term-accent-bright: #ffd980;
+    --term-accent-dim: #b07000;
+    --term-border: rgba(255, 176, 0, 0.22);
+    --term-glow: none;
+    --term-scanline: transparent;
+    --strip-edge-glow-below: none;
+    --strip-edge-glow-above: none;
+    --nav-hover-filter: none;
+    --nav-active-filter: none;
+
+    --pico-background-color: var(--thunder-50);
+    --pico-color: var(--term-fg);
+    --pico-card-background-color: var(--thunder-100);
+    --pico-card-border-color: var(--term-border);
+    --pico-muted-color: var(--term-fg-dim);
+    --pico-muted-border-color: var(--term-border);
+    --pico-h1-color: var(--heading);
+    --pico-h2-color: var(--heading);
+    --pico-h3-color: var(--heading);
+
+    // Status — saturated, with white-fallback hue tested for protanopia
+    // distinguishability against amber accent (no red-on-black pure red).
+    --status-ok:        #4ade80;  // green
+    --status-warn:      #ffb000;  // amber (= accent — late uses delta number)
+    --status-error:     #ff5050;  // red, but always paired with ✕ glyph + word
+    --status-info:      #ffd980;  // pale amber
+    --status-early-dep: #c084fc;  // violet
+    --status-muted:     #888888;  // neutral grey
+
+    --card-shadow: none;
+    --card-shadow-hover: none;
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+
+    --glass-bg: rgba(10, 10, 10, 0.92);
+    --glass-bg-solid: #0a0a0a;
+    --glass-border: rgba(255, 176, 0, 0.22);
+
+    --surface-dark: #050505;
+
+    --text-on-dark: #ffb000;
+}

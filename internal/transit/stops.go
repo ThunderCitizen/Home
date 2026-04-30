@@ -177,8 +177,8 @@ func StopPredictionsFromFeed(ctx context.Context, db *pgxpool.Pool, feed *gtfsrt
 		return predictions[i].MinutesAway < predictions[j].MinutesAway
 	})
 
-	if len(predictions) > 12 {
-		predictions = predictions[:12]
+	if len(predictions) > 50 {
+		predictions = predictions[:50]
 	}
 
 	resp := StopPredictionsResponse{Predictions: predictions}
