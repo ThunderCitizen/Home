@@ -3549,6 +3549,7 @@ tbody tr:first-child td { border-top: none; }
   display: flex;
   flex-direction: column;
   gap: clamp(0.5rem, 1vw, 1rem);
+  padding-bottom: 1.5rem;
   // Subtract the rough heights of site-header + transit nav so the
   // board area uses the rest of the viewport. Falls back gracefully
   // on shorter screens — content just becomes scrollable.
@@ -3588,11 +3589,14 @@ tbody tr:first-child td { border-top: none; }
 
 .terminal-board-tab {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
   background: transparent;
   border: 1px solid var(--term-border);
   font: inherit;
   font-weight: 600;
   font-size: 0.72rem;
+  line-height: 1;
   letter-spacing: 0.03em;
   padding: 0.3rem 0.6rem;
   border-radius: 3px;
@@ -3627,8 +3631,11 @@ tbody tr:first-child td { border-top: none; }
 
   &.active {
     background-image: none;
-    background-color: color-mix(in srgb, var(--term-accent) 70%, white);
-    border-color: var(--accent);
+    background-clip: border-box;
+    -webkit-background-clip: border-box;
+    background-color: var(--term-accent);
+    -webkit-text-fill-color: var(--term-bg);
+    border-color: var(--term-accent);
     filter: var(--nav-active-filter);
     animation: nav-glow-breathe 3s ease-in-out infinite;
   }
@@ -3777,6 +3784,24 @@ tbody tr:first-child td { border-top: none; }
 // 1.4.1 and the low-vision persona — never color-only.
 
 body.terminal-fullscreen {
+  // Full-viewport CRT scanline overlay — sits above all content including text.
+  &::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--term-scanline) 2px,
+      var(--term-scanline) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+  // Suppress the card-level scanlines — the full-screen overlay above covers everything.
+  .terminal-board::after { display: none; }
+
   .site-header,
   .year-selector-card,
   .site-footer { display: none !important; }
@@ -3786,10 +3811,12 @@ body.terminal-fullscreen {
   .container { max-width: none; padding: 0; }
 
   .terminal-board-page {
-    height: 100dvh;
-    min-height: 100dvh;
+    height: 98vh;
+    min-height: 98vh;
+    max-height: 98vh;
     padding: 0;
     gap: 0;
+    overflow: hidden;
   }
 
   .terminal-map-header { display: none; }
@@ -3800,85 +3827,12 @@ body.terminal-fullscreen {
   .terminal-board-time,
   .terminal-card-hero-value { text-shadow: none !important; }
 
-  // ===== High-contrast white-on-black info layer =====
-  // Pure white (#fff) on pure black is the highest-contrast pairing the
-  // panel can produce (21:1) — the rule of thumb for low-vision elderly
-  // riders reading at distance. Atkinson Hyperlegible everywhere for the
-  // info layer (designed for low-vision recognition: every glyph
-  // distinct at small angular sizes). Header chrome drops to dim grey so
-  // data dominates.
-  --kiosk-fg: #ffffff;
-  --kiosk-fg-dim: #b8b8b8;
-  --kiosk-fg-mute: #6e6e6e;
-
-  .terminal-card-hero-value,
-  .terminal-card-headsign,
-  .terminal-card-hero-sub,
-  .terminal-card-then,
-  .terminal-card-then-label,
-  .terminal-card-then-value,
-  .terminal-card-cancelled-line {
-    color: var(--kiosk-fg);
-    font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-
-  // Hero gets the brightest white + slightly heavier weight for distance.
+  // Colors inherit from the active site theme via --term-* tokens — no overrides needed.
+  // Extra weight on the hero for distance legibility.
   .terminal-card-hero-value { font-weight: 700; }
   .terminal-card-headsign  { font-weight: 700; }
 
-  // Supporting info one step dimmer so the eye still ranks them below
-  // the hero when scanning quickly.
-  .terminal-card-hero-sub,
-  .terminal-card-then,
-  .terminal-card-then-label,
-  .terminal-card-then-value { color: var(--kiosk-fg-dim); }
-
-  .terminal-card { background: #000; border-color: rgba(255, 255, 255, 0.10); }
-
-  .terminal-board { background: #000; border-color: rgba(255, 255, 255, 0.08); }
-
-  // Header chrome — recedes so data dominates.
-  .terminal-board-name {
-    color: var(--kiosk-fg-dim);
-    font-weight: 500;
-    font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    text-transform: none;
-    letter-spacing: 0.01em;
-  }
-
-  .terminal-board-clock-fs {
-    color: var(--term-fg-dim); // dim phosphor — recedes behind name
-    font-weight: 500;
-    font-family: inherit;
-    text-shadow: none !important;
-  }
-
-  .terminal-board-page-indicator { color: color-mix(in srgb, var(--term-fg-dim) 70%, transparent); }
-
-  .terminal-board-updated { color: color-mix(in srgb, var(--term-fg-dim) 60%, transparent); }
-
-
-  // CRT texture — white-on-black at 21:1 leaves contrast budget for the
-  // shared %term-scanlines overlay (already extended by .terminal-board).
-  // Just bump --term-scanline above the noise floor and add a faint
-  // phosphor bloom on the hero. No bespoke effects.
-  --term-scanline: rgba(255, 255, 255, 0.045);
-
-  .terminal-card-hero-value {
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.18) !important;
-  }
-
-  // Pin phosphor tokens on the board so both the head strip and the
-  // page indicator (siblings inside the board) inherit the same palette.
   .terminal-board {
-    --term-bg-deep:          #0a100a;
-    --term-accent:           #4ade80;
-    --term-fg:               #4ade80;
-    --term-fg-dim:           #22c55e;
-    --term-border:           rgba(74, 222, 128, 0.15);
-    --term-scanline:         rgba(74, 222, 128, 0.03);
-    --strip-edge-glow-below: 0 1px 0 rgba(74, 222, 128, 0.06), 0 4px 14px -8px rgba(74, 222, 128, 0.18);
-
     border-radius: 0;
     border: none;
     flex: 1 1 auto;
@@ -3888,14 +3842,18 @@ body.terminal-fullscreen {
     background: var(--term-bg);
   }
 
-  // Header strip — uses the phosphor tokens scoped on .terminal-board above.
+  // Header strip — uses theme tokens from .terminal-board.
+  // Top padding is intentionally larger than bottom for visual breathing
+  // room above the terminal name. Header is flex-shrink: 0 inside a
+  // flex-column .terminal-board with overflow: hidden, so adding top
+  // padding shrinks the card grid below — never introduces vertical scroll.
   .terminal-board-head {
     flex-shrink: 0;
     align-items: center;
     gap: clamp(0.6rem, 1.4vw, 1.4rem);
     background: var(--term-bg-deep);
     margin: calc(-1 * clamp(0.5rem, 1vw, 0.9rem)) calc(-1 * clamp(0.75rem, 1.4vw, 1.4rem)) 0;
-    padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.75rem, 1.4vw, 1.4rem);
+    padding: clamp(0.9rem, 1.6vw, 1.4rem) clamp(0.75rem, 1.4vw, 1.4rem) clamp(0.4rem, 0.8vw, 0.7rem);
     border-bottom: 1px solid var(--term-border);
     box-shadow: var(--strip-edge-glow-below);
     position: relative;
@@ -3924,63 +3882,6 @@ body.terminal-fullscreen {
     text-transform: uppercase;
   }
 
-  // Page counter + countdown ring — JS mounts only when totalPages > 1.
-  // Ring circumference for r=15 is 2πr ≈ 94.248. CSS animates
-  // stroke-dashoffset from 94.248 → 0 over 8s linear (= PAGE_MS in JS).
-  // JS clone-replaces the fill circle on each rotation to restart cleanly.
-  .terminal-board-page-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: clamp(0.4rem, 0.7vw, 0.7rem);
-    font-size: clamp(1rem, 1.6vw, 1.6rem);
-    font-weight: 500;
-    color: var(--term-fg-dim);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-variant-numeric: tabular-nums;
-    &:empty { display: none; }
-
-    .page-countdown {
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg); // 12 o'clock start
-      flex-shrink: 0;
-    }
-
-    .page-countdown-track {
-      fill: none;
-      stroke: color-mix(in srgb, var(--term-border) 90%, transparent);
-      stroke-width: 4;
-    }
-
-    .page-countdown-fill {
-      fill: none;
-      stroke: var(--term-accent);
-      stroke-width: 4;
-      stroke-linecap: round;
-      stroke-dasharray: 94.248;
-      stroke-dashoffset: 94.248; // start empty
-      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--term-accent) 60%, transparent));
-    }
-
-    &.is-running .page-countdown-fill {
-      animation: page-countdown-anim 8s linear forwards;
-    }
-
-    .page-countdown-wrap {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: clamp(2.4rem, 3.4vw, 3.4rem);
-      height: clamp(2.4rem, 3.4vw, 3.4rem);
-      flex-shrink: 0;
-    }
-  }
-}
-
-@keyframes page-countdown-anim {
-  from { stroke-dashoffset: 94.248; }
-  to   { stroke-dashoffset: 0; }
 }
 
 body.terminal-fullscreen {
@@ -4006,14 +3907,13 @@ body.terminal-fullscreen {
   .terminal-card-grid {
     height: 100%;
     overflow: hidden;
-    // Wider min so we can fit a true hero numeral. JS paginator rotates
-    // pages instead of shrinking when there are too many groups.
-    grid-template-columns: repeat(auto-fill, minmax(clamp(28rem, 32vw, 42rem), 1fr));
+    // 3×3 grid — fixed columns and rows so 9 groups fill the screen on
+    // one page. Most terminals run ≤9 routes so pagination never kicks in.
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     grid-auto-rows: 1fr;
-    align-content: start;
-    gap: clamp(0.6rem, 1.2vw, 1.2rem);
-    transition: opacity 0.4s ease;
-    &.is-fading { opacity: 0; }
+    align-content: stretch;
+    gap: clamp(0.3rem, 0.5vw, 0.5rem);
   }
 
   .terminal-board-clock-fs {
@@ -4032,23 +3932,18 @@ body.terminal-fullscreen {
   .terminal-card {
     container-type: size;
     container-name: tcard;
-    --tc-ph: clamp(0.9rem, 1.4vw, 1.4rem);
-    --tc-pv: clamp(0.55rem, 0.9vw, 0.9rem);
-    border-left-width: clamp(8px, 0.8vw, 14px);
-    gap: min(1.5cqh, 0.6rem);
+    padding: clamp(0.35rem, 0.6vw, 0.6rem) clamp(0.6rem, 0.9vw, 0.9rem);
+    border-left-width: clamp(6px, 0.6vw, 10px);
+    gap: min(1.2cqh, 0.4rem);
     max-height: clamp(22rem, 48vh, 38rem);
   }
 
-  // Header + hero hug the top of the card; "Then" pinned to the bottom
-  // via margin-top: auto. Same scan rhythm card-to-card — the rider's
-  // eye lands on the hero at the same vertical position every time.
+  // Hero stays centered in the 1fr row — same scan rhythm card-to-card.
+  // Footer auto-row pins to the bottom by virtue of the grid template;
+  // no margin-top hack needed.
   .terminal-card-hero {
-    flex: 0 0 auto;
-    justify-content: flex-start;
-  }
-
-  .terminal-card-then {
-    margin-top: auto;
+    align-items: flex-start;
+    justify-content: center;
   }
 
   .terminal-board-time {
@@ -4066,14 +3961,6 @@ body.terminal-fullscreen {
 // Both have specificity 0,1,0 — last one wins.)
 
 // ---- Kiosk theme refinements (apply outside fullscreen too) ----
-// `data-theme="kiosk"` strips effects that hurt legibility on amber-on-black
-// regardless of fullscreen state — useful when a wall display can't hit the
-// browser fullscreen API (Caddy reverse-proxy / kiosk-mode Chromium).
-:root[data-theme="kiosk"] {
-  .terminal-board-name,
-  .terminal-board-time { text-shadow: none !important; }
-}
-
 // ---- Fullscreen-controls picker (small variant inside board head) ----
 .terminal-board-theme-fs {
   .theme-picker-label { display: none; }
@@ -4088,7 +3975,7 @@ body.terminal-fullscreen {
   flex-direction: column;
   min-height: 0;
   flex: 1 1 auto;
-  padding: clamp(0.6rem, 1.2vw, 1.2rem) clamp(0.7rem, 1.4vw, 1.4rem);
+  padding: clamp(0.6rem, 1.2vw, 1.2rem) clamp(0.9rem, 1.4vw, 1.4rem);
   gap: clamp(0.5rem, 1vw, 1rem);
   background: color-mix(in srgb, var(--term-bg) 92%, transparent);
   border: 1px solid var(--term-border);
@@ -4144,7 +4031,7 @@ body.terminal-fullscreen {
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(clamp(13rem, 17vw, 17rem), 1fr));
-  gap: clamp(0.4rem, 0.7vw, 0.7rem);
+  gap: clamp(0.6rem, 0.7vw, 0.7rem);
   align-content: start;
   overflow-y: auto;
   min-height: 0;
@@ -4159,26 +4046,36 @@ body.terminal-fullscreen {
 }
 
 // ===== Unified terminal card =====
-// One markup, one stylesheet. Three rows top-to-bottom:
-//   1. Header — route pill + headsign + (status pill, only when bad)
-//   2. Hero   — minutes-away (primary) + clock time (sub)
-//   3. Footer — "Then 29 min · 2:44 PM" single line
-// Fullscreen overrides only bump floors/ceilings — no markup divergence.
+// Two-row grid: header on top (auto), body below (1fr). The body is a
+// 66/33 2-col split — hero on the left, Then/Later stack on the right.
+//   1. Header (auto)        — route pill + headsign + status. Content-sized;
+//                              hero cannot encroach on it.
+//   2. Body (1fr) → 2 col   — left 2fr: status meta + minutes hero +
+//                              cancelled banner. right 1fr: Then/Later
+//                              cells stacked vertically.
 .terminal-card {
-  --tc-ph: clamp(0.5rem, 0.8vw, 0.75rem);
-  --tc-pv: clamp(0.4rem, 0.65vw, 0.6rem);
-  display: flex;
-  flex-direction: column;
-  gap: clamp(0.3rem, 0.5vw, 0.45rem);
-  padding: var(--tc-pv) var(--tc-ph);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
   background: var(--term-bg-deep);
   border: 1px solid var(--term-border);
   border-left: 6px solid var(--accent);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-variant-numeric: tabular-nums;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
   box-shadow: var(--card-shadow);
+}
+
+.terminal-card-body {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: clamp(0.5rem, 1vw, 1rem);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
 }
 
 .terminal-card-cancelled {
@@ -4192,10 +4089,18 @@ body.terminal-fullscreen {
 .terminal-card-scheduled { border-left-color: var(--status-muted); }
 
 .terminal-card-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: clamp(0.3rem, 0.5vw, 0.5rem);
   min-width: 0;
+  // Override Pico's default article > header chrome (sectioning bg,
+  // border-bottom, negative margins, top radius).
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
+  border-radius: 0;
 }
 
 // Flat pill — no scanline overlay anywhere on this page. The terminals
@@ -4207,7 +4112,7 @@ body.terminal-fullscreen {
   justify-content: center;
   min-width: clamp(1.8rem, 2.4vw, 2.2rem);
   padding: clamp(0.12rem, 0.25vw, 0.25rem) clamp(0.28rem, 0.45vw, 0.45rem);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-weight: 800;
   font-size: clamp(0.82rem, 1.1vw, 0.95rem);
   letter-spacing: 0.03em;
@@ -4215,8 +4120,8 @@ body.terminal-fullscreen {
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
 }
 
-// Bright cream, larger than route number — destination is the second
-// most-important fact for the persona ("where does this go?").
+// Bright cream, the destination — second-most-important fact ("where does
+// this go?"). Ellipsizes on overflow; never wraps.
 .terminal-card-headsign {
   font-weight: 600;
   font-size: clamp(0.82rem, 1vw, 0.92rem);
@@ -4226,13 +4131,37 @@ body.terminal-fullscreen {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1 1 auto;
   min-width: 0;
 }
 
-// Triple-encoded status — color + glyph + word (WCAG 1.4.1). JS only
-// emits this pill when status ∈ {late, early, cancelled} so on-time
-// cards stay calm and the eye is drawn to anything that needs attention.
+// Hero block — vertical stack: status pill (optional) → minutes value →
+// cancelled banner (optional). Centered in the 1fr row.
+.terminal-card-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(0.2rem, 0.4vw, 0.4rem);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Hero meta row — clock time on the left, status pill on the right.
+// Sits above the big minutes value so the rider sees scheduled time +
+// status delta as context for the hero number underneath.
+.terminal-card-hero-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+// Triple-encoded status — color + glyph + word (WCAG 1.4.1). JS emits
+// this for every state except "scheduled". Lives in the hero meta row,
+// floated right opposite the clock time.
 .terminal-card-status {
   display: inline-flex;
   align-items: center;
@@ -4243,7 +4172,6 @@ body.terminal-fullscreen {
   font-weight: 600;
   letter-spacing: 0.04em;
   border: 2px solid currentColor;
-  margin-left: auto;
   flex-shrink: 0;
   font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -4253,16 +4181,52 @@ body.terminal-fullscreen {
   line-height: 1;
 }
 
-// Cancelled banner — the dropped time, struck through, with the word
-// "cancelled" beside it. Renders below the header so the rider sees the
-// news without losing the next-available-bus answer below it.
+// Hero number — minutes-away ("4 min", "Now"). Bounded by both width
+// (cqi/vw) and the surrounding flex column; never wraps, never overflows.
+.terminal-card-hero-value {
+  font-size: clamp(1.4rem, 4.2vw, 2.6rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--term-fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  max-width: 100%;
+  animation: hero-value-in 0.35s ease;
+}
+@keyframes hero-value-in {
+  from { opacity: 0.25; }
+  to   { opacity: 1; }
+}
+
+.terminal-card-hero-sub {
+  font-size: clamp(0.7rem, 0.82vw, 0.78rem);
+  font-weight: 500;
+  color: var(--term-fg-dim);
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+// Cancelled banner — dropped time struck through, sits below the
+// promoted hero value.
 .terminal-card-cancelled-line {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
   gap: 0.45rem;
-  font-size: clamp(0.85rem, 1.1vw, 1.1rem);
+  font-size: clamp(0.78rem, 1vw, 1rem);
   color: var(--status-error);
   font-weight: 600;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .terminal-card-cancelled-time {
@@ -4276,75 +4240,70 @@ body.terminal-fullscreen {
   font-size: 0.85em;
 }
 
-// Hero — minutes-away as the primary number ("4 min", "Now"), clock time
-// as the supporting sub. Cream (not orange) so --accent stays reserved
-// for interactive affordances and route 12's pill — orange means one
-// thing on this page, not four.
-.terminal-card-hero {
+// Footer — Then / Later cells stacked vertically in the right column of
+// the body grid. Left border separates the stack from the hero; cells
+// stack with a horizontal divider between them.
+.terminal-card-footer {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  align-items: stretch;
   justify-content: center;
-  min-width: 0;
-  min-height: 0;
-}
-
-.terminal-card-hero-value {
-  font-size: clamp(1.2rem, 2vw, 1.8rem);
-  font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  color: var(--term-fg);
+  gap: 0;
+  border-left: 1px solid var(--term-border);
+  padding-left: clamp(0.5rem, 1vw, 1rem);
   font-variant-numeric: tabular-nums;
-}
-
-.terminal-card-hero-sub {
-  font-size: clamp(0.7rem, 0.82vw, 0.78rem);
-  font-weight: 400;
-  color: var(--term-fg-dim);
   font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-  margin-top: clamp(0.1rem, 0.3vh, 0.3rem);
+  min-width: 0;
+  overflow: hidden;
 }
 
-// "Then" + optional "Later" — sub-hero signal so the rider can plan a
-// bathroom run if the next bus is far. Two stacked one-line rows; "Later"
-// is dimmer than "Then".
-.terminal-card-then {
+.terminal-card-foot-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  font-size: clamp(0.75rem, 0.9vw, 0.84rem);
+  align-items: flex-start;
+  justify-content: center;
+  flex: 1;
+  gap: 0.1rem;
+  padding: clamp(0.25rem, 0.5vw, 0.5rem) 0;
+  min-width: 0;
+
+  & + & {
+    border-top: 1px solid var(--term-border);
+  }
+}
+
+.terminal-card-foot-cell-later { opacity: 0.7; }
+.terminal-card-foot-cell-empty { opacity: 0.55; }
+
+.terminal-card-foot-label {
+  font-size: clamp(0.5rem, 0.6vw, 0.58rem);
+  font-weight: 700;
   color: var(--term-fg-dim);
-  font-variant-numeric: tabular-nums;
-  border-top: 1px solid var(--term-border);
-  padding-top: clamp(0.35rem, 0.7vw, 0.6rem);
-  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-
-.terminal-card-then-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.terminal-card-later-row { opacity: 0.7; }
-
-.terminal-card-then-label {
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.terminal-card-foot-value {
+  font-size: clamp(0.78rem, 0.95vw, 0.92rem);
   font-weight: 600;
-  font-size: 0.85em;
+  color: var(--term-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-.terminal-card-then-value {
-  font-weight: 500;
+.terminal-card-footer-empty {
+  justify-content: center;
+  padding: clamp(0.4rem, 0.7vw, 0.6rem) 0.5rem;
 }
 
-.terminal-card-then-empty {
+.terminal-card-foot-cell-empty-msg {
+  font-size: clamp(0.7rem, 0.85vw, 0.82rem);
+  color: var(--term-fg-dim);
   font-style: italic;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 // Status pill colors (shared with old table layout for any stragglers)
@@ -4379,74 +4338,82 @@ body.terminal-fullscreen {
 }
 
 // ===== Container-query sizing for fullscreen cards =====
-// All sizing inside a fullscreen card is relative to the card's own height
-// (cqh) so the hero numeral can never overflow regardless of how many rows
-// the grid produces or what root font size Pico has decided on. Caps in
-// rem stop the units from growing absurdly when only one or two cards
-// remain (single-card last page, ultrawide displays). Container is set up
-// in body.terminal-fullscreen .terminal-card via container-name: tcard.
+// Mirror the web-view proportions exactly, just scale them with the card.
+// Every text size is a fraction of the card's inline size (cqi) — chosen
+// so a fullscreen card at ~600px wide reproduces the rem values from the
+// base rules at a ~17rem (~272px) wide web card. cqh is used only as a
+// safety cap on the hero so a very short card can't make text wrap.
 //
-// MUST live after the base .terminal-card-* rules above — equal specificity
-// (0,1,0) so source order decides.
+// Web → cqi conversion (each value = web rem / 17rem card width):
+//   pill font    0.95rem → 5.6cqi    pill min-w  2.2rem → 13cqi
+//   headsign     0.92rem → 5.4cqi    status      0.68rem → 4cqi
+//   hero value   2.6rem  → 15cqi     hero sub    0.78rem → 4.6cqi
+//   foot label   0.58rem → 3.4cqi    foot value  0.92rem → 5.4cqi
+//   cancelled    1rem    → 5.9cqi
 @container tcard (min-height: 0) {
-  // Budget per zone of the ~380px card content height:
-  //   header (pill + headsign + optional status) ≈ 22%
-  //   hero block (number + clock sub)            ≈ 42%
-  //   "then" footer                              ≈ 7%
-  //   padding + flex gaps                        ≈ 29%
-  // Hero sized larger than pill so the at-a-glance fact for the rider
-  // is "how long until the bus" — the route number is a confirmation,
-  // not the answer.
-
-  // Caps in rem are intentionally generous so the hero keeps growing on
-  // 1440p and 4K wall displays (where 36cqh of a 600px card = 216px and
-  // we don't want to slam into a 7rem ceiling). At 1080p (the most common
-  // kiosk size) the cqh values bind first and everything fits the card.
-
   .terminal-card-pill {
-    font-size: min(15cqh, 5rem);
-    min-width: min(22cqh, 6.5rem);
-    padding: min(1.2cqh, 0.45rem) min(2cqh, 0.8rem);
-    border-radius: min(1cqh, 0.45rem);
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    font-size: 5.6cqi;
+    min-width: 13cqi;
+    padding: 1cqi 1.8cqi;
+    border-radius: min(1cqi, 0.5rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
   }
 
   .terminal-card-head {
-    gap: min(2.2cqh, 1rem);
+    gap: 2.5cqi;
   }
 
   .terminal-card-headsign {
-    font-size: min(9.5cqh, 2.4rem);
+    font-size: 5.4cqi;
     font-weight: 600;
   }
 
   .terminal-card-status {
-    font-size: min(8cqh, 2rem);
-    padding: min(1.2cqh, 0.4rem) min(2.5cqh, 1rem);
-    gap: min(1.6cqh, 0.5rem);
+    font-size: 4cqi;
+    padding: 0.8cqi 2cqi;
+    gap: 1.5cqi;
     border-width: 2px;
   }
 
-  .terminal-card-cancelled-line {
-    font-size: min(7cqh, 1.7rem);
+  .terminal-card-body {
+    gap: 4cqi;
+  }
+
+  .terminal-card-hero {
+    gap: 2cqi;
   }
 
   .terminal-card-hero-value {
-    font-size: min(39cqh, 12rem);
-    line-height: 1;
-    letter-spacing: -0.01em;
+    font-size: min(15cqi, 30cqh);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
   }
 
   .terminal-card-hero-sub {
-    font-size: min(8cqh, 2.4rem);
-    margin-top: min(0.8cqh, 0.4rem);
+    font-size: 4.6cqi;
   }
 
-  .terminal-card-then {
-    font-size: min(9cqh, 2.5rem);
-    padding-top: min(1.5cqh, 0.9rem);
-    opacity: 0.85;
+  .terminal-card-cancelled-line {
+    font-size: 5.9cqi;
+  }
+
+  .terminal-card-footer {
+    padding-left: 4cqi;
+  }
+
+  .terminal-card-foot-cell {
+    padding: 2cqi 0;
+    gap: 0.5cqi;
+  }
+
+  .terminal-card-foot-label {
+    font-size: 3.4cqi;
+  }
+
+  .terminal-card-foot-value {
+    font-size: 5.4cqi;
+    font-weight: 600;
   }
 }
 

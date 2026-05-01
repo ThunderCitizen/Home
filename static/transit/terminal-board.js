@@ -39,9 +39,7 @@
       hasRendered = false;
       lastFeedAt = null;
       consecutiveErrors = 0;
-      allGroups = [];
-      pageIndex = 0;
-      if (pageTimer) { clearTimeout(pageTimer); pageTimer = null; }
+      groups = [];
       if (rowsEl) {
         rowsEl.innerHTML =
           '<div class="terminal-board-empty">Loading ' +
@@ -259,8 +257,7 @@ function pad2(n) {
       }
       g.items.push(p);
     }
-    // Sort groups by their next departure (soonest first) so the
-    // most-imminent route is always at the top of the board.
+    // Sort groups by route number for a stable, predictable card order.
     order.sort(function (a, b) {
       const an = parseInt(a.route.route_id, 10);
       const bn = parseInt(b.route.route_id, 10);
@@ -270,51 +267,11 @@ function pad2(n) {
     return order;
   }
 
-  // Pagination: when a terminal has more route groups than fit at hero
-  // size, we rotate pages instead of shrinking. Page size is set by CSS
-  // (grid auto-fill) — we slice the groups in JS and rotate every PAGE_MS.
-  // Per FHWA DMS guidelines + vestibular comfort research, page-flip
-  // beats scrolling and the cross-fade floor is 400 ms.
-  const PAGE_SIZE = 4; // visible groups per page in fullscreen — 2×2 grid
-  const PAGE_MS = 8000; // page rotation cadence
-  const FADE_MS = 400; // cross-fade duration (matches CSS .is-fading)
-  let allGroups = [];
-  let pageIndex = 0;
-  let pageTimer = null;
-  const pageIndicatorEl = document.getElementById("board-page-indicator");
-
-  // Build indicator markup once. Shown/hidden via the `hidden` attribute.
-  // Ring's stroke-dashoffset animated via @keyframes page-countdown-anim
-  // (8s linear). Clone-replacing the fill circle restarts the anim cleanly.
-  if (pageIndicatorEl) {
-    pageIndicatorEl.innerHTML =
-      '<span class="page-countdown-wrap" aria-hidden="true">' +
-        '<svg class="page-countdown" viewBox="0 0 36 36">' +
-          '<circle class="page-countdown-track" cx="18" cy="18" r="15"></circle>' +
-          '<circle class="page-countdown-fill" cx="18" cy="18" r="15"></circle>' +
-        '</svg>' +
-      '</span>' +
-      '<span class="page-indicator-label"></span>';
-    pageIndicatorEl.hidden = true;
-  }
-
-  function restartCountdown() {
-    if (!pageIndicatorEl) return;
-    const fill = pageIndicatorEl.querySelector(".page-countdown-fill");
-    if (!fill) return;
-    const clone = fill.cloneNode(true);
-    fill.parentNode.replaceChild(clone, fill);
-    pageIndicatorEl.classList.add("is-running");
-  }
-
-  function totalPages() {
-    if (!document.body.classList.contains("terminal-fullscreen")) return 1;
-    return Math.max(1, Math.ceil(allGroups.length / PAGE_SIZE));
-  }
+  let groups = [];
 
   function paintPage() {
     if (!rowsEl) return;
-    if (!allGroups.length) {
+    if (!groups.length) {
       rowsEl.innerHTML = "";
       if (emptyEl) {
         emptyEl.textContent = "No departures in the next hour.";
@@ -323,25 +280,16 @@ function pad2(n) {
       hasRendered = true;
       return;
     }
-    const inFullscreen = document.body.classList.contains("terminal-fullscreen");
-    const start = inFullscreen ? pageIndex * PAGE_SIZE : 0;
-    const groups = inFullscreen ? allGroups.slice(start, start + PAGE_SIZE) : allGroups;
     let html = "";
     for (let i = 0; i < groups.length; i++) html += renderCard(groups[i]);
     rowsEl.innerHTML = html;
-    const pages = totalPages();
-    if (pageIndicatorEl) {
-      pageIndicatorEl.hidden = pages <= 1;
-      const label = pageIndicatorEl.querySelector(".page-indicator-label");
-      if (label) label.textContent = (pageIndex + 1) + " / " + pages;
-    }
     hasRendered = true;
   }
 
-  // Unified card: header (pill + headsign + status-when-bad), hero (minutes
-  // primary, clock secondary), footer ("Then ..." line). Same markup for
-  // desktop and fullscreen — CSS clamps scale the type. Cancellation
-  // promotes the next available departure to the hero slot.
+  // Three-row grid: header (pill + headsign), hero (status pill + minutes
+  // + clock sub + cancelled banner), footer (Then | Later cells). Header is
+  // a content-sized commitment so the hero can never squash it. Hero is
+  // bounded on both axes so it can never overflow the card.
   function renderCard(g) {
     const head = g.route;
     const color =
@@ -366,10 +314,8 @@ function pad2(n) {
       : "";
     const aria = "Route " + head.route_id + " to " + headsign + ariaWhen + ariaStatus;
 
-    // Status pill renders for every state except "scheduled" (no real-time
-    // data). On-time gets a calm green confirmation; late/early/cancelled
-    // get their attention-grabbing colors. Color-coded left border on the
-    // card encodes the same info structurally for at-a-glance scanning.
+    // Status pill: emitted for every state except "scheduled". Lives inside
+    // the hero block, above the minutes — never competes with the headsign.
     let statusHTML = "";
     if (status.kind !== "scheduled") {
       const statusDelta = status.delta ? " " + status.delta + " min" : "";
@@ -380,8 +326,8 @@ function pad2(n) {
         "</span>";
     }
 
-    // Cancelled banner — shows the dropped time struck through, in the
-    // header row. Rider sees the news without losing the next-bus answer.
+    // Cancelled banner — the dropped time, struck through. Sits below the
+    // hero (which has been promoted to the next available departure).
     let cancelledHTML = "";
     if (cancelledP) {
       const t = clockTime(cancelledP);
@@ -393,27 +339,49 @@ function pad2(n) {
         "</span>";
     }
 
+    // Footer: Then / Later cells with a vertical separator, borrowing the
+    // .route-pill-footer chrome (full-width border-top, negative margins,
+    // 1px divider). Each cell stacks label · minutes · clock-time.
+    function footCell(p, label, extraClass) {
+      if (!p) {
+        return (
+          '<span class="terminal-card-foot-cell terminal-card-foot-cell-empty' +
+          (extraClass ? " " + extraClass : "") + '">' +
+            '<span class="terminal-card-foot-label">' + label + "</span>" +
+            '<span class="terminal-card-foot-value">—</span>' +
+          "</span>"
+        );
+      }
+      const min = etaMin(p) || "—";
+      return (
+        '<span class="terminal-card-foot-cell' + (extraClass ? " " + extraClass : "") + '">' +
+          '<span class="terminal-card-foot-label">' + label + "</span>" +
+          '<span class="terminal-card-foot-value">' + escapeHTML(min) + "</span>" +
+        "</span>"
+      );
+    }
+
     let footerHTML = "";
     if (cancelledP && !heroP) {
-      footerHTML = '<div class="terminal-card-then terminal-card-then-empty">no further departures</div>';
-    } else if (thenP || laterP) {
-      let inner = "";
-      if (thenP) {
-        inner +=
-          '<div class="terminal-card-then-row">' +
-            '<span class="terminal-card-then-label">Then</span>' +
-            '<span class="terminal-card-then-value">' + escapeHTML(thenLine(thenP)) + "</span>" +
-          "</div>";
-      }
-      if (laterP) {
-        inner +=
-          '<div class="terminal-card-then-row terminal-card-later-row">' +
-            '<span class="terminal-card-then-label">Later</span>' +
-            '<span class="terminal-card-then-value">' + escapeHTML(thenLine(laterP)) + "</span>" +
-          "</div>";
-      }
-      footerHTML = '<div class="terminal-card-then">' + inner + "</div>";
+      footerHTML =
+        '<div class="terminal-card-footer terminal-card-footer-empty">' +
+          '<span class="terminal-card-foot-cell-empty-msg">no further departures</span>' +
+        "</div>";
+    } else {
+      footerHTML =
+        '<div class="terminal-card-footer">' +
+          footCell(thenP, "Then") +
+          footCell(laterP, "Later", "terminal-card-foot-cell-later") +
+        "</div>";
     }
+
+    const heroMetaHTML = heroSubText
+      ? '<div class="terminal-card-hero-meta">' +
+          '<span class="terminal-card-hero-sub">' + escapeHTML(heroSubText) + "</span>" +
+        "</div>"
+      : "";
+    const heroValueHTML =
+      '<span class="terminal-card-hero-value">' + escapeHTML(heroPrimaryText) + "</span>";
 
     return (
       '<article class="terminal-card terminal-card-' + status.kind +
@@ -426,50 +394,24 @@ function pad2(n) {
           statusHTML +
         "</header>" +
 
-        cancelledHTML +
-
-        '<div class="terminal-card-hero">' +
-          '<span class="terminal-card-hero-value">' + escapeHTML(heroPrimaryText) + "</span>" +
-          (heroSubText
-            ? '<span class="terminal-card-hero-sub">' + escapeHTML(heroSubText) + "</span>"
-            : "") +
+        '<div class="terminal-card-body">' +
+          '<div class="terminal-card-hero">' +
+            heroMetaHTML +
+            heroValueHTML +
+            cancelledHTML +
+          "</div>" +
+          footerHTML +
         "</div>" +
-
-        footerHTML +
       "</article>"
     );
   }
 
-  function schedulePageRotate() {
-    if (pageTimer) clearTimeout(pageTimer);
-    if (totalPages() <= 1) return;
-    // Fire FADE_MS early so fade-out starts as the ring completes,
-    // and the page change lands exactly when PAGE_MS elapses.
-    pageTimer = setTimeout(rotatePage, PAGE_MS - FADE_MS);
-  }
-
-  function rotatePage() {
-    if (totalPages() <= 1) return;
-    if (rowsEl) rowsEl.classList.add("is-fading");
-    setTimeout(function () {
-      pageIndex = (pageIndex + 1) % totalPages();
-      updateFeedAge(); // safe — content invisible during fade
-      paintPage();
-      if (rowsEl) rowsEl.classList.remove("is-fading");
-      restartCountdown();
-      schedulePageRotate();
-    }, FADE_MS);
-  }
-
   function render(predictions, feedTS) {
     if (!rowsEl) return;
-    allGroups = (predictions && predictions.length) ? groupByRoute(predictions) : [];
-    if (pageIndex >= totalPages()) pageIndex = 0;
+    groups = (predictions && predictions.length) ? groupByRoute(predictions) : [];
     paintPage();
     if (feedTS) lastFeedAt = feedTS;
-    updateFeedAge(); // age resets on fresh data — safe to update immediately
-    // Only kick off the timer on first arrival — rotatePage keeps it self-sustaining.
-    if (!pageTimer) schedulePageRotate();
+    updateFeedAge();
   }
 
   function scheduleNext(delayMs) {
@@ -513,26 +455,10 @@ function pad2(n) {
   // fullscreen swaps to the kiosk theme (distance-legible amber-on-black);
   // exiting restores the prior theme. ESC exits fullscreen natively;
   // fullscreenchange keeps body class + theme in sync.
-  let priorTheme = null;
   function syncFullscreen() {
     const goingFs = !!document.fullscreenElement;
     document.body.classList.toggle("terminal-fullscreen", goingFs);
-    const html = document.documentElement;
-    if (goingFs) {
-      priorTheme = html.getAttribute("data-theme");
-      html.setAttribute("data-theme", "kiosk");
-    } else if (priorTheme !== null) {
-      html.setAttribute("data-theme", priorTheme);
-      priorTheme = null;
-    } else {
-      html.removeAttribute("data-theme");
-    }
-    // Pagination is fullscreen-only; reset + repaint when crossing the boundary.
-    pageIndex = 0;
-    if (pageTimer) { clearTimeout(pageTimer); pageTimer = null; }
     paintPage();
-    restartCountdown();
-    schedulePageRotate();
   }
   var fsBtn = document.getElementById("board-fs-toggle");
   if (fsBtn) {

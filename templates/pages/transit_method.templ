@@ -503,42 +503,5 @@ templ transitMethodology() {
 			</div>
 		</article>
 
-		<article>
-			<header class="methods-header"><h3>Terminal Boards</h3><span class="methods-tag methods-tag-accessibility">Accessibility</span></header>
-			<p>
-				The <a href="/transit/terminals">Terminals</a> page is the
-				one place on this site that ignores the global theme picker.
-				It is locked to a high-contrast amber-on-black palette, sized
-				for distance reading, with the design-system glow and
-				scanline effects stripped away.
-			</p>
-			<p>
-				The constraint is legibility at &asymp;3&nbsp;m for a rider
-				with limited vision &mdash; a persona we couldn&rsquo;t serve
-				while honouring the rest of the site&rsquo;s terminal
-				aesthetic. <a href="https://www.csagroup.org/store/product/CSA%20B651%3A23/" target="_blank" rel="noopener">CSA B651-23</a>
-				(the Canadian accessible-design standard referenced by
-				Ontario&rsquo;s
-				<a href="https://www.ontario.ca/laws/regulation/110191" target="_blank" rel="noopener">AODA Integrated Accessibility Standards Regulation</a>)
-				ties character height to viewing distance at a 1:40 ratio,
-				so a board read from 3&nbsp;m needs roughly 75&nbsp;mm of
-				cap-height &mdash; far larger than any text the rest of the
-				site uses.
-			</p>
-			<p>
-				Other choices flow from the same goal. Amber (&sim;590&nbsp;nm)
-				is the distance king on emissive panels and the most legible
-				colour for aging eyes (Knoblauch et&nbsp;al. 1991; TCRP&nbsp;Report&nbsp;12).
-				Stroke weight drops from the site default to 500&ndash;600
-				because heavier strokes bloom on backlit displays and close
-				digit counters (Garvey 1997; Arditi &amp; Cho 2005). Status
-				is encoded redundantly &mdash; glyph plus word plus colour
-				&mdash; so a colour-blind or low-vision rider never depends
-				on the hue alone (WCAG&nbsp;1.4.1). When more routes are
-				active than fit at hero size, pages cross-fade every eight
-				seconds rather than shrink to fit, with a countdown ring so
-				the swap is never a surprise.
-			</p>
-		</article>
 	</section>
 }
