@@ -117,14 +117,16 @@ func (s *Service) Stats(variant string) *StatsReport {
 
 // Live returns the live dashboard bundle. Slot has a 30s TTL so repeated
 // calls within that window hit the cache; a call after expiry re-loads.
-func (s *Service) Live() *liveData {
+// Unlike other accessors, Live returns the error so handlers can log it
+// with request context and distinguish DB failure from a cold cache.
+func (s *Service) Live() (*liveData, error) {
 	ctx, cancel := newCacheCtx()
 	defer cancel()
 	v, err := s.cache.live.Get(ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return v
+	return v, nil
 }
 
 // AllStops returns all stops (lazy-loaded on first call).

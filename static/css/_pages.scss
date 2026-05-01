@@ -144,6 +144,50 @@
 }
 
 // ==========================================================================
+// SERVICE UNAVAILABLE PAGE (503 — DB offline)
+// ==========================================================================
+
+// Shares .nf-hero / .nf-hero-text / .nf-404 with the 404 page.
+.ua-art {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+  filter: drop-shadow(var(--hero-glow));
+  opacity: 0.85;
+}
+
+.ua-label {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: color-mix(in srgb, var(--status-warn) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 45%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--status-warn);
+  font-size: 1rem;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--status-warn) 30%, transparent));
+}
+
+.ua-retry {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border-color: var(--accent);
+  }
+}
+
+// ==========================================================================
 // HEALTH PAGE
 // ==========================================================================
 

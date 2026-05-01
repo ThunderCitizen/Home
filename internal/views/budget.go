@@ -6,10 +6,7 @@ import (
 	"sort"
 
 	"thundercitizen/internal/budget"
-	"thundercitizen/internal/logger"
 )
-
-var log = logger.New("budget")
 
 // DefaultBudgetYear is the most recent fiscal year the app reports on. The
 // budget page defaults to this when no ?year is provided.
@@ -102,35 +99,33 @@ type BudgetViewModel struct {
 // NewBudgetViewModel builds the view model entirely from the ledger. There is
 // no fallback to compiled-in seed data — when the ledger has no entries for the
 // requested year, HasData is false and the template renders an empty state.
-func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) BudgetViewModel {
+// Returns an error on any DB failure so callers can surface a 503.
+func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) (BudgetViewModel, error) {
 	vm := BudgetViewModel{
 		Year:  year,
 		Years: []int{DefaultBudgetYear},
 	}
 
 	if ledger == nil || ctx == nil {
-		return vm
+		return vm, nil
 	}
 
 	hasData, err := ledger.HasEntries(ctx, year)
 	if err != nil {
-		log.Warn("budget ledger HasEntries failed", "year", year, "err", err)
-		return vm
+		return vm, fmt.Errorf("budget ledger: %w", err)
 	}
 	if !hasData {
-		return vm
+		return vm, nil
 	}
 
 	summary, err := ledger.OperatingSummaryForYear(ctx, year)
 	if err != nil {
-		log.Warn("budget operating summary failed", "year", year, "err", err)
-		return vm
+		return vm, fmt.Errorf("budget operating summary: %w", err)
 	}
 
 	svcTotals, err := ledger.TotalByService(ctx, year)
 	if err != nil {
-		log.Warn("budget service totals failed", "year", year, "err", err)
-		return vm
+		return vm, fmt.Errorf("budget service totals: %w", err)
 	}
 
 	taxLevyLabel := dollarsToMillionsLabel(summary.PropertyTax)
@@ -138,8 +133,7 @@ func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) Bu
 
 	sankey, svcDetails, err := BuildSankeyFromLedger(ctx, ledger, year, taxLevyLabel, "", "")
 	if err != nil {
-		log.Warn("budget ledger sankey failed", "year", year, "err", err)
-		return vm
+		return vm, fmt.Errorf("budget sankey: %w", err)
 	}
 
 	// Build per-service items, ascending by amount (small first → big at the
@@ -197,7 +191,7 @@ func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) Bu
 	}
 	vm.Sankey = sankey
 	vm.ServiceDetails = svcDetails
-	return vm
+	return vm, nil
 }
 
 // dollarsToMillionsLabel formats a dollar amount as "$X.XM" suitable for the

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -184,6 +185,13 @@ func main() {
 	// browser always shows the latest work. In production this is a
 	// no-op — handlers' max-age values pass through untouched.
 	r.Use(middleware.NoCacheInDev(cfg.Environment))
+	// PageUnavailable intercepts HTTP 503s on page routes and serves a
+	// themed HTML error page instead of the JSON body. It is also the
+	// single log site for 503s — handlers record the underlying error via
+	// middleware.RecordError(r.Context(), err) and let this middleware log it.
+	r.Use(middleware.PageUnavailable(func(ctx context.Context, w io.Writer) error {
+		return pages.ServiceUnavailable().Render(ctx, w)
+	}))
 
 	// Static files — councillor photos, JS/CSS, PMTiles basemap, budget
 	// JSON, etc. Served with a week-long immutable Cache-Control. Cache

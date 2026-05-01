@@ -18,6 +18,7 @@ import (
 
 	"thundercitizen/internal/cache"
 	"thundercitizen/internal/httperr"
+	"thundercitizen/internal/middleware"
 )
 
 // Renderer renders page templates. Injected to avoid import cycles
@@ -174,7 +175,12 @@ func parseDateRange(r *http.Request, sinceDate string) DateRange {
 // --- Page handlers ---
 
 func (h *Handler) transitLivePage(w http.ResponseWriter, r *http.Request) {
-	live := h.svc.Live()
+	live, err := h.svc.Live()
+	if err != nil {
+		middleware.RecordError(r.Context(), err)
+		httperr.Unavailable(w, "live data unavailable")
+		return
+	}
 	if live == nil || live.dashboard == nil {
 		httperr.Unavailable(w, "live data cache warming")
 		return

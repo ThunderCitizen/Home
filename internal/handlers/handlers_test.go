@@ -67,21 +67,21 @@ func (s stubCouncilStore) MeetingIDsByDates(ctx context.Context, dates []string)
 	return nil, nil
 }
 
-func assertInternalError(t *testing.T, rr *httptest.ResponseRecorder) {
+func assertUnavailable(t *testing.T, rr *httptest.ResponseRecorder) {
 	t.Helper()
-	if rr.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", rr.Code)
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected status 503, got %d", rr.Code)
 	}
 	var resp httperr.Response
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if resp.Error != "internal server error" {
-		t.Fatalf("expected generic internal error, got %q", resp.Error)
+	if resp.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 in body, got %d", resp.Code)
 	}
 }
 
-func TestCouncillorsReturnsInternalErrorWhenVoteMatrixFails(t *testing.T) {
+func TestCouncillorsReturnsUnavailableWhenVoteMatrixFails(t *testing.T) {
 	orig := newCouncilStore
 	t.Cleanup(func() { newCouncilStore = orig })
 
@@ -105,10 +105,10 @@ func TestCouncillorsReturnsInternalErrorWhenVoteMatrixFails(t *testing.T) {
 
 	(&Handlers{}).Councillors(rr, req)
 
-	assertInternalError(t, rr)
+	assertUnavailable(t, rr)
 }
 
-func TestCouncilReturnsInternalErrorWhenMotionStatsFails(t *testing.T) {
+func TestCouncilReturnsUnavailableWhenMotionStatsFails(t *testing.T) {
 	orig := newCouncilStore
 	t.Cleanup(func() { newCouncilStore = orig })
 
@@ -128,10 +128,10 @@ func TestCouncilReturnsInternalErrorWhenMotionStatsFails(t *testing.T) {
 
 	(&Handlers{}).Council(rr, req)
 
-	assertInternalError(t, rr)
+	assertUnavailable(t, rr)
 }
 
-func TestCouncilMeetingReturnsInternalErrorWhenVoteRecordsFail(t *testing.T) {
+func TestCouncilMeetingReturnsUnavailableWhenVoteRecordsFail(t *testing.T) {
 	orig := newCouncilStore
 	t.Cleanup(func() { newCouncilStore = orig })
 
@@ -139,7 +139,7 @@ func TestCouncilMeetingReturnsInternalErrorWhenVoteRecordsFail(t *testing.T) {
 		return stubCouncilStore{
 			// Resolve the slug directly so the handler skips the
 			// slug-to-ID fallback redirect and proceeds to load
-			// vote records — which fails, triggering the 500 we
+			// vote records — which fails, triggering the 503 we
 			// want to assert on.
 			getMeetingBySlug: func(context.Context, string) (*council.MeetingDetail, error) {
 				return &council.MeetingDetail{
@@ -161,5 +161,5 @@ func TestCouncilMeetingReturnsInternalErrorWhenVoteRecordsFail(t *testing.T) {
 
 	(&Handlers{}).CouncilMeeting(rr, req)
 
-	assertInternalError(t, rr)
+	assertUnavailable(t, rr)
 }

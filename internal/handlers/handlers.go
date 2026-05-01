@@ -20,6 +20,7 @@ import (
 	"thundercitizen/internal/database"
 	"thundercitizen/internal/httperr"
 	"thundercitizen/internal/logger"
+	"thundercitizen/internal/middleware"
 	"thundercitizen/internal/muni"
 	"thundercitizen/internal/munisign"
 	"thundercitizen/internal/system"
@@ -114,7 +115,12 @@ func (h *Handlers) Home(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) Budget(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	vm := views.NewBudgetViewModel(views.DefaultBudgetYear, ctx, h.ledger)
+	vm, err := views.NewBudgetViewModel(views.DefaultBudgetYear, ctx, h.ledger)
+	if err != nil {
+		middleware.RecordError(ctx, err)
+		httperr.Unavailable(w, "budget data unavailable")
+		return
+	}
 	renderPage(w, r, pages.BudgetPartial(vm), pages.Budget(vm))
 }
 
@@ -138,22 +144,26 @@ func (h *Handlers) Councillors(w http.ResponseWriter, r *http.Request) {
 		term := data.TermRange(termYear)
 		vs, err := store.CouncillorVoteStatsAll(ctx, term)
 		if err != nil {
-			httperr.Internal(w, err)
+			middleware.RecordError(ctx, err)
+			httperr.Unavailable(w, "councillor data unavailable")
 			return
 		}
 		nv, err := store.CouncillorNotableVotesAll(ctx, term)
 		if err != nil {
-			httperr.Internal(w, err)
+			middleware.RecordError(ctx, err)
+			httperr.Unavailable(w, "councillor data unavailable")
 			return
 		}
 		hv, err := store.HeadlineVotes(ctx, term)
 		if err != nil {
-			httperr.Internal(w, err)
+			middleware.RecordError(ctx, err)
+			httperr.Unavailable(w, "councillor data unavailable")
 			return
 		}
 		mm, mr, err := store.VoteMatrix(ctx, term)
 		if err != nil {
-			httperr.Internal(w, err)
+			middleware.RecordError(ctx, err)
+			httperr.Unavailable(w, "councillor data unavailable")
 			return
 		}
 		vd = views.TermVoteData{
@@ -206,13 +216,15 @@ func (h *Handlers) Council(w http.ResponseWriter, r *http.Request) {
 
 	meetings, total, err := store.ListMeetingSummaries(r.Context(), filter)
 	if err != nil {
-		httperr.Internal(w, err)
+		middleware.RecordError(r.Context(), err)
+		httperr.Unavailable(w, "meeting data unavailable")
 		return
 	}
 
 	meetingCount, totalMotions, recordedVotes, err := store.MotionStats(r.Context(), filter.Term)
 	if err != nil {
-		httperr.Internal(w, err)
+		middleware.RecordError(r.Context(), err)
+		httperr.Unavailable(w, "meeting data unavailable")
 		return
 	}
 
@@ -228,7 +240,8 @@ func (h *Handlers) Council(w http.ResponseWriter, r *http.Request) {
 		mFilter.Offset = pageOffset(r, mFilter.Limit)
 		motions, mTotal, mErr := store.SearchMotions(r.Context(), mFilter)
 		if mErr != nil {
-			httperr.Internal(w, mErr)
+			middleware.RecordError(r.Context(), mErr)
+			httperr.Unavailable(w, "meeting data unavailable")
 			return
 		}
 		mvm := views.NewMotionSearchViewModel(motions, mTotal, mFilter)
@@ -272,7 +285,8 @@ func (h *Handlers) CouncilMeeting(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err != nil {
-			httperr.Internal(w, err)
+			middleware.RecordError(r.Context(), err)
+			httperr.Unavailable(w, "meeting data unavailable")
 			return
 		}
 		newSlug := council.MeetingSlug(md.Title, md.Date)
@@ -284,7 +298,8 @@ func (h *Handlers) CouncilMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		httperr.Internal(w, err)
+		middleware.RecordError(r.Context(), err)
+		httperr.Unavailable(w, "meeting data unavailable")
 		return
 	}
 
@@ -293,7 +308,8 @@ func (h *Handlers) CouncilMeeting(w http.ResponseWriter, r *http.Request) {
 		if md.Motions[i].YeaCount > 0 || md.Motions[i].NayCount > 0 {
 			vr, err := store.LoadVoteRecords(r.Context(), md.Motions[i].ID)
 			if err != nil {
-				httperr.Internal(w, err)
+				middleware.RecordError(r.Context(), err)
+				httperr.Unavailable(w, "meeting data unavailable")
 				return
 			}
 			md.Motions[i].Votes = vr
