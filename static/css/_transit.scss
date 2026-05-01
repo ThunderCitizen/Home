@@ -4067,12 +4067,27 @@ body.terminal-fullscreen {
   min-height: 0;
   overflow: hidden;
   box-shadow: var(--card-shadow);
+  --tc-pill-fs:       clamp(0.82rem, 1.1vw, 0.95rem);
+  --tc-pill-minw:     clamp(1.8rem, 2.4vw, 2.2rem);
+  --tc-headsign-fs:   clamp(0.82rem, 1vw, 0.92rem);
+  --tc-status-fs:     clamp(0.6rem, 0.72vw, 0.68rem);
+  --tc-hero-fs:       clamp(1.4rem, 4.2vw, 2.6rem);
+  --tc-hero-sub-fs:   clamp(0.7rem, 0.82vw, 0.78rem);
+  --tc-cancelled-fs:  clamp(0.78rem, 1vw, 1rem);
+  --tc-foot-lbl-fs:   clamp(0.5rem, 0.6vw, 0.58rem);
+  --tc-foot-val-fs:   clamp(0.78rem, 0.95vw, 0.92rem);
+  --tc-head-gap:      clamp(0.3rem, 0.5vw, 0.5rem);
+  --tc-body-gap:      clamp(0.5rem, 1vw, 1rem);
+  --tc-hero-gap:      clamp(0.2rem, 0.4vw, 0.4rem);
+  --tc-foot-pad:      clamp(0.5rem, 1vw, 1rem);
+  --tc-cell-pad:      clamp(0.25rem, 0.5vw, 0.5rem);
+  --tc-cell-gap:      0.1rem;
 }
 
 .terminal-card-body {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: clamp(0.5rem, 1vw, 1rem);
+  gap: var(--tc-body-gap);
   align-items: stretch;
   min-width: 0;
   min-height: 0;
@@ -4088,11 +4103,59 @@ body.terminal-fullscreen {
 .terminal-card-ontime { border-left-color: var(--status-ok); }
 .terminal-card-scheduled { border-left-color: var(--status-muted); }
 
+// No-service card — all shutters closed. Dim the whole card so it
+// recedes behind active routes on the board.
+.terminal-card-no-service {
+  opacity: 0.65;
+  .terminal-card-head { opacity: 0.7; }
+}
+
+// Shutter panel — slides down over an individual empty slot (hero, Then,
+// or Later). The underlying "—" content stays in the DOM so the layout
+// never collapses; the panel just covers it. Each panel fires independently
+// so Later closes first, Then next, Hero last.
+.terminal-card-shutter-panel {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--term-bg-deep) 0px,
+    var(--term-bg-deep) 10px,
+    color-mix(in srgb, var(--term-fg) 28%, var(--term-bg-deep)) 10px,
+    color-mix(in srgb, var(--term-fg) 28%, var(--term-bg-deep)) 14px
+  );
+  border: 1px solid var(--term-border);
+  border-radius: var(--radius-sm);
+  animation: shutter-slide-down 0.95s cubic-bezier(0.6, 0, 0.9, 1) both;
+  z-index: 1;
+}
+
+@keyframes shutter-slide-down {
+  from { clip-path: inset(0 0 100% 0 round var(--radius-sm)); }
+  to   { clip-path: inset(0 round var(--radius-sm)); }
+}
+
+// Already closed from a previous render — hold final position, no replay.
+.terminal-card-shutter-panel.shutter-inert {
+  animation: none;
+  clip-path: inset(0 round var(--radius-sm));
+}
+
+@keyframes shutter-slide-up {
+  from { clip-path: inset(0 round var(--radius-sm)); }
+  to   { clip-path: inset(0 0 100% 0 round var(--radius-sm)); }
+}
+
+// Ghost panel injected when a slot transitions from shuttered → has data.
+.terminal-card-shutter-panel.shutter-opening {
+  animation: shutter-slide-up 0.75s cubic-bezier(0.1, 0, 0.4, 1) both;
+}
+
 .terminal-card-head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: clamp(0.3rem, 0.5vw, 0.5rem);
+  gap: var(--tc-head-gap);
   min-width: 0;
   // Override Pico's default article > header chrome (sectioning bg,
   // border-bottom, negative margins, top radius).
@@ -4110,11 +4173,11 @@ body.terminal-fullscreen {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: clamp(1.8rem, 2.4vw, 2.2rem);
+  min-width: var(--tc-pill-minw);
   padding: clamp(0.12rem, 0.25vw, 0.25rem) clamp(0.28rem, 0.45vw, 0.45rem);
   border-radius: var(--radius-sm);
   font-weight: 800;
-  font-size: clamp(0.82rem, 1.1vw, 0.95rem);
+  font-size: var(--tc-pill-fs);
   letter-spacing: 0.03em;
   flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
@@ -4124,9 +4187,8 @@ body.terminal-fullscreen {
 // this go?"). Ellipsizes on overflow; never wraps.
 .terminal-card-headsign {
   font-weight: 600;
-  font-size: clamp(0.82rem, 1vw, 0.92rem);
+  font-size: var(--tc-headsign-fs);
   color: var(--term-fg);
-  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
@@ -4141,10 +4203,11 @@ body.terminal-fullscreen {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: clamp(0.2rem, 0.4vw, 0.4rem);
+  gap: var(--tc-hero-gap);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 // Hero meta row — clock time on the left, status pill on the right.
@@ -4168,12 +4231,11 @@ body.terminal-fullscreen {
   gap: 0.3rem;
   padding: clamp(0.1rem, 0.18vw, 0.18rem) clamp(0.3rem, 0.45vw, 0.45rem);
   border-radius: 999px;
-  font-size: clamp(0.6rem, 0.72vw, 0.68rem);
+  font-size: var(--tc-status-fs);
   font-weight: 600;
   letter-spacing: 0.04em;
   border: 2px solid currentColor;
   flex-shrink: 0;
-  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 .terminal-card-status-glyph {
@@ -4184,30 +4246,22 @@ body.terminal-fullscreen {
 // Hero number — minutes-away ("4 min", "Now"). Bounded by both width
 // (cqi/vw) and the surrounding flex column; never wraps, never overflows.
 .terminal-card-hero-value {
-  font-size: clamp(1.4rem, 4.2vw, 2.6rem);
+  font-size: var(--tc-hero-fs);
   font-weight: 700;
   line-height: 0.95;
   letter-spacing: -0.02em;
   color: var(--term-fg);
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
   max-width: 100%;
-  animation: hero-value-in 0.35s ease;
-}
-@keyframes hero-value-in {
-  from { opacity: 0.25; }
-  to   { opacity: 1; }
 }
 
 .terminal-card-hero-sub {
-  font-size: clamp(0.7rem, 0.82vw, 0.78rem);
+  font-size: var(--tc-hero-sub-fs);
   font-weight: 500;
   color: var(--term-fg-dim);
-  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4220,7 +4274,7 @@ body.terminal-fullscreen {
   display: inline-flex;
   align-items: baseline;
   gap: 0.45rem;
-  font-size: clamp(0.78rem, 1vw, 1rem);
+  font-size: var(--tc-cancelled-fs);
   color: var(--status-error);
   font-weight: 600;
   white-space: nowrap;
@@ -4231,7 +4285,6 @@ body.terminal-fullscreen {
 
 .terminal-card-cancelled-time {
   text-decoration: line-through;
-  font-variant-numeric: tabular-nums;
 }
 
 .terminal-card-cancelled-word {
@@ -4250,9 +4303,7 @@ body.terminal-fullscreen {
   justify-content: center;
   gap: 0;
   border-left: 1px solid var(--term-border);
-  padding-left: clamp(0.5rem, 1vw, 1rem);
-  font-variant-numeric: tabular-nums;
-  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-left: var(--tc-foot-pad);
   min-width: 0;
   overflow: hidden;
 }
@@ -4263,9 +4314,11 @@ body.terminal-fullscreen {
   align-items: flex-start;
   justify-content: center;
   flex: 1;
-  gap: 0.1rem;
-  padding: clamp(0.25rem, 0.5vw, 0.5rem) 0;
+  gap: var(--tc-cell-gap);
+  padding: var(--tc-cell-pad) 0;
   min-width: 0;
+  position: relative;
+  overflow: hidden;
 
   & + & {
     border-top: 1px solid var(--term-border);
@@ -4276,7 +4329,7 @@ body.terminal-fullscreen {
 .terminal-card-foot-cell-empty { opacity: 0.55; }
 
 .terminal-card-foot-label {
-  font-size: clamp(0.5rem, 0.6vw, 0.58rem);
+  font-size: var(--tc-foot-lbl-fs);
   font-weight: 700;
   color: var(--term-fg-dim);
   text-transform: uppercase;
@@ -4285,7 +4338,7 @@ body.terminal-fullscreen {
 }
 
 .terminal-card-foot-value {
-  font-size: clamp(0.78rem, 0.95vw, 0.92rem);
+  font-size: var(--tc-foot-val-fs);
   font-weight: 600;
   color: var(--term-fg);
   white-space: nowrap;
@@ -4338,82 +4391,43 @@ body.terminal-fullscreen {
 }
 
 // ===== Container-query sizing for fullscreen cards =====
-// Mirror the web-view proportions exactly, just scale them with the card.
-// Every text size is a fraction of the card's inline size (cqi) — chosen
-// so a fullscreen card at ~600px wide reproduces the rem values from the
-// base rules at a ~17rem (~272px) wide web card. cqh is used only as a
-// safety cap on the hero so a very short card can't make text wrap.
+// Overrides the --tc-* custom properties defined on .terminal-card.
+// Each value = web rem ÷ 17rem (≈272px card width), so a fullscreen
+// card at ~600px reproduces the same visual proportions as web view.
+// cqh cap on hero prevents text wrap on very short cards.
 //
-// Web → cqi conversion (each value = web rem / 17rem card width):
-//   pill font    0.95rem → 5.6cqi    pill min-w  2.2rem → 13cqi
-//   headsign     0.92rem → 5.4cqi    status      0.68rem → 4cqi
-//   hero value   2.6rem  → 15cqi     hero sub    0.78rem → 4.6cqi
-//   foot label   0.58rem → 3.4cqi    foot value  0.92rem → 5.4cqi
-//   cancelled    1rem    → 5.9cqi
+// Web → cqi: pill 0.95→5.6  headsign 0.92→5.4  status 0.68→4
+//            hero 2.6→15     hero-sub 0.78→4.6   cancelled 1→5.9
+//            foot-lbl 0.58→3.4  foot-val 0.92→5.4
 @container tcard (min-height: 0) {
+  .terminal-card {
+    --tc-pill-fs:      5.6cqi;
+    --tc-pill-minw:    13cqi;
+    --tc-headsign-fs:  5.4cqi;
+    --tc-status-fs:    4cqi;
+    --tc-hero-fs:      min(15cqi, 30cqh);
+    --tc-hero-sub-fs:  4.6cqi;
+    --tc-cancelled-fs: 5.9cqi;
+    --tc-foot-lbl-fs:  3.4cqi;
+    --tc-foot-val-fs:  5.4cqi;
+    --tc-head-gap:     2.5cqi;
+    --tc-body-gap:     4cqi;
+    --tc-hero-gap:     2cqi;
+    --tc-foot-pad:     4cqi;
+    --tc-cell-pad:     2cqi;
+    --tc-cell-gap:     0.5cqi;
+  }
+
+  // pill padding and border-radius change formula, can't be a single var
   .terminal-card-pill {
-    font-size: 5.6cqi;
-    min-width: 13cqi;
     padding: 1cqi 1.8cqi;
     border-radius: min(1cqi, 0.5rem);
-    font-weight: 800;
-    letter-spacing: 0.03em;
   }
 
-  .terminal-card-head {
-    gap: 2.5cqi;
-  }
-
-  .terminal-card-headsign {
-    font-size: 5.4cqi;
-    font-weight: 600;
-  }
-
+  // status padding is multi-value
   .terminal-card-status {
-    font-size: 4cqi;
     padding: 0.8cqi 2cqi;
     gap: 1.5cqi;
-    border-width: 2px;
-  }
-
-  .terminal-card-body {
-    gap: 4cqi;
-  }
-
-  .terminal-card-hero {
-    gap: 2cqi;
-  }
-
-  .terminal-card-hero-value {
-    font-size: min(15cqi, 30cqh);
-    line-height: 0.95;
-    letter-spacing: -0.02em;
-  }
-
-  .terminal-card-hero-sub {
-    font-size: 4.6cqi;
-  }
-
-  .terminal-card-cancelled-line {
-    font-size: 5.9cqi;
-  }
-
-  .terminal-card-footer {
-    padding-left: 4cqi;
-  }
-
-  .terminal-card-foot-cell {
-    padding: 2cqi 0;
-    gap: 0.5cqi;
-  }
-
-  .terminal-card-foot-label {
-    font-size: 3.4cqi;
-  }
-
-  .terminal-card-foot-value {
-    font-size: 5.4cqi;
-    font-weight: 600;
   }
 }
 

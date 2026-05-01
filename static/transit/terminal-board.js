@@ -269,6 +269,29 @@ function pad2(n) {
 
   let groups = [];
 
+  function slotHasShutter(card, selector) {
+    var el = card.querySelector(selector);
+    return !!(el && el.querySelector(".terminal-card-shutter-panel"));
+  }
+
+  function snapshotSlots(card) {
+    return {
+      hero:  slotHasShutter(card, ".terminal-card-hero"),
+      then:  slotHasShutter(card, ".terminal-card-foot-cell:not(.terminal-card-foot-cell-later)"),
+      later: slotHasShutter(card, ".terminal-card-foot-cell-later"),
+    };
+  }
+
+  // Inject a ghost shutter panel that plays the open animation then removes itself.
+  function injectOpenShutter(container, delayMs) {
+    if (!container) return;
+    var panel = document.createElement("div");
+    panel.className = "terminal-card-shutter-panel shutter-opening";
+    if (delayMs) panel.style.animationDelay = delayMs + "ms";
+    container.appendChild(panel);
+    panel.addEventListener("animationend", function () { panel.remove(); });
+  }
+
   function paintPage() {
     if (!rowsEl) return;
     if (!groups.length) {
@@ -280,9 +303,37 @@ function pad2(n) {
       hasRendered = true;
       return;
     }
-    let html = "";
-    for (let i = 0; i < groups.length; i++) html += renderCard(groups[i]);
+
+    // Snapshot per-slot shutter state before blowing away the DOM.
+    var snapshot = {};
+    rowsEl.querySelectorAll(".terminal-card[data-card-key]").forEach(function (card) {
+      snapshot[card.getAttribute("data-card-key")] = snapshotSlots(card);
+    });
+
+    var html = "";
+    for (var i = 0; i < groups.length; i++) html += renderCard(groups[i]);
     rowsEl.innerHTML = html;
+
+    rowsEl.querySelectorAll(".terminal-card[data-card-key]").forEach(function (card) {
+      var key = card.getAttribute("data-card-key");
+      var prev = snapshot[key];
+      if (!prev) return; // new card — animate normally
+
+      var heroPanel  = card.querySelector(".terminal-card-hero .terminal-card-shutter-panel");
+      var thenPanel  = card.querySelector(".terminal-card-foot-cell:not(.terminal-card-foot-cell-later) .terminal-card-shutter-panel");
+      var laterPanel = card.querySelector(".terminal-card-foot-cell-later .terminal-card-shutter-panel");
+
+      // Slot still shuttered → suppress close animation (already closed).
+      if (prev.hero  && heroPanel)  heroPanel.classList.add("shutter-inert");
+      if (prev.then  && thenPanel)  thenPanel.classList.add("shutter-inert");
+      if (prev.later && laterPanel) laterPanel.classList.add("shutter-inert");
+
+      // Slot was shuttered but now has a prediction → play open animation.
+      if (prev.hero  && !heroPanel)  injectOpenShutter(card.querySelector(".terminal-card-hero"), 0);
+      if (prev.then  && !thenPanel)  injectOpenShutter(card.querySelector(".terminal-card-foot-cell:not(.terminal-card-foot-cell-later)"), 120);
+      if (prev.later && !laterPanel) injectOpenShutter(card.querySelector(".terminal-card-foot-cell-later"), 240);
+    });
+
     hasRendered = true;
   }
 
@@ -294,7 +345,7 @@ function pad2(n) {
     const head = g.route;
     const color =
       ROUTE_COLORS[head.route_id] || head.route_color || "var(--accent)";
-    const text = ROUTE_TEXT[head.route_id] || "#0a100a";
+    const text = ROUTE_TEXT[head.route_id] || head.route_text_color || "#0a100a";
     const status = statusPresentation(head);
     const upcoming = g.items.slice(0, 3);
     const isCancelled = status.kind === "cancelled";
@@ -304,6 +355,7 @@ function pad2(n) {
     const cancelledP = isCancelled ? upcoming[0] : null;
     const headsign = head.headsign || head.route_name || "";
 
+    const isNoService = g.items.length === 0;
     const heroPrimaryText = heroP ? heroPrimary(heroP) : "—";
     const heroSubText = heroP ? heroSub(heroP) : "";
     const ariaWhen = heroP && typeof heroP.minutes_away === "number"
@@ -312,10 +364,11 @@ function pad2(n) {
     const ariaStatus = status.kind !== "scheduled" && status.kind !== "ontime"
       ? ", " + status.word + (status.delta ? " " + status.delta + " minutes" : "")
       : "";
-    const aria = "Route " + head.route_id + " to " + headsign + ariaWhen + ariaStatus;
+    const aria = isNoService
+      ? "Route " + head.route_id + " to " + headsign + ", no more service"
+      : "Route " + head.route_id + " to " + headsign + ariaWhen + ariaStatus;
 
-    // Status pill: emitted for every state except "scheduled". Lives inside
-    // the hero block, above the minutes — never competes with the headsign.
+    // Status pill: emitted for every state except "scheduled".
     let statusHTML = "";
     if (status.kind !== "scheduled") {
       const statusDelta = status.delta ? " " + status.delta + " min" : "";
@@ -326,8 +379,7 @@ function pad2(n) {
         "</span>";
     }
 
-    // Cancelled banner — the dropped time, struck through. Sits below the
-    // hero (which has been promoted to the next available departure).
+    // Cancelled banner — dropped time, struck through.
     let cancelledHTML = "";
     if (cancelledP) {
       const t = clockTime(cancelledP);
@@ -339,27 +391,34 @@ function pad2(n) {
         "</span>";
     }
 
-    // Footer: Then / Later cells with a vertical separator, borrowing the
-    // .route-pill-footer chrome (full-width border-top, negative margins,
-    // 1px divider). Each cell stacks label · minutes · clock-time.
-    function footCell(p, label, extraClass) {
-      if (!p) {
-        return (
-          '<span class="terminal-card-foot-cell terminal-card-foot-cell-empty' +
-          (extraClass ? " " + extraClass : "") + '">' +
-            '<span class="terminal-card-foot-label">' + label + "</span>" +
-            '<span class="terminal-card-foot-value">—</span>' +
-          "</span>"
-        );
-      }
-      const min = etaMin(p) || "—";
+    // A shutter panel slides down over an empty slot to signal no service.
+    // delayMs staggers the close cascade: Later→Then→Hero.
+    function shutterPanel(delayMs) {
+      return '<div class="terminal-card-shutter-panel"' +
+        (delayMs ? ' style="animation-delay:' + delayMs + 'ms"' : "") +
+        '></div>';
+    }
+
+    // Footer cells — layout always rendered; empty slots get a shutter on top.
+    function footCell(p, label, extraClass, shutterDelay) {
+      const min = p ? (etaMin(p) || "—") : "—";
+      const cls = "terminal-card-foot-cell" +
+        (!p ? " terminal-card-foot-cell-empty" : "") +
+        (extraClass ? " " + extraClass : "");
       return (
-        '<span class="terminal-card-foot-cell' + (extraClass ? " " + extraClass : "") + '">' +
+        '<span class="' + cls + '">' +
           '<span class="terminal-card-foot-label">' + label + "</span>" +
           '<span class="terminal-card-foot-value">' + escapeHTML(min) + "</span>" +
+          (!p ? shutterPanel(shutterDelay) : "") +
         "</span>"
       );
     }
+
+    const heroMetaHTML = heroSubText
+      ? '<div class="terminal-card-hero-meta">' +
+          '<span class="terminal-card-hero-sub">' + escapeHTML(heroSubText) + "</span>" +
+        "</div>"
+      : "";
 
     let footerHTML = "";
     if (cancelledP && !heroP) {
@@ -370,21 +429,31 @@ function pad2(n) {
     } else {
       footerHTML =
         '<div class="terminal-card-footer">' +
-          footCell(thenP, "Then") +
-          footCell(laterP, "Later", "terminal-card-foot-cell-later") +
+          footCell(thenP, "Then", "", 120) +
+          footCell(laterP, "Later", "terminal-card-foot-cell-later", 0) +
         "</div>";
     }
 
-    const heroMetaHTML = heroSubText
-      ? '<div class="terminal-card-hero-meta">' +
-          '<span class="terminal-card-hero-sub">' + escapeHTML(heroSubText) + "</span>" +
-        "</div>"
-      : "";
-    const heroValueHTML =
-      '<span class="terminal-card-hero-value">' + escapeHTML(heroPrimaryText) + "</span>";
+    // Hero — layout always rendered; shutter covers it last (140ms delay)
+    // when there is no next departure. Skip hero shutter if we have a
+    // cancelled banner — it already communicates the empty state.
+    const heroShutter = (!heroP && !cancelledP) ? shutterPanel(240) : "";
+
+    const bodyHTML =
+      '<div class="terminal-card-body">' +
+        '<div class="terminal-card-hero">' +
+          heroMetaHTML +
+          '<span class="terminal-card-hero-value">' + escapeHTML(heroPrimaryText) + "</span>" +
+          cancelledHTML +
+          heroShutter +
+        "</div>" +
+        footerHTML +
+      "</div>";
 
     return (
       '<article class="terminal-card terminal-card-' + status.kind +
+      (isNoService ? " terminal-card-no-service" : "") +
+      '" data-card-key="' + escapeHTML(g.key) +
       '" style="border-left-color:' + escapeHTML(color) +
       '" aria-label="' + escapeHTML(aria) + '">' +
         '<header class="terminal-card-head">' +
@@ -393,22 +462,45 @@ function pad2(n) {
           '<span class="terminal-card-headsign">' + escapeHTML(headsign) + "</span>" +
           statusHTML +
         "</header>" +
-
-        '<div class="terminal-card-body">' +
-          '<div class="terminal-card-hero">' +
-            heroMetaHTML +
-            heroValueHTML +
-            cancelledHTML +
-          "</div>" +
-          footerHTML +
-        "</div>" +
+        bodyHTML +
       "</article>"
     );
   }
 
-  function render(predictions, feedTS) {
+  function render(predictions, feedTS, expectedRoutes) {
     if (!rowsEl) return;
     groups = (predictions && predictions.length) ? groupByRoute(predictions) : [];
+
+
+    // Add ghost groups for routes with scheduled service but no live predictions.
+    if (expectedRoutes && expectedRoutes.length) {
+      const seen = {};
+      for (let i = 0; i < groups.length; i++) seen[groups[i].key] = true;
+      for (let i = 0; i < expectedRoutes.length; i++) {
+        const er = expectedRoutes[i];
+        const key = (er.route_id || "") + "\t" + (er.headsign || "");
+        if (seen[key]) continue;
+        groups.push({
+          key: key,
+          route: {
+            route_id: er.route_id,
+            route_name: er.route_id,
+            headsign: er.headsign,
+            route_color: er.color,
+            route_text_color: er.text_color,
+            status: "Scheduled",
+          },
+          items: [],
+        });
+      }
+      groups.sort(function (a, b) {
+        const an = parseInt(a.route.route_id, 10);
+        const bn = parseInt(b.route.route_id, 10);
+        if (!isNaN(an) && !isNaN(bn)) return an - bn;
+        return (a.route.route_id || "").localeCompare(b.route.route_id || "");
+      });
+    }
+
     paintPage();
     if (feedTS) lastFeedAt = feedTS;
     updateFeedAge();
@@ -434,7 +526,11 @@ function pad2(n) {
         lastFetchOK = Date.now();
         const feedTS = data && data.updated_at ? Date.parse(data.updated_at) : null;
         if (feedTS && !isNaN(feedTS)) lastFeedAt = feedTS;
-        render(data && data.predictions ? data.predictions : [], lastFeedAt);
+        render(
+          data && data.predictions ? data.predictions : [],
+          lastFeedAt,
+          data && data.expected_routes ? data.expected_routes : [],
+        );
         scheduleNext(STEADY_MS);
       })
       .catch(function () {

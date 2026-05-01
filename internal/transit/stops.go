@@ -41,13 +41,23 @@ type StopPrediction struct {
 	RouteColor    string `json:"route_color"`
 }
 
+// ExpectedRoute is a route with scheduled service at a stop today.
+// Used to show placeholder cards when no live predictions exist yet.
+type ExpectedRoute struct {
+	RouteID   string `json:"route_id"`
+	Headsign  string `json:"headsign"`
+	Color     string `json:"color"`
+	TextColor string `json:"text_color"`
+}
+
 // StopPredictions fetches live GTFS-RT trip updates and returns predicted
 // arrivals at the given stop. Uses absolute times from the feed directly
 // (no dependency on matching GTFS static trip IDs).
 // StopPredictionsResponse wraps predictions with feed metadata.
 type StopPredictionsResponse struct {
-	Predictions []StopPrediction `json:"predictions"`
-	UpdatedAt   *time.Time       `json:"updated_at,omitempty"`
+	Predictions    []StopPrediction `json:"predictions"`
+	ExpectedRoutes []ExpectedRoute  `json:"expected_routes,omitempty"`
+	UpdatedAt      *time.Time       `json:"updated_at,omitempty"`
 }
 
 func StopPredictions(ctx context.Context, db *pgxpool.Pool, client *Client, stopID string, now time.Time) (StopPredictionsResponse, error) {
@@ -181,11 +191,52 @@ func StopPredictionsFromFeed(ctx context.Context, db *pgxpool.Pool, feed *gtfsrt
 		predictions = predictions[:50]
 	}
 
-	resp := StopPredictionsResponse{Predictions: predictions}
+	expected, err := expectedRoutesAtStop(ctx, db, stopID, now)
+	if err != nil {
+		expected = nil // non-fatal; predictions still useful without this
+	}
+
+	resp := StopPredictionsResponse{
+		Predictions:    predictions,
+		ExpectedRoutes: expected,
+	}
 	if !feedTS.IsZero() {
 		resp.UpdatedAt = &feedTS
 	}
 	return resp, nil
+}
+
+// expectedRoutesAtStop returns distinct (route_id, headsign) pairs with
+// scheduled service at stopID on the given date.
+func expectedRoutesAtStop(ctx context.Context, db *pgxpool.Pool, stopID string, now time.Time) ([]ExpectedRoute, error) {
+	date := now.In(TZ).Format("2006-01-02")
+	rows, err := db.Query(ctx, `
+		SELECT DISTINCT r.route_id, rp.headsign,
+		       COALESCE(r.color, ''), COALESCE(r.text_color, '')
+		FROM transit.route_pattern rp
+		JOIN transit.route_pattern_stop rps USING (pattern_id)
+		JOIN transit.route r USING (route_id)
+		JOIN transit.trip_catalog tc ON tc.pattern_id = rp.pattern_id
+		JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
+		WHERE rps.stop_id = $1
+		  AND sc.date = $2
+		ORDER BY
+		  CAST(NULLIF(REGEXP_REPLACE(r.route_id, '[^0-9]', '', 'g'), '') AS INT) NULLS LAST,
+		  r.route_id, rp.headsign`, stopID, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []ExpectedRoute
+	for rows.Next() {
+		var er ExpectedRoute
+		if err := rows.Scan(&er.RouteID, &er.Headsign, &er.Color, &er.TextColor); err != nil {
+			return nil, err
+		}
+		result = append(result, er)
+	}
+	return result, rows.Err()
 }
 
 type routeDisplay struct {
