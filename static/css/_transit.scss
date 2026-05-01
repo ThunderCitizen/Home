@@ -4105,7 +4105,7 @@ body.terminal-fullscreen {
 
 .terminal-board-name {
   margin: 0;
-  font-size: clamp(1.4rem, 2.6vw, 2.4rem);
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   color: var(--heading);
@@ -4143,8 +4143,8 @@ body.terminal-fullscreen {
 .terminal-card-grid {
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(18rem, 22vw, 24rem), 1fr));
-  gap: clamp(0.5rem, 1vw, 1rem);
+  grid-template-columns: repeat(auto-fill, minmax(clamp(13rem, 17vw, 17rem), 1fr));
+  gap: clamp(0.4rem, 0.7vw, 0.7rem);
   align-content: start;
   overflow-y: auto;
   min-height: 0;
@@ -4165,11 +4165,11 @@ body.terminal-fullscreen {
 //   3. Footer — "Then 29 min · 2:44 PM" single line
 // Fullscreen overrides only bump floors/ceilings — no markup divergence.
 .terminal-card {
-  --tc-ph: clamp(0.7rem, 1.2vw, 1.2rem);
-  --tc-pv: clamp(0.55rem, 1vw, 1rem);
+  --tc-ph: clamp(0.5rem, 0.8vw, 0.75rem);
+  --tc-pv: clamp(0.4rem, 0.65vw, 0.6rem);
   display: flex;
   flex-direction: column;
-  gap: clamp(0.4rem, 0.8vw, 0.7rem);
+  gap: clamp(0.3rem, 0.5vw, 0.45rem);
   padding: var(--tc-pv) var(--tc-ph);
   background: var(--term-bg-deep);
   border: 1px solid var(--term-border);
@@ -4194,7 +4194,7 @@ body.terminal-fullscreen {
 .terminal-card-head {
   display: flex;
   align-items: center;
-  gap: clamp(0.4rem, 0.8vw, 0.7rem);
+  gap: clamp(0.3rem, 0.5vw, 0.5rem);
   min-width: 0;
 }
 
@@ -4205,11 +4205,11 @@ body.terminal-fullscreen {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: clamp(2.4rem, 3.5vw, 3.2rem);
-  padding: clamp(0.2rem, 0.4vw, 0.4rem) clamp(0.4rem, 0.65vw, 0.65rem);
-  border-radius: 5px;
+  min-width: clamp(1.8rem, 2.4vw, 2.2rem);
+  padding: clamp(0.12rem, 0.25vw, 0.25rem) clamp(0.28rem, 0.45vw, 0.45rem);
+  border-radius: 4px;
   font-weight: 800;
-  font-size: clamp(1.1rem, 1.7vw, 1.6rem);
+  font-size: clamp(0.82rem, 1.1vw, 0.95rem);
   letter-spacing: 0.03em;
   flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
@@ -4219,7 +4219,7 @@ body.terminal-fullscreen {
 // most-important fact for the persona ("where does this go?").
 .terminal-card-headsign {
   font-weight: 600;
-  font-size: clamp(1rem, 1.4vw, 1.4rem);
+  font-size: clamp(0.82rem, 1vw, 0.92rem);
   color: var(--term-fg);
   font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   letter-spacing: 0.01em;
@@ -4237,9 +4237,9 @@ body.terminal-fullscreen {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: clamp(0.15rem, 0.3vw, 0.3rem) clamp(0.45rem, 0.7vw, 0.7rem);
+  padding: clamp(0.1rem, 0.18vw, 0.18rem) clamp(0.3rem, 0.45vw, 0.45rem);
   border-radius: 999px;
-  font-size: clamp(0.7rem, 1vw, 1rem);
+  font-size: clamp(0.6rem, 0.72vw, 0.68rem);
   font-weight: 600;
   letter-spacing: 0.04em;
   border: 2px solid currentColor;
@@ -4290,7 +4290,7 @@ body.terminal-fullscreen {
 }
 
 .terminal-card-hero-value {
-  font-size: clamp(1.6rem, 3.5vw, 2.7rem);
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
   font-weight: 600;
   line-height: 1.05;
   letter-spacing: -0.01em;
@@ -4299,7 +4299,7 @@ body.terminal-fullscreen {
 }
 
 .terminal-card-hero-sub {
-  font-size: clamp(0.9rem, 1.2vw, 1.15rem);
+  font-size: clamp(0.7rem, 0.82vw, 0.78rem);
   font-weight: 400;
   color: var(--term-fg-dim);
   font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -4315,7 +4315,7 @@ body.terminal-fullscreen {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  font-size: clamp(1rem, 1.4vw, 1.3rem);
+  font-size: clamp(0.75rem, 0.9vw, 0.84rem);
   color: var(--term-fg-dim);
   font-variant-numeric: tabular-nums;
   border-top: 1px solid var(--term-border);
