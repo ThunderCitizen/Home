@@ -314,7 +314,11 @@ function initMap(): void {
     if (infoBarLocked) unlockInfoBar();
     if (selectedStop) { selectedStop = null; }
     if (selectedRoute) selectRoute(null);
-    if (tripRouteLayer) {
+    // On touch devices, don't dismiss an active trip on a stray tap — the
+    // map is the primary interaction surface and accidental taps are easy.
+    // Users dismiss explicitly via the close button on the summary bar.
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    if (tripRouteLayer && !coarse) {
       hideRouteSummaryBar();
       clearTripRoute();
     }
@@ -335,7 +339,7 @@ function initMap(): void {
   busLayer = L.layerGroup().addTo(map);
 
   // Layer toggles — read initial state from server-rendered buttons
-  const layerBar = document.getElementById("layer-bar");
+  const layerBar = document.getElementById("selector-bar");
   if (layerBar) {
     const btns = layerBar.querySelectorAll<HTMLButtonElement>("[data-layer]");
     btns.forEach(function (btn) {
@@ -1499,7 +1503,7 @@ function stopRadius(): number {
   if (!map) return 3;
   const z = map.getZoom();
   const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  const pad = touch ? 3 : 0;
+  const pad = touch ? 1 : 0;
   if (z >= 18) return 8 + pad;
   if (z >= 17) return 7 + pad;
   if (z >= 16) return 6 + pad;
@@ -1590,6 +1594,7 @@ function onLocateClick(openPlanner?: boolean): void {
   navigator.geolocation.getCurrentPosition(
     function (pos: GeolocationPosition) {
       clearTimeout(safetyTimer);
+      document.body.classList.remove("locate-errored");
       if (btn) {
         btn.classList.remove("locate-btn-loading");
         btn.classList.add("active");
@@ -1671,19 +1676,9 @@ function onLocateClick(openPlanner?: boolean): void {
       if (err.code === 1) msg = "Location permission denied";
       else if (err.code === 2) msg = "Location unavailable";
       else if (err.code === 3) msg = "Location request timed out";
-      if (openPlanner) {
-        // Show error inline in the From input
-        const fromInput = document.getElementById("trip-from") as HTMLInputElement | null;
-        if (fromInput) {
-          fromInput.value = msg;
-          fromInput.classList.add("trip-input-error");
-          setTimeout(function () { fromInput.classList.remove("trip-input-error"); }, 3000);
-        }
-        openTripPlanner();
-      } else {
-        lockInfoBar('<span class="info-late">' + msg + '</span>');
-        setTimeout(unlockInfoBar, 3000);
-      }
+
+      document.body.classList.add("locate-errored");
+      showLocateErrorBar(msg);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
   );
@@ -2100,6 +2095,28 @@ function hideRouteSummaryBar(): void {
   if (bar) bar.remove();
   const findRouteLabel = document.getElementById('find-route-btn');
   if (findRouteLabel) findRouteLabel.classList.remove('active');
+}
+
+// Briefly show a route-summary-style overlay above the map for transient
+// status (e.g. geolocation errors). Auto-dismisses; doesn't open the planner.
+let locateErrorTimer: number | null = null;
+function showLocateErrorBar(msg: string): void {
+  const wrap = document.querySelector(".transit-map-wrap");
+  if (!wrap) return;
+  let bar = document.getElementById("locate-error-bar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "locate-error-bar";
+    bar.className = "route-summary-bar route-summary-error";
+    bar.setAttribute("role", "alert");
+    wrap.appendChild(bar);
+  }
+  bar.innerHTML = '<span class="route-summary-info"><span class="trip-itin-dur">' + msg + '</span></span>';
+  if (locateErrorTimer !== null) clearTimeout(locateErrorTimer);
+  locateErrorTimer = window.setTimeout(function () {
+    if (bar) bar.remove();
+    locateErrorTimer = null;
+  }, 3500);
 }
 
 

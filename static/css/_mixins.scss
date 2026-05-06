@@ -13,6 +13,9 @@ $bp-lg: 1024px;
   @else if $name == 'md'    { @media (max-width: $bp-md) { @content; } }
   @else if $name == 'md-up' { @media (min-width: $bp-md) { @content; } }
   @else if $name == 'lg'    { @media (max-width: $bp-lg) { @content; } }
+  // Phones in either orientation, plus short tablets in landscape. Use this for
+  // chrome that needs to compact when vertical space is scarce — not just narrow.
+  @else if $name == 'tight' { @media (max-width: $bp-sm), (orientation: landscape) and (max-height: 500px) { @content; } }
 }
 
 @mixin auto-grid($min-col: 260px, $gap: var(--space-3)) {

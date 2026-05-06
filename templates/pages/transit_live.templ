@@ -39,16 +39,16 @@ templ TransitLive(vm transit.LiveViewModel) {
 			<input type="checkbox" id="trip-toggle" class="trip-toggle"/>
 			<div class="terminal-map-header">
 				<span class="terminal-map-title">Transit Map <span id="transit-status" class="transit-status transit-status-off" role="status" aria-live="polite">Live</span></span>
-				<div id="layer-bar">
+				<div id="selector-bar">
 					@components.MapLayerBar(transitLayerGroups())
 				</div>
-				<div class="layer-bar">
-					<span class="layer-bar-label">Features</span>
-					<button type="button" id="map-locate-btn" class="layer-bar-btn" title="Show my location" aria-label="Show my location">
+				<div class="selector-bar">
+					<span class="selector-bar-label">Features</span>
+					<button type="button" id="map-locate-btn" class="selector-bar-btn" title="Show my location" aria-label="Show my location">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
 						<span>Locate</span>
 					</button>
-					<label for="trip-toggle" id="find-route-btn" class="layer-bar-btn trip-planner-open">
+					<label for="trip-toggle" id="find-route-btn" class="selector-bar-btn trip-planner-open">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 						<span>Find Route</span>
 					</label>
@@ -73,14 +73,14 @@ templ TransitLive(vm transit.LiveViewModel) {
 							<div class="trip-field">
 								<label for="trip-from" class="trip-label">From</label>
 								<div class="trip-search-wrap">
-									<input id="trip-from" type="text" placeholder="Stop name or number" autocomplete="off"/>
+									<input id="trip-from" type="search" inputmode="search" name="trip-from-stop-search" placeholder="Stop or number" autocomplete="off" autocorrect="off" spellcheck="false"/>
 									<div id="trip-from-results" class="trip-search-results" hidden></div>
 								</div>
 							</div>
 							<div class="trip-field">
 								<label for="trip-to" class="trip-label">To</label>
 								<div class="trip-search-wrap">
-									<input id="trip-to" type="text" placeholder="Stop name or number" autocomplete="off"/>
+									<input id="trip-to" type="search" inputmode="search" name="trip-to-stop-search" placeholder="Stop or number" autocomplete="off" autocorrect="off" spellcheck="false"/>
 									<div id="trip-to-results" class="trip-search-results" hidden></div>
 								</div>
 							</div>

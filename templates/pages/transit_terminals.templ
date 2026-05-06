@@ -23,37 +23,7 @@ templ TransitTerminals(vm transit.TerminalsViewModel) {
 		@templ.JSONScript("route-meta", vm.RouteMeta)
 
 		<section class="terminal-board-page" aria-label="Terminal departures boards">
-			<header class="terminal-map-header">
-				<div class="layer-bar">
-					<span class="layer-bar-label" aria-hidden="true">Terminal</span>
-					<div class="terminal-board-tabs" role="tablist" aria-label="Choose a terminal">
-						for i, t := range vm.Terminals {
-							<button
-								type="button"
-								role="tab"
-								class={ "terminal-board-tab", templ.KV("active", i == 0) }
-								aria-selected?={ i == 0 }
-								data-stop-id={ t.StopID }
-								data-stop-name={ t.StopName }
-							>
-								<span class="terminal-board-tab-name">{ t.StopName }</span>
-							</button>
-						}
-					</div>
-				</div>
-				<div class="terminal-board-tabs-aside">
-					<button type="button" id="board-fs-toggle" class="terminal-board-fs-btn" aria-label="Enter kiosk mode">
-						<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M3 9V3h6"></path>
-							<path d="M21 9V3h-6"></path>
-							<path d="M3 15v6h6"></path>
-							<path d="M21 15v6h-6"></path>
-						</svg>
-						<span>Kiosk</span>
-					</button>
-				</div>
-				<span id="board-clock" class="terminal-board-time" aria-hidden="true" hidden></span>
-			</header>
+			@components.TerminalMapHeader(vm.Terminals, 0)
 
 			<main class="terminal-board" id="terminal-board" data-stop-id={ vm.Terminals[0].StopID } data-stop-name={ vm.Terminals[0].StopName }>
 				<header class="terminal-board-head">

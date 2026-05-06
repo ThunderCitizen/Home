@@ -73,18 +73,18 @@ templ LeafletMap(props MapProps) {
 // Page JS reads data-layer attributes and .active class for initial state.
 templ MapLayerBar(groups []MapLayerGroup) {
 	for _, g := range groups {
-		<div class="layer-bar">
+		<div class="selector-bar">
 			if g.Label != "" {
-				<span class="layer-bar-label">{ g.Label }</span>
+				<span class="selector-bar-label">{ g.Label }</span>
 			}
 			for _, ly := range g.Layers {
 				if ly.Active {
-					<button type="button" class="layer-bar-btn active" data-layer={ ly.Key } title={ ly.Label }>
+					<button type="button" class="selector-bar-btn active" data-layer={ ly.Key } title={ ly.Label }>
 						@templ.Raw(ly.Icon)
 						<span>{ ly.Label }</span>
 					</button>
 				} else {
-					<button type="button" class="layer-bar-btn" data-layer={ ly.Key } title={ ly.Label }>
+					<button type="button" class="selector-bar-btn" data-layer={ ly.Key } title={ ly.Label }>
 						@templ.Raw(ly.Icon)
 						<span>{ ly.Label }</span>
 					</button>

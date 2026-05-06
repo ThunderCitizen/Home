@@ -18,7 +18,7 @@
   if (!stopID) return;
 
   const stopNameEl = document.getElementById("board-stop-name");
-  const tabs = document.querySelectorAll(".terminal-board-tab");
+  const tabs = document.querySelectorAll(".selector-bar-btn[data-stop-id]");
   tabs.forEach(function (tab) {
     tab.addEventListener("click", function () {
       const newID = tab.getAttribute("data-stop-id");

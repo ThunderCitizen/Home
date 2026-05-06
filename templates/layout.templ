@@ -166,6 +166,34 @@ document.documentElement.classList.remove('no-js');
 			if (mode) window.setTheme(mode);
 		});
 	});
+
+	// Suppress iOS/Android autofill (AutoFill Contact, password keychain,
+	// autocorrect, auto-capitalize, spellcheck) on every input/textarea that
+	// hasn't explicitly opted in. Site has no real form fields that need
+	// browser autofill — search, filter, and trip-planner inputs are all
+	// lookups against our own data. Explicit opt-in: data-autofill="on".
+	function suppressAutofill(el){
+		if (!el || el.dataset.autofill === "on") return;
+		if (!el.hasAttribute("autocomplete")) el.setAttribute("autocomplete", "off");
+	}
+	function sweepAutofill(root){
+		var nodes = (root || document).querySelectorAll("input, textarea");
+		for (var i = 0; i < nodes.length; i++) suppressAutofill(nodes[i]);
+	}
+	document.addEventListener("DOMContentLoaded", function(){ sweepAutofill(); });
+	if (typeof MutationObserver !== "undefined") {
+		new MutationObserver(function(muts){
+			for (var i = 0; i < muts.length; i++) {
+				var added = muts[i].addedNodes;
+				for (var j = 0; j < added.length; j++) {
+					var n = added[j];
+					if (n.nodeType !== 1) continue;
+					if (n.tagName === "INPUT" || n.tagName === "TEXTAREA") suppressAutofill(n);
+					else if (n.querySelectorAll) sweepAutofill(n);
+				}
+			}
+		}).observe(document.documentElement, { childList: true, subtree: true });
+	}
 })();
 			</script>
 		</head>
