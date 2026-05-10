@@ -130,8 +130,8 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 		@templ.JSONScript("route-meta", vm.RouteMeta)
 		@templ.JSONScript("transit-chunks", vm.Chunks)
 		@templ.JSONScript("cancelled-trips", vm.CancelledTrips)
+		<script src={ assets.URL("/static/transit/route-meta.js") }></script>
 		<script src={ assets.URL("/static/transit/chunks.js") }></script>
-		<script src={ assets.URL("/static/transit/transit-report.js") }></script>
 		<script src={ assets.URL("/static/transit/trends-chart.js") }></script>
 	}
 }

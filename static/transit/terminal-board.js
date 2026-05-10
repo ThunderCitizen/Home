@@ -60,24 +60,10 @@
   const clockEl = document.getElementById("board-clock");
   const clockFsEl = document.getElementById("board-clock-fs");
 
-  const ROUTE_COLORS = {};
-  const ROUTE_TEXT = {};
-  try {
-    const meta = JSON.parse(
-      (document.getElementById("route-meta") || {}).textContent || "[]",
-    );
-    for (let i = 0; i < meta.length; i++) {
-      const m = meta[i];
-      if (m && m.route_id) {
-        if (m.color) ROUTE_COLORS[m.route_id] = m.color;
-        if (m.text_color) ROUTE_TEXT[m.route_id] = m.text_color;
-      }
-    }
-  } catch (_e) {
-    /* malformed JSON shouldn't break the page */
-  }
+  const ROUTE_COLORS = (window.RouteMeta && window.RouteMeta.colors) || {};
+  const ROUTE_TEXT = (window.RouteMeta && window.RouteMeta.texts) || {};
 
-  const STEADY_MS = 15000;
+  const STEADY_MS = parseInt(board.getAttribute("data-poll-ms"), 10) || 15000;
   const BACKOFF_MIN = 1000;
   const BACKOFF_MAX = 30000;
 

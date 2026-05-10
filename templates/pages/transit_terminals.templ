@@ -21,11 +21,12 @@ templ TransitTerminals(vm transit.TerminalsViewModel) {
 		@components.TransitNav(components.TransitNavProps{Current: "terminals"})
 
 		@templ.JSONScript("route-meta", vm.RouteMeta)
+		<script src={ assets.URL("/static/transit/route-meta.js") }></script>
 
 		<section class="terminal-board-page" aria-label="Terminal departures boards">
 			@components.TerminalMapHeader(vm.Terminals, 0)
 
-			<main class="terminal-board" id="terminal-board" data-stop-id={ vm.Terminals[0].StopID } data-stop-name={ vm.Terminals[0].StopName }>
+			<main class="terminal-board" id="terminal-board" data-stop-id={ vm.Terminals[0].StopID } data-stop-name={ vm.Terminals[0].StopName } data-poll-ms="15000">
 				<header class="terminal-board-head">
 					<h1 class="terminal-board-name" id="board-stop-name">{ vm.Terminals[0].StopName }</h1>
 					<span class="terminal-board-clock-fs" id="board-clock-fs" aria-hidden="true"></span>

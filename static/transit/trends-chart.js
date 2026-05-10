@@ -15,17 +15,10 @@
   var MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   function readRouteColors() {
-    var routeColors = {};
-    var el = document.getElementById('route-meta');
-    if (!el) return routeColors;
-    try {
-      var routes = JSON.parse(el.textContent || '[]') || [];
-      for (var i = 0; i < routes.length; i++) {
-        var route = routes[i];
-        if (route.route_id && route.color) routeColors[route.route_id] = route.color;
-      }
-    } catch (_e) { /* invalid JSON */ }
-    return routeColors;
+    return (window.RouteMeta && window.RouteMeta.colors) || {};
+  }
+  function readRouteMetaById() {
+    return (window.RouteMeta && window.RouteMeta.byId) || {};
   }
 
   // Read active KPI from server-rendered data attribute, default to 'otp'.
@@ -90,16 +83,7 @@
   function buildRouteCompareData() {
     if (!window.transitChunks) return [];
     var chunks = window.transitChunks.loadChunks();
-    var routeMeta = {};
-    var metaEl = document.getElementById('route-meta');
-    if (metaEl) {
-      try {
-        var routes = JSON.parse(metaEl.textContent || '[]') || [];
-        for (var i = 0; i < routes.length; i++) {
-          routeMeta[routes[i].route_id] = routes[i];
-        }
-      } catch (_e) { /* ignore */ }
-    }
+    var routeMeta = readRouteMetaById();
 
     var grouped = window.transitChunks.groupByRoute(chunks);
     var out = [];
@@ -214,18 +198,11 @@
     if (!container || !cancelLogData || !cancelLogData.length) return;
 
     var routeColors = readRouteColors();
-    var routeMeta = {};
     var routeNames = {};
-    try {
-      var metaEl = document.getElementById('route-meta');
-      if (metaEl) {
-        var routes = JSON.parse(metaEl.textContent || '[]') || [];
-        for (var i = 0; i < routes.length; i++) {
-          routeMeta[routes[i].route_id] = routes[i];
-          routeNames[routes[i].route_id] = routes[i].short_name;
-        }
-      }
-    } catch (_e) { /* ignore */ }
+    var metaEntries = (window.RouteMeta && window.RouteMeta.entries) || [];
+    for (var i = 0; i < metaEntries.length; i++) {
+      routeNames[metaEntries[i].route_id] = metaEntries[i].short_name;
+    }
 
     // Group by date
     var byDate = {};

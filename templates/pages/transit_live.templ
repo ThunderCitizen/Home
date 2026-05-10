@@ -64,7 +64,7 @@ templ TransitLive(vm transit.LiveViewModel) {
 				ID:        "transit-map",
 				AriaLabel: "Live map showing Thunder Bay bus positions. Bus locations update every 10 seconds.",
 				Class:     "transit-map-wrap",
-				Scripts:   []string{"/static/transit/transit-map.js"},
+				Scripts:   []string{"/static/transit/route-meta.js", "/static/transit/transit-map.js"},
 			}) {
 				<div id="trip-planner" class="trip-planner trip-planner-overlay">
 					<label for="trip-toggle" class="trip-planner-tab">

@@ -114,18 +114,17 @@ interface RouteMetaResponse {
 }
 
 function loadRouteMeta(): void {
-  const el = document.getElementById("route-meta");
-  if (!el) return;
-  try {
-    const routes = JSON.parse(el.textContent || "[]") as RouteMetaResponse[];
-    for (let i = 0; i < routes.length; i++) {
-      const rm = routes[i];
-      ALL_ROUTES.push(rm.route_id);
-      if (rm.color) ROUTE_COLORS[rm.route_id] = rm.color;
-      if (rm.name) ROUTE_NAMES[rm.route_id] = rm.name;
-      if (rm.terminals && rm.terminals.length > 0) ROUTE_TERMINALS[rm.route_id] = rm.terminals;
-    }
-  } catch (_) { /* fallback: route grid still works with IDs */ }
+  const rm = (window as any).RouteMeta;
+  if (!rm || !rm.entries) return;
+  const entries = rm.entries as RouteMetaResponse[];
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    if (!e || !e.route_id) continue;
+    ALL_ROUTES.push(e.route_id);
+    if (e.color) ROUTE_COLORS[e.route_id] = e.color;
+    if (e.name) ROUTE_NAMES[e.route_id] = e.name;
+    if (e.terminals && e.terminals.length > 0) ROUTE_TERMINALS[e.route_id] = e.terminals;
+  }
 }
 
 const SHAPES_URL = "/static/transit/route-shapes.json";
