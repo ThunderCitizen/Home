@@ -203,14 +203,14 @@ function pad2(n) {
   // Sub line under the hero — clock time, plus "(was HH:MM)" when late and
   // the scheduled time differs from the predicted time.
   function heroSub(p) {
-    if (!p) return "";
+    if (!p) return { time: "", sched: "" };
     const t = clockTime(p);
-    if (!t) return "";
+    if (!t) return { time: "", sched: "" };
     const sched = p && p.scheduled ? scheduledClockTime(p.scheduled) : "";
     if (statusKind(p) === "late" && sched && sched !== t) {
-      return t + " (was " + sched + ")";
+      return { time: t, sched: sched };
     }
-    return t;
+    return { time: t, sched: "" };
   }
 
   // Footer "Then" line: "29 min · 2:44 PM" or empty when no second item.
@@ -357,7 +357,7 @@ function pad2(n) {
 
     const isNoService = g.items.length === 0;
     const heroPrimaryText = heroP ? heroPrimary(heroP) : "—";
-    const heroSubText = heroP ? heroSub(heroP) : "";
+    const heroSubData = heroP ? heroSub(heroP) : { time: "", sched: "" };
     const ariaWhen = heroP && typeof heroP.minutes_away === "number"
       ? " in " + heroP.minutes_away + " minutes"
       : "";
@@ -414,10 +414,13 @@ function pad2(n) {
       );
     }
 
-    const heroMetaHTML = heroSubText
+    const heroMetaHTML = heroSubData.time
       ? '<div class="terminal-card-hero-meta">' +
-          '<span class="terminal-card-hero-sub">' + escapeHTML(heroSubText) + "</span>" +
-        "</div>"
+          '<span class="terminal-card-hero-sub">' + escapeHTML(heroSubData.time) + "</span>" +
+        "</div>" +
+        (heroSubData.sched
+          ? '<span class="terminal-card-hero-sched">(' + escapeHTML(heroSubData.sched) + " sched)</span>"
+          : "")
       : "";
 
     let footerHTML = "";

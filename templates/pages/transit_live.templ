@@ -36,9 +36,7 @@ templ TransitLive(vm transit.LiveViewModel) {
 		@components.TransitNav(components.TransitNavProps{Current: "map"})
 
 		<section class="route-panel" aria-label="Live transit map and routes">
-			<input type="checkbox" id="trip-toggle" class="trip-toggle"/>
-			<div class="terminal-map-header">
-				<span class="terminal-map-title">Transit Map</span>
+			<div class="terminal-map-header" id="map-info-host">
 				<span id="transit-status" class="transit-status transit-status-off" role="status" aria-live="polite">Live</span>
 				<div id="selector-bar">
 					@components.MapLayerBar(transitLayerGroups())
@@ -50,13 +48,16 @@ templ TransitLive(vm transit.LiveViewModel) {
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
 							<span>Locate</span>
 						</button>
+						<input type="checkbox" id="trip-toggle" class="trip-toggle"/>
 						<label for="trip-toggle" id="find-route-btn" class="selector-bar-btn trip-planner-open">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 							<span>Find Route</span>
 						</label>
-						<span class="selector-bar-btn selector-bar-btn-spacer" aria-hidden="true"></span>
 					</div>
 				</div>
+				<div class="tmi-layer tmi-hover" data-layer="hover" aria-live="polite"></div>
+				<div class="tmi-layer tmi-selection" data-layer="selection" aria-live="polite"></div>
+				<div class="tmi-layer tmi-trip" data-layer="trip" aria-live="polite"></div>
 			</div>
 				@templ.JSONScript("route-meta", vm.RouteMeta)
 			@components.LeafletMap(components.MapProps{
@@ -65,8 +66,6 @@ templ TransitLive(vm transit.LiveViewModel) {
 				Class:     "transit-map-wrap",
 				Scripts:   []string{"/static/transit/transit-map.js"},
 			}) {
-				<div id="map-info-bar" class="map-info-bar"></div>
-				<div id="map-status-bar" class="map-status-bar" aria-live="polite"></div>
 				<div id="trip-planner" class="trip-planner trip-planner-overlay">
 					<label for="trip-toggle" class="trip-planner-tab">
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -116,19 +115,21 @@ templ TransitLive(vm transit.LiveViewModel) {
 				</div>
 				<div class="terminal-tabs" role="tablist" aria-label="Terminal sections">
 					<span class="terminal-tabs-label" aria-hidden="true">Info:</span>
-					<label for="term-tab-routes" class="terminal-tab-label" role="tab" id="tab-routes" aria-selected="true" tabindex="0" aria-controls="panel-routes">Routes</label>
-					<label for="term-tab-buses" class="terminal-tab-label" role="tab" id="tab-buses" aria-selected="false" tabindex="-1" aria-controls="panel-buses">
-						<span id="terminal-bus-count" class="terminal-badge-num">0</span> Buses
-					</label>
-					if upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips) > 0 {
-						<label for="term-tab-cancels" class="terminal-tab-label" role="tab" id="tab-cancels" aria-selected="false" tabindex="-1" aria-controls="panel-cancels">
-							<span id="terminal-cancel-count" class="terminal-badge-num">{ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips)) }</span>
-							if upcomingCancellationCount(vm.CancelledTrips) > 0 {
-								<span class="terminal-cancels-upcoming">({ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips)) })</span>
-							}
-							Cancelled
+					<div class="terminal-tab-group">
+						<label for="term-tab-routes" class="terminal-tab-label" role="tab" id="tab-routes" aria-selected="true" tabindex="0" aria-controls="panel-routes">Routes</label>
+						<label for="term-tab-buses" class="terminal-tab-label" role="tab" id="tab-buses" aria-selected="false" tabindex="-1" aria-controls="panel-buses">
+							<span id="terminal-bus-count" class="terminal-badge-num">0</span> Buses
 						</label>
-					}
+						if upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips) > 0 {
+							<label for="term-tab-cancels" class="terminal-tab-label" role="tab" id="tab-cancels" aria-selected="false" tabindex="-1" aria-controls="panel-cancels">
+								<span id="terminal-cancel-count" class="terminal-badge-num">{ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips)) }</span>
+								if upcomingCancellationCount(vm.CancelledTrips) > 0 {
+									<span class="terminal-cancels-upcoming">({ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips)) })</span>
+								}
+								Cancelled
+							</label>
+						}
+					</div>
 				</div>
 			</div>
 			<div class="terminal-tab-panels">

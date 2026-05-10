@@ -151,7 +151,53 @@ let hoveredRoute: string | null = null;
 let sseSource: EventSource | null = null;
 let fallbackTimer: number | null = null;
 let selectedStop: { id: string; name: string } | null = null;
-let infoBarLocked = false;
+let selectedStopMarker: L.CircleMarker | null = null;
+let tripStopHighlights: L.CircleMarker[] = [];
+
+function findStopMarker(stopId: string): L.CircleMarker | null {
+  let found: L.CircleMarker | null = null;
+  const scan = function (l: L.Layer): void {
+    if (found) return;
+    const md = getMarkerData(l);
+    if (md && md.stopId === stopId && "setStyle" in l) found = l as L.CircleMarker;
+  };
+  if (stopLayer) stopLayer.eachLayer(scan);
+  if (!found && hubLayer) hubLayer.eachLayer(scan);
+  return found;
+}
+
+function setSelectedMarker(stopId: string | null): void {
+  if (selectedStopMarker) {
+    const el = selectedStopMarker.getElement();
+    if (el) el.classList.remove("stop-selected");
+    selectedStopMarker = null;
+  }
+  if (!stopId) return;
+  const m = findStopMarker(stopId);
+  if (!m) return;
+  selectedStopMarker = m;
+  const el = m.getElement();
+  if (el) el.classList.add("stop-selected");
+  m.bringToFront();
+}
+
+function setTripStopHighlights(stopIds: (string | null | undefined)[]): void {
+  for (let i = 0; i < tripStopHighlights.length; i++) {
+    const el = tripStopHighlights[i].getElement();
+    if (el) el.classList.remove("stop-selected");
+  }
+  tripStopHighlights = [];
+  for (let i = 0; i < stopIds.length; i++) {
+    const sid = stopIds[i];
+    if (!sid) continue;
+    const m = findStopMarker(sid);
+    if (!m) continue;
+    tripStopHighlights.push(m);
+    const el = m.getElement();
+    if (el) el.classList.add("stop-selected");
+    m.bringToFront();
+  }
+}
 let lastVehicles: LocalVehicle[] = [];
 
 // Routes with active cancellations (from server-rendered data attribute)
@@ -311,8 +357,7 @@ function initMap(): void {
   (el as MapHostElement)._leafletMap = map;
 
   map.on("click", function () {
-    if (infoBarLocked) unlockInfoBar();
-    if (selectedStop) { selectedStop = null; }
+    if (isLayerActive("selection")) clearSelection();
     if (selectedRoute) selectRoute(null);
     // On touch devices, don't dismiss an active trip on a stray tap — the
     // map is the primary interaction surface and accidental taps are easy.
@@ -470,7 +515,7 @@ function drawRouteLines(): void {
       smoothFactor: 1,
     });
 
-    // Click route line to select it, hover to preview info card
+    // Click route line to select / deselect. No hover behavior.
     (function (routeId: string) {
       line.on("click", function (e: L.LeafletEvent) {
         L.DomEvent.stopPropagation(e as L.LeafletMouseEvent);
@@ -479,27 +524,6 @@ function drawRouteLines(): void {
         } else {
           selectRoute(routeId);
         }
-      });
-      line.on("mouseover", function () {
-        if (!selectedRoute && hoveredRoute !== routeId) {
-          hoveredRoute = routeId;
-          restyleRouteLines();
-        }
-        const name = ROUTE_NAMES[routeId] || routeId;
-        const color = ROUTE_COLORS[routeId] || TC.statusMuted;
-        const busCount = lastVehicles.filter(function (v) { return v.routeId === routeId; }).length;
-        showInfoBar(
-          '<span class="info-route" style="background:' + color + '">' + routeId + '</span> ' +
-          '<span class="info-name">' + name + '</span>' +
-          (busCount > 0 ? ' <span class="info-detail">' + busCount + ' bus' + (busCount > 1 ? 'es' : '') + ' active</span>' : '')
-        );
-      });
-      line.on("mouseout", function () {
-        if (!selectedRoute && hoveredRoute === routeId) {
-          hoveredRoute = null;
-          restyleRouteLines();
-        }
-        hideInfoBar();
       });
     })(shape.route_id);
 
@@ -648,46 +672,67 @@ function fetchVehiclesFallback(): void {
 // Map info bar — single-line slide-up info for hovered/selected entities
 // ---------------------------------------------------------------------------
 
-let infoBarDismissTimer = 0;
+type LayerKey = "hover" | "selection" | "trip";
 
-function showInfoBar(html: string): void {
-  if (infoBarLocked) return;
-  if (infoBarDismissTimer) { clearTimeout(infoBarDismissTimer); infoBarDismissTimer = 0; }
-  const el = document.getElementById("map-info-bar");
-  if (!el) return;
-  el.innerHTML = html;
-  el.classList.add("info-bar-visible");
-  el.classList.remove("info-bar-locked");
+const layerClearTimers: Record<LayerKey, number> = { hover: 0, selection: 0, trip: 0 };
+let hoverHideTimer = 0;
+
+function getLayer(key: LayerKey): HTMLElement | null {
+  const host = document.getElementById("map-info-host");
+  return host ? (host.querySelector(".tmi-" + key) as HTMLElement | null) : null;
 }
 
-function lockInfoBar(html: string): void {
-  infoBarLocked = true;
-  if (infoBarDismissTimer) { clearTimeout(infoBarDismissTimer); infoBarDismissTimer = 0; }
-  const el = document.getElementById("map-info-bar");
-  if (!el) return;
-  el.innerHTML = html;
-  el.classList.add("info-bar-visible", "info-bar-locked");
+function setLayer(key: LayerKey, html: string): void {
+  const layer = getLayer(key);
+  if (!layer) return;
+  if (layerClearTimers[key]) { clearTimeout(layerClearTimers[key]); layerClearTimers[key] = 0; }
+  layer.classList.remove("is-clearing");
+  layer.innerHTML = html;
+  layer.classList.add("is-active");
 }
 
-function unlockInfoBar(): void {
-  infoBarLocked = false;
-  selectedStop = null;
-  const el = document.getElementById("map-info-bar");
-  if (el) {
-    el.classList.remove("info-bar-visible", "info-bar-locked");
+function clearLayer(key: LayerKey): void {
+  const layer = getLayer(key);
+  if (!layer) return;
+  if (!layer.classList.contains("is-active")) {
+    layer.innerHTML = "";
+    return;
   }
+  layer.classList.remove("is-active");
+  layer.classList.add("is-clearing");
+  if (layerClearTimers[key]) clearTimeout(layerClearTimers[key]);
+  layerClearTimers[key] = window.setTimeout(function () {
+    layerClearTimers[key] = 0;
+    const l = getLayer(key);
+    if (l) {
+      l.classList.remove("is-clearing");
+      l.innerHTML = "";
+    }
+  }, 300);
 }
 
-function hideInfoBar(): void {
-  if (infoBarLocked) return;
-  // Delay dismiss by 1 second so the bar lingers briefly
-  if (infoBarDismissTimer) clearTimeout(infoBarDismissTimer);
-  infoBarDismissTimer = window.setTimeout(function () {
-    infoBarDismissTimer = 0;
-    if (infoBarLocked) return;
-    const el = document.getElementById("map-info-bar");
-    if (el) el.classList.remove("info-bar-visible");
-  }, 1000);
+function isLayerActive(key: LayerKey): boolean {
+  const layer = getLayer(key);
+  return !!layer && layer.classList.contains("is-active");
+}
+
+function showHover(html: string): void {
+  if (hoverHideTimer) { clearTimeout(hoverHideTimer); hoverHideTimer = 0; }
+  setLayer("hover", html);
+}
+
+function hideHoverDebounced(): void {
+  if (hoverHideTimer) clearTimeout(hoverHideTimer);
+  hoverHideTimer = window.setTimeout(function () {
+    hoverHideTimer = 0;
+    clearLayer("hover");
+  }, 300);
+}
+
+function clearSelection(): void {
+  selectedStop = null;
+  setSelectedMarker(null);
+  clearLayer("selection");
 }
 
 function bearingArrow(deg: number): string {
@@ -703,6 +748,9 @@ function busInfoHtml(v: LocalVehicle): string {
   else if (v.status === "INCOMING_AT") status = "Approaching";
   else status = "In transit";
   if (v.nearStop) status += " \u2022 " + v.nearStop;
+  let motion = "";
+  if (v.speed > 0) motion = bearingArrow(v.bearing) + " " + Math.round(v.speed * 3.6) + " km/h";
+  else if (v.bearing) motion = bearingArrow(v.bearing);
   // OTP window: 1m early to 5m late — inside that, say nothing.
   let delay = "";
   if (v.delay != null) {
@@ -713,12 +761,29 @@ function busInfoHtml(v: LocalVehicle): string {
     ' <span class="info-id">#' + v.id + '</span>' +
     (name ? ' <span class="info-name">' + name + '</span>' : '') +
     ' <span class="info-detail">' + status + '</span>' +
+    (motion ? ' <span class="info-motion">' + motion + '</span>' : '') +
     (delay ? ' <span class="info-delay">' + delay + '</span>' : '');
+}
+
+function activeBusesAtStop(stopId: string): number {
+  const stop = allStops.find(function (s) { return s.stop_id === stopId; });
+  if (!stop || !stop.route_ids || stop.route_ids.length === 0) return 0;
+  const routeSet: Record<string, boolean> = {};
+  for (let i = 0; i < stop.route_ids.length; i++) routeSet[stop.route_ids[i]] = true;
+  let n = 0;
+  for (let i = 0; i < lastVehicles.length; i++) {
+    if (routeSet[lastVehicles[i].routeId]) n++;
+  }
+  return n;
 }
 
 function stopPredictionsHtml(stopId: string, stopName: string, preds: {route_id: string; route_color: string; minutes_away: number; delay_seconds?: number | null}[]): string {
   let html = '<span class="info-stop-name">' + stopName + '</span>' +
     ' <span class="info-id">#' + stopId + '</span>';
+  const buses = activeBusesAtStop(stopId);
+  if (buses > 0) {
+    html += ' <span class="info-detail">· ' + buses + ' bus' + (buses === 1 ? '' : 'es') + ' active</span>';
+  }
   const seenRoutes: Record<string, boolean> = {};
   let shown = 0;
   for (let i = 0; i < preds.length && shown < 4; i++) {
@@ -754,33 +819,44 @@ function stopPredictionsHtml(stopId: string, stopName: string, preds: {route_id:
   return html;
 }
 
-function fetchStopPredictions(stopId: string, stopName: string, lock: boolean): void {
-  const loadingHtml = '<span class="info-stop-name">' + stopName + '</span>' +
-    ' <span class="info-id">#' + stopId + '</span>' +
+function stopLoadingHtml(stopId: string, stopName: string): string {
+  return '<span class="info-stop-name">' + escapeHtml(stopName) + '</span>' +
+    ' <span class="info-id">#' + escapeHtml(stopId) + '</span>' +
     ' <span class="info-detail">Loading...</span>';
-  if (lock) lockInfoBar(loadingHtml);
-  else showInfoBar(loadingHtml);
+}
 
+function fetchStopPredictions(stopId: string, stopName: string, layer: LayerKey): void {
+  const myToken = ++stopFetchToken;
   fetch("/api/transit/stop/" + encodeURIComponent(stopId) + "/predictions")
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (data) {
+      if (myToken !== stopFetchToken) return;
       if (!data) return;
       const html = stopPredictionsHtml(stopId, stopName, data.predictions || []);
-      const el = document.getElementById("map-info-bar");
-      if (el && el.classList.contains("info-bar-visible")) {
-        el.innerHTML = html;
+      const target = getLayer(layer);
+      if (target && target.classList.contains("is-active")) {
+        target.innerHTML = html;
       }
     })
     .catch(function () { /* keep loading display */ });
 }
 
-function lockStopInfo(stopId: string, stopName: string): void {
-  selectedStop = { id: stopId, name: stopName };
-  fetchStopPredictions(stopId, stopName, true);
+function hoverStopInfo(stopId: string, stopName: string): void {
+  showHover(stopLoadingHtml(stopId, stopName));
+  fetchStopPredictions(stopId, stopName, "hover");
 }
 
+function lockStopInfo(stopId: string, stopName: string): void {
+  selectedStop = { id: stopId, name: stopName };
+  setSelectedMarker(stopId);
+  setLayer("selection", stopLoadingHtml(stopId, stopName));
+  fetchStopPredictions(stopId, stopName, "selection");
+}
+
+let stopFetchToken = 0;
+
 function clickToRoute(fromId: string, fromName: string, toId: string, toName: string): void {
-  unlockInfoBar();
+  clearSelection();
   const fromStop = allStops.find(function (s) { return s.stop_id === fromId; });
   const toStop = allStops.find(function (s) { return s.stop_id === toId; });
   if (!fromStop || !toStop) return;
@@ -798,8 +874,11 @@ function clickToRoute(fromId: string, fromName: string, toId: string, toName: st
   const url = planURL(true);
   if (!url) return;
 
-  const wrap = document.querySelector(".transit-map-wrap");
-  if (wrap) htmx.ajax("GET", url, { target: wrap as Element, swap: "beforeend" });
+  const slot = getLayer("trip");
+  if (slot) {
+    setLayer("trip", "");
+    htmx.ajax("GET", url, { target: slot as Element, swap: "innerHTML" });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -881,14 +960,14 @@ function updateMarkers(vehicles: LocalVehicle[]): void {
       (function(vehicle: LocalVehicle) {
         const vid = vehicle.id, rid = vehicle.routeId;
         busMarkers[vid].on("mouseover", function () {
-          showInfoBar(busInfoHtml(vehicle));
+          showHover(busInfoHtml(vehicle));
           if (!selectedRoute) {
             hoveredRoute = rid;
             restyleRouteLines();
           }
         });
         busMarkers[vid].on("mouseout", function () {
-          hideInfoBar();
+          hideHoverDebounced();
           if (!selectedRoute && hoveredRoute === rid) {
             hoveredRoute = null;
             restyleRouteLines();
@@ -896,8 +975,8 @@ function updateMarkers(vehicles: LocalVehicle[]): void {
         });
         busMarkers[vid].on("click", function (e: L.LeafletEvent) {
           L.DomEvent.stopPropagation(e as L.LeafletMouseEvent);
-          if (infoBarLocked) { unlockInfoBar(); return; }
-          lockInfoBar(busInfoHtml(vehicle));
+          if (isLayerActive("selection")) { clearSelection(); return; }
+          setLayer("selection", busInfoHtml(vehicle));
           if (selectedRoute !== rid) selectRoute(rid);
         });
       })(v);
@@ -1120,6 +1199,33 @@ function selectRoute(route: string | null): void {
 
   // Show/hide inline schedule
   loadRouteSchedule(route);
+
+  // Selection lives in its own overlay (z-index above the hover info bar)
+  // — by construction the hover bar is occluded while a route is selected,
+  // so we don't need any JS guards on the hover write paths.
+  if (route) {
+    setLayer("selection", routeInfoHtml(route));
+  } else {
+    clearLayer("selection");
+  }
+}
+
+function routeInfoHtml(routeId: string): string {
+  const name = ROUTE_NAMES[routeId] || routeId;
+  const color = ROUTE_COLORS[routeId] || TC.statusMuted;
+  const busCount = lastVehicles.filter(function (v) { return v.routeId === routeId; }).length;
+  const trips = cancelledTrips[routeId] || [];
+  const upcoming = trips.filter(function (t) { return !!t.upcoming; }).length;
+
+  let html = '<span class="info-route" style="background:' + color + '">' + escapeHtml(routeId) + '</span>' +
+    ' <span class="info-name">' + escapeHtml(name) + '</span>' +
+    ' <span class="info-detail">· ' + busCount + ' bus' + (busCount === 1 ? '' : 'es') + ' active</span>';
+  if (upcoming > 0) {
+    html += ' <span class="info-alert" title="' + upcoming + ' upcoming cancellation' + (upcoming === 1 ? '' : 's') + ' on this route">⚠ ' +
+      upcoming + ' upcoming cancellation' + (upcoming === 1 ? '' : 's') + '</span>';
+  }
+  html += ' <button type="button" class="info-btn" data-action="scroll-to-schedule">Schedule ↓</button>';
+  return html;
 }
 
 // ---------------------------------------------------------------------------
@@ -1185,6 +1291,15 @@ function loadRouteSchedule(route: string | null): void {
       container.innerHTML = '<p class="perf-loading">Unable to load schedule.</p>';
     });
 }
+
+// Top info bar: "Schedule ↓" button on a selected route scrolls down to
+// the inline schedule rendered under the route grid.
+document.addEventListener('click', function (e: Event) {
+  const btn = (e.target as HTMLElement).closest('[data-action="scroll-to-schedule"]') as HTMLElement | null;
+  if (!btn) return;
+  const target = document.getElementById('route-schedule-inline');
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 
 // Day picker: click a day button to reload schedule for that date
 document.addEventListener('click', function (e: Event) {
@@ -1359,12 +1474,12 @@ function loadStops(): void {
           lmMarker.on("mouseover", function () {
             const el = lmMarker.getElement();
             if (el) el.querySelector('.landmark-circle')?.classList.add('landmark-hover');
-            fetchStopPredictions(s.stop_id, s.stop_name, false);
+            hoverStopInfo(s.stop_id, s.stop_name);
           });
           lmMarker.on("mouseout", function () {
             const el = lmMarker.getElement();
             if (el) el.querySelector('.landmark-circle')?.classList.remove('landmark-hover');
-            hideInfoBar();
+            hideHoverDebounced();
           });
           hubLayer!.addLayer(lmMarker);
           continue;
@@ -1391,8 +1506,8 @@ function loadStops(): void {
           L.DomEvent.stopPropagation(e as L.LeafletMouseEvent);
           const md = getMarkerData(this);
           if (!md) return;
-          if (infoBarLocked && selectedStop) {
-            if (md.stopId === selectedStop.id) { unlockInfoBar(); }
+          if (selectedStop && isLayerActive("selection")) {
+            if (md.stopId === selectedStop.id) { clearSelection(); }
             else { clickToRoute(selectedStop.id, selectedStop.name, md.stopId, md.stopName); }
             return;
           }
@@ -1402,13 +1517,13 @@ function loadStops(): void {
           this.setStyle({ radius: (this.options.radius || r) + 3, fillOpacity: 1, weight: 2.5 });
           this.bringToFront();
           const md = getMarkerData(this);
-          if (md) fetchStopPredictions(md.stopId, md.stopName, false);
+          if (md) hoverStopInfo(md.stopId, md.stopName);
         });
         marker.on("mouseout", function (this: L.CircleMarker) {
           const md = getMarkerData(this);
           const baseR = md && md.hasAlert ? stopRadius() + 2 : stopRadius();
           this.setStyle({ radius: baseR, fillOpacity: 0.8, weight: md && md.hasAlert ? 2.5 : 1.5 });
-          hideInfoBar();
+          hideHoverDebounced();
         });
         targetLayer.addLayer(marker);
       }
@@ -1437,12 +1552,12 @@ function loadStops(): void {
         civicMarker.on("mouseover", function () {
           const el = civicMarker.getElement();
           if (el) el.querySelector('.landmark-circle')?.classList.add('landmark-hover');
-          showInfoBar('<span class="info-stop-name">' + cl.name + '</span>');
+          showHover('<span class="info-stop-name">' + cl.name + '</span>');
         });
         civicMarker.on("mouseout", function () {
           const el = civicMarker.getElement();
           if (el) el.querySelector('.landmark-circle')?.classList.remove('landmark-hover');
-          hideInfoBar();
+          hideHoverDebounced();
         });
         hubLayer!.addLayer(civicMarker);
       }
@@ -1757,6 +1872,13 @@ function initTripPlanner(): void {
     if (summaryBar) {
       const findRouteLabel = document.getElementById('find-route-btn');
       if (findRouteLabel) findRouteLabel.classList.add('active');
+      // Trip layer already received the htmx swap; just ensure it's marked active.
+      const tripLayer = getLayer("trip");
+      if (tripLayer && !tripLayer.classList.contains("is-active")) {
+        if (layerClearTimers.trip) { clearTimeout(layerClearTimers.trip); layerClearTimers.trip = 0; }
+        tripLayer.classList.remove("is-clearing");
+        tripLayer.classList.add("is-active");
+      }
 
       const focusBtn = summaryBar.querySelector(".route-summary-focus");
       if (focusBtn) focusBtn.addEventListener("click", function (ev: Event) {
@@ -1804,10 +1926,13 @@ function initTripPlanner(): void {
         const seeBtn = (ev.target as HTMLElement).closest(".trip-see-route") as HTMLElement | null;
         if (seeBtn) {
           setTripPlannerOpen(false);
-          // Fetch summary bar via HTMX
+          // Fetch summary bar via HTMX into the trip layer
           const summaryUrl = planURL(true);
-          const wrap = document.querySelector(".transit-map-wrap");
-          if (summaryUrl && wrap) htmx.ajax("GET", summaryUrl, { target: wrap as Element, swap: "beforeend" });
+          const slot = getLayer("trip");
+          if (summaryUrl && slot) {
+            setLayer("trip", "");
+            htmx.ajax("GET", summaryUrl, { target: slot as Element, swap: "innerHTML" });
+          }
         }
       });
 
@@ -2091,31 +2216,25 @@ function openTripPlanner(): void {
 }
 
 function hideRouteSummaryBar(): void {
-  const bar = document.getElementById("route-summary-bar");
-  if (bar) bar.remove();
   const findRouteLabel = document.getElementById('find-route-btn');
   if (findRouteLabel) findRouteLabel.classList.remove('active');
+  clearLayer("trip");
 }
 
 // Briefly show a route-summary-style overlay above the map for transient
 // status (e.g. geolocation errors). Auto-dismisses; doesn't open the planner.
 let locateErrorTimer: number | null = null;
 function showLocateErrorBar(msg: string): void {
-  const wrap = document.querySelector(".transit-map-wrap");
-  if (!wrap) return;
-  let bar = document.getElementById("locate-error-bar");
-  if (!bar) {
-    bar = document.createElement("div");
-    bar.id = "locate-error-bar";
-    bar.className = "route-summary-bar route-summary-error";
-    bar.setAttribute("role", "alert");
-    wrap.appendChild(bar);
-  }
-  bar.innerHTML = '<span class="route-summary-info"><span class="trip-itin-dur">' + msg + '</span></span>';
+  const layer = getLayer("trip");
+  if (!layer) return;
+  setLayer("trip", '<span class="route-summary-info route-summary-error" role="alert"><span class="trip-itin-dur">' + msg + '</span></span>');
+  layer.classList.add("is-error");
   if (locateErrorTimer !== null) clearTimeout(locateErrorTimer);
   locateErrorTimer = window.setTimeout(function () {
-    if (bar) bar.remove();
     locateErrorTimer = null;
+    const l = getLayer("trip");
+    if (l) l.classList.remove("is-error");
+    clearLayer("trip");
   }, 3500);
 }
 
@@ -2195,6 +2314,10 @@ function doTripPlan(): void {
 function drawTripRoute(itin: Itinerary): void {
   clearTripRoute();
   tripRouteLayer = L.layerGroup().addTo(map!);
+  setTripStopHighlights([
+    tripFrom ? tripFrom.stopId : null,
+    tripTo ? tripTo.stopId : null,
+  ]);
 
   // Collect route IDs used by this itinerary
   tripPlanRoutes = {};
@@ -2394,6 +2517,7 @@ function clearTripRoute(): void {
     map!.removeLayer(tripRouteLayer);
     tripRouteLayer = null;
   }
+  setTripStopHighlights([]);
   tripPlanRoutes = null;
   highlightTripPills();
   // Restore route line opacity and bus markers
@@ -2479,7 +2603,7 @@ function buildBusRow(v: LocalVehicle): HTMLElement {
       const wrap = document.querySelector('.transit-map-wrap');
       if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
       map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 15), { duration: 1.2, easeLinearity: 0.25 });
-      showInfoBar(busInfoHtml(v));
+      showHover(busInfoHtml(v));
     }
   });
 

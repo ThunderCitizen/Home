@@ -9,26 +9,32 @@ templ TerminalMapHeader(terminals []transit.TerminalCard, activeIdx int) {
 	<header class="terminal-map-header">
 		<span class="terminal-map-title">Terminals</span>
 		<div class="selector-bar" role="tablist" aria-label="Choose a terminal">
-			for i, t := range terminals {
-				<button
-					type="button"
-					role="tab"
-					class={ "selector-bar-btn", templ.KV("active", i == activeIdx) }
-					aria-selected?={ i == activeIdx }
-					data-stop-id={ t.StopID }
-					data-stop-name={ t.StopName }
-				>{ t.StopName }</button>
-			}
+			<div class="selector-bar-btns">
+				for i, t := range terminals {
+					<button
+						type="button"
+						role="tab"
+						class={ "selector-bar-btn", templ.KV("active", i == activeIdx) }
+						aria-selected?={ i == activeIdx }
+						data-stop-id={ t.StopID }
+						data-stop-name={ t.StopName }
+					>{ t.StopName }</button>
+				}
+			</div>
 		</div>
-		<button type="button" id="board-fs-toggle" class="selector-bar-btn selector-bar-btn--end" aria-label="Enter kiosk mode">
+		<div class="selector-bar selector-bar--end">
+			<div class="selector-bar-btns">
+				<button type="button" id="board-fs-toggle" class="selector-bar-btn" aria-label="Enter kiosk mode">
 			<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 				<path d="M3 9V3h6"></path>
 				<path d="M21 9V3h-6"></path>
 				<path d="M3 15v6h6"></path>
 				<path d="M21 15v6h-6"></path>
 			</svg>
-			<span>Kiosk</span>
-		</button>
+				<span>Kiosk</span>
+			</button>
+			</div>
+		</div>
 		<span id="board-clock" class="terminal-board-time" aria-hidden="true" hidden></span>
 	</header>
 }
