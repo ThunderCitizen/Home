@@ -875,6 +875,15 @@ article > header {
     letter-spacing: 0.08em;
   }
 
+  .notice-date {
+    display: block;
+    margin-top: 0.15rem;
+    color: color-mix(in srgb, var(--thunder-600) 70%, transparent);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+  }
+
   p {
     margin-top: 0.25rem;
     margin-bottom: 0;
