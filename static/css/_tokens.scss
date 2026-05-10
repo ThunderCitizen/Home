@@ -140,6 +140,14 @@
   --text-xl: 1.75rem;   // 28px  - large display
   --text-2xl: 2rem;     // 32px   — hero headline
 
+  // Weight scale — semantic names map to common CSS weights so callers
+  // declare intent (e.g. heading vs body bold) instead of magic numbers.
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semi:   600;
+  --weight-bold:   700;
+  --weight-heavy:  800;
+
   // Radius scale
   --radius-sm: 3px;
   --radius-md: 6px;

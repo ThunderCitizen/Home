@@ -77,19 +77,21 @@ templ MapLayerBar(groups []MapLayerGroup) {
 			if g.Label != "" {
 				<span class="selector-bar-label">{ g.Label }</span>
 			}
-			for _, ly := range g.Layers {
-				if ly.Active {
-					<button type="button" class="selector-bar-btn active" data-layer={ ly.Key } title={ ly.Label }>
-						@templ.Raw(ly.Icon)
-						<span>{ ly.Label }</span>
-					</button>
-				} else {
-					<button type="button" class="selector-bar-btn" data-layer={ ly.Key } title={ ly.Label }>
-						@templ.Raw(ly.Icon)
-						<span>{ ly.Label }</span>
-					</button>
+			<div class="selector-bar-btns">
+				for _, ly := range g.Layers {
+					if ly.Active {
+						<button type="button" class="selector-bar-btn active" data-layer={ ly.Key } title={ ly.Label }>
+							@templ.Raw(ly.Icon)
+							<span>{ ly.Label }</span>
+						</button>
+					} else {
+						<button type="button" class="selector-bar-btn" data-layer={ ly.Key } title={ ly.Label }>
+							@templ.Raw(ly.Icon)
+							<span>{ ly.Label }</span>
+						</button>
+					}
 				}
-			}
+			</div>
 		</div>
 	}
 }

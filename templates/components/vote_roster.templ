@@ -32,6 +32,7 @@ type VoteRosterProps struct {
 	HeadlineCls  string // "carried" | "lost" | "tie"
 	Unanimous    bool   // one side has ≥1 vote and the other has 0
 	UnanimousFor bool   // direction of unanimity (true = all For, false = all Against)
+	OmitHeadline bool   // when true, caller will render the headline themselves (e.g. as a card subtitle)
 }
 
 // VoteRoster renders a vote breakdown as photo strips with names beneath.
@@ -39,10 +40,12 @@ type VoteRosterProps struct {
 // stacked Yea / Nay rows. Absent voters appear as a third muted row.
 templ VoteRoster(p VoteRosterProps) {
 	<div class={ "vote-roster", "vote-roster--" + p.HeadlineCls }>
-		<div class="vote-roster-headline">
-			<span class={ "vote-roster-tally", "vote-roster-tally--" + p.HeadlineCls }>{ p.Headline }</span>
-			<span class="vote-roster-count">{ p.Tally }</span>
-		</div>
+		if !p.OmitHeadline {
+			<div class="vote-roster-headline">
+				<span class={ "vote-roster-tally", "vote-roster-tally--" + p.HeadlineCls }>{ p.Headline }</span>
+				<span class="vote-roster-count">{ p.Tally }</span>
+			</div>
+		}
 		if p.Unanimous {
 			if p.UnanimousFor {
 				@voteRosterStrip("for", "", p.For)

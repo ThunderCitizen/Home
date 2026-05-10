@@ -34,7 +34,8 @@ static/councillors/votes_*.json
 /perftest
 
 # Runtime data — extracted artifacts, downloaded bundles, never code.
-data/
+# Anchored to project root so it doesn't shadow internal/data/ (Go package).
+/data/
 
 # Database backups (./scripts/backup.sh writes here)
 backups/

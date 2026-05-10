@@ -71,7 +71,7 @@
 
 .nf-404 {
   font-size: 2.5rem;
-  font-weight: 800;
+  font-weight: var(--weight-heavy);
   letter-spacing: 0.1em;
   filter: drop-shadow(var(--hero-glow));
 }
@@ -118,14 +118,14 @@
 
   // Rank #1 — highlight with accent color on the row.
   tbody tr[data-rank="1"] {
-    .nf-col-rank { color: var(--accent); font-weight: 800; }
+    .nf-col-rank { color: var(--accent); font-weight: var(--weight-heavy); }
     .nf-col-path a { text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent); }
   }
 
   a {
     color: var(--accent);
     text-decoration: none;
-    font-weight: 700;
+    font-weight: var(--weight-bold);
   }
   a:hover { text-decoration: underline; }
 
@@ -165,6 +165,10 @@
   color: var(--status-warn);
   font-size: 1rem;
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--status-warn) 30%, transparent));
+}
+
+.ua-retry-line {
+  margin-top: var(--space-2);
 }
 
 .ua-retry {
@@ -254,7 +258,7 @@
 
 .hc-pct-value {
   font-size: 1.4rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
@@ -266,7 +270,7 @@
 
   .hc-pct-label {
     color: var(--accent);
-    font-weight: 700;
+    font-weight: var(--weight-bold);
   }
 
   .hc-pct-value {
@@ -338,7 +342,7 @@
   .hc-pct-legend {
     font-family: var(--font-mono);
     font-size: 9px;
-    font-weight: 700;
+    font-weight: var(--weight-bold);
     letter-spacing: 0.05em;
   }
   .hc-pct-legend-p50 { fill: color-mix(in srgb, var(--accent) 85%, var(--term-bg-deep)); }
@@ -391,7 +395,7 @@
 .hc-val {
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--term-fg);
   margin-bottom: 0.25rem;
 }
@@ -498,7 +502,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--thunder-600);
-    font-weight: 700;
+    font-weight: var(--weight-bold);
   }
 
   tbody tr:last-child td { border-bottom: none; }
@@ -527,7 +531,7 @@
   padding: 0.1rem 0.5rem;
   border-radius: var(--radius-sm);
   font-size: 0.6rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: color-mix(in srgb, var(--status-muted) 15%, var(--thunder-50));
@@ -547,6 +551,13 @@
     background: color-mix(in srgb, var(--status-error) 18%, var(--thunder-50));
     color: var(--status-error);
   }
+}
+
+.about-pipeline-svg {
+  width: 100%;
+  max-width: 840px;
+  font-family: var(--font-mono);
+  margin-top: var(--space-2);
 }
 
 .about-health-link {
@@ -630,7 +641,7 @@
     code {
       font-size: 0.82rem;
       color: var(--heading);
-      font-weight: 700;
+      font-weight: var(--weight-bold);
     }
   }
 
@@ -709,7 +720,7 @@
     font-size: 0.85rem;
   }
 
-  code { color: var(--heading); font-weight: 600; }
+  code { color: var(--heading); font-weight: var(--weight-semi); }
   small { color: var(--term-fg-dim); font-size: 0.75rem; }
 }
 
@@ -807,7 +818,7 @@
 
   .data-info-id code {
     color: var(--accent);
-    font-weight: 700;
+    font-weight: var(--weight-bold);
   }
   .data-info-unit {
     color: var(--term-fg-dim);
@@ -820,7 +831,7 @@
   .data-info-merkle { color: var(--term-fg-dim); }
   .data-info-error {
     color: var(--status-error);
-    font-weight: 600;
+    font-weight: var(--weight-semi);
     flex-basis: 100%;
   }
 }
@@ -859,7 +870,7 @@
   gap: 0.3rem;
   align-items: baseline;
 
-  code { color: var(--heading); font-weight: 600; }
+  code { color: var(--heading); font-weight: var(--weight-semi); }
   small { color: var(--term-fg-dim); }
 }
 
@@ -944,7 +955,7 @@
 
     code {
       color: var(--heading);
-      font-weight: 700;
+      font-weight: var(--weight-bold);
     }
     .data-pack-unit {
       color: var(--term-fg-dim);

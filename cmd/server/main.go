@@ -187,8 +187,9 @@ func main() {
 	r.Use(middleware.NoCacheInDev(cfg.Environment))
 	// PageUnavailable intercepts HTTP 503s on page routes and serves a
 	// themed HTML error page instead of the JSON body. It is also the
-	// single log site for 503s — handlers record the underlying error via
-	// middleware.RecordError(r.Context(), err) and let this middleware log it.
+	// single log site for 503s — handlers report the underlying error via
+	// middleware.HandleUnavailable(ctx, w, msg, err) and let this middleware
+	// log it.
 	r.Use(middleware.PageUnavailable(func(ctx context.Context, w io.Writer) error {
 		return pages.ServiceUnavailable().Render(ctx, w)
 	}))

@@ -58,17 +58,14 @@ func matrixDateColSpan(numRows int) string {
 	return fmt.Sprintf("%d", numRows+1)
 }
 
-func voteTally(rows []views.VoteMatrixRow, colIdx int) string {
-	var f, a int
-	for _, r := range rows {
-		switch r.Cells[colIdx] {
-		case "for":
-			f++
-		case "against":
-			a++
-		}
+// splitMobileColumns slices the matrix columns into a head shown by default
+// and a tail revealed by the "Show all" button. The split is at a column
+// boundary, so date dividers naturally bound each group.
+func splitMobileColumns(cols []views.VoteMatrixColumn, n int) ([]views.VoteMatrixColumn, []views.VoteMatrixColumn) {
+	if len(cols) <= n {
+		return cols, nil
 	}
-	return fmt.Sprintf("%d For · %d Against", f, a)
+	return cols[:n], cols[n:]
 }
 
 templ compensationSource(ref models.SourceRef) {
@@ -94,7 +91,7 @@ templ Councillors(vm views.CouncillorsViewModel) {
 			@CouncillorsPartial(vm)
 		</div>
 
-		@voteMatrixModal()
+		@voteMatrixDetailScript()
 		@voteMatrixPhotoSync()
 		@components.AccordionAnimateScript()
 	}
@@ -219,20 +216,10 @@ templ voteMatrix(vm *views.VoteMatrixViewModel) {
 							if colIdx == 0 || col.Date != vm.Columns[colIdx-1].Date {
 								<tr class="vote-matrix-date-row">
 									<td></td>
-									<td colspan={ matrixDateColSpan(len(vm.Rows)) }>
-										<a href={ templ.SafeURL(col.MeetingURL) }>{ col.Date }</a>
-									</td>
+									<td colspan={ matrixDateColSpan(len(vm.Rows)) }>{ col.Date }</td>
 								</tr>
 							}
-							<tr
-								data-motion-title={ col.Label }
-								data-motion-summary={ col.Summary }
-								data-motion-date={ col.Date }
-								data-motion-result={ col.Result }
-								data-motion-url={ col.URL }
-								data-motion-media={ col.MediaURL }
-								data-motion-id={ fmt.Sprintf("%d", col.MotionID) }
-							>
+							<tr class="vote-matrix-row" data-motion-id={ fmt.Sprintf("%d", col.MotionID) } aria-expanded="false" tabindex="0">
 								<td class="vote-matrix-result-cell">
 									if col.Result == "Lost" || col.Result == "Tie" {
 										<span class={ "vote-matrix-result-badge", "vote-matrix-result--" + strings.ToLower(col.Result) }>{ col.Result }</span>
@@ -256,62 +243,88 @@ templ voteMatrix(vm *views.VoteMatrixViewModel) {
 									}
 								}
 							</tr>
+							<tr class="vote-matrix-detail" hidden>
+								<td colspan={ matrixColSpan(len(vm.Rows)) }>
+									<div class="vote-matrix-detail-inner">
+										<div class={ "vote-matrix-detail-content", "vote-matrix-detail--" + strings.ToLower(col.Result) }>
+											if col.Summary != "" {
+												<p class="vote-matrix-detail-summary">{ col.Summary }</p>
+											}
+											<div class="vote-matrix-detail-actions">
+												if col.MediaURL != "" {
+													<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="vote-matrix-detail-btn vote-matrix-detail-btn--media">
+														TBNews <span class="ext-link-icon" aria-hidden="true"></span>
+													</a>
+												}
+												<a href={ templ.SafeURL(col.URL) } class="vote-matrix-detail-btn vote-matrix-detail-btn--primary">
+													View full minutes <span aria-hidden="true">&rarr;</span>
+												</a>
+											</div>
+										</div>
+									</div>
+								</td>
+							</tr>
 						}
 					</tbody>
 				</table>
 			</div>
 	</div>
 	@voteMatrixMobile(vm)
-	@voteMatrixRosterTemplates(vm)
-}
-
-// voteMatrixRosterTemplates emits one hidden <template> per motion.
-// The modal JS clones the matching template by id into the slot when a row is clicked.
-templ voteMatrixRosterTemplates(vm *views.VoteMatrixViewModel) {
-	for _, col := range vm.Columns {
-		if col.Roster != nil {
-			<template id={ fmt.Sprintf("vote-roster-%d", col.MotionID) }>
-				@components.VoteRoster(*col.Roster)
-			</template>
-		}
-	}
 }
 
 templ voteMatrixMobile(vm *views.VoteMatrixViewModel) {
+	{{ visible, overflow := splitMobileColumns(vm.Columns, vm.MobileVisibleCount) }}
 	<div class="vote-matrix-mobile">
-		for colIdx, col := range vm.Columns {
-			if colIdx == 0 || col.Date != vm.Columns[colIdx-1].Date {
-				<div class="vote-matrix-mobile-date">
-					<a href={ templ.SafeURL(col.MeetingURL) }>{ col.Date }</a>
-				</div>
-			}
-			<div
-				class="vote-matrix-card"
-				data-motion-title={ col.Label }
-				data-motion-summary={ col.Summary }
-				data-motion-date={ col.Date }
-				data-motion-result={ col.Result }
-				data-motion-url={ col.URL }
-				data-motion-media={ col.MediaURL }
-				data-motion-id={ fmt.Sprintf("%d", col.MotionID) }
-			>
-				<div class="vote-matrix-card-top">
-					<span class="vote-matrix-card-label">{ col.Label }</span>
-				</div>
-				<div class="vote-matrix-card-bottom">
-					if col.Result == "Lost" || col.Result == "Tie" {
-						<span class={ "vote-matrix-result-badge", "vote-matrix-result--" + strings.ToLower(col.Result) }>{ col.Result }</span>
-					} else {
-						<span class="vote-matrix-result-badge vote-matrix-result--carried">Carried</span>
-					}
-					if col.MediaURL != "" {
-						<span class="vote-matrix-media-badge" title="Press coverage">TBNews</span>
-					}
-					<span class="vote-matrix-card-tally">{ voteTally(vm.Rows, colIdx) }</span>
+		@mobileMatrixGroup(visible)
+		if len(overflow) > 0 {
+			<div class="vote-matrix-mobile-rest" hidden>
+				<div class="vote-matrix-mobile-rest-inner">
+					@mobileMatrixGroup(overflow)
 				</div>
 			</div>
+			<button type="button" class="vote-matrix-show-all" aria-expanded="false">
+				Show all { fmt.Sprintf("%d", len(overflow)) } more
+			</button>
 		}
 	</div>
+}
+
+// mobileMatrixGroup renders a contiguous slice of columns with date dividers
+// inserted at date transitions. The first card in the slice always emits its
+// divider so the visible / overflow groups stay self-contained.
+templ mobileMatrixGroup(cols []views.VoteMatrixColumn) {
+	for i, col := range cols {
+		if i == 0 || col.Date != cols[i-1].Date {
+			<div class="vote-matrix-mobile-date">{ col.Date }</div>
+		}
+		<div class="vote-matrix-card" data-motion-id={ fmt.Sprintf("%d", col.MotionID) }>
+			<div class="vote-matrix-card-top">
+				<h3 class="vote-matrix-card-label">{ col.Label }</h3>
+				if col.Roster != nil {
+					<div class={ "vote-matrix-card-subtitle", "vote-matrix-card-subtitle--" + col.Roster.HeadlineCls }>
+						<span class="vote-matrix-card-subtitle-headline">{ col.Roster.Headline }</span>
+						<span class="vote-matrix-card-subtitle-tally">{ col.Roster.Tally }</span>
+					</div>
+				}
+			</div>
+			if col.Summary != "" && col.Summary != col.Label {
+				<p class="vote-matrix-card-summary">{ col.Summary }</p>
+			}
+			if col.Roster != nil {
+				<div class="vote-matrix-card-roster">
+					{{ r := *col.Roster; r.OmitHeadline = true }}
+					@components.VoteRoster(r)
+				</div>
+			}
+			if col.MediaURL != "" {
+				<div class="vote-matrix-card-footer">
+					<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="badge badge-headline vote-matrix-card-media-link">
+						TBNews <span class="ext-link-icon" aria-hidden="true"></span>
+					</a>
+				</div>
+			}
+		</div>
+	}
 }
 
 templ voteMatrixNamesRow(vm *views.VoteMatrixViewModel) {
@@ -361,103 +374,69 @@ templ voteMatrixHeader(vm *views.VoteMatrixViewModel) {
 	</div>
 }
 
-templ voteMatrixModal() {
-	<dialog id="vote-matrix-modal" class="motion-modal">
-		<article class="motion-modal-content">
-			<button aria-label="Close" class="motion-modal-close">&times;</button>
-			<div class="motion-modal-header">
-				<span id="vote-modal-result" class="motion-modal-result"></span>
-				<h3 id="vote-modal-title" class="motion-modal-title"></h3>
-			</div>
-			<div class="motion-modal-body">
-				<div id="vote-modal-summary-block" class="motion-modal-summary-block">
-					<span class="motion-modal-summary-label">Summary</span>
-					<p id="vote-modal-summary" class="motion-modal-summary"></p>
-				</div>
-				<div id="vote-modal-roster" class="motion-modal-roster"></div>
-			</div>
-			<div class="motion-modal-footer">
-				<span id="vote-modal-date" class="motion-modal-date"></span>
-				<div class="motion-modal-actions">
-					<a id="vote-modal-media" class="motion-modal-btn motion-modal-btn-media" href="#" target="_blank" rel="noopener" hidden>
-						TBNews <span class="ext-link-icon" aria-hidden="true"></span>
-					</a>
-					<a id="vote-modal-link" class="motion-modal-btn motion-modal-btn-primary" href="#">
-						View full minutes <span aria-hidden="true">&rarr;</span>
-					</a>
-				</div>
-			</div>
-		</article>
-	</dialog>
+// voteMatrixDetailScript wires the desktop accordion (one row open at a time)
+// and the mobile "Show all" reveal. Document-level delegation survives HTMX swaps.
+templ voteMatrixDetailScript() {
 	<script>
 	(function() {
-		var modal = document.getElementById('vote-matrix-modal');
-		if (!modal) return;
+		var openRow = null;
 
-		function openModal(row) {
-			var title = row.dataset.motionTitle || '';
-			var summary = row.dataset.motionSummary || '';
-			var result = row.dataset.motionResult || '';
-
-			document.getElementById('vote-modal-title').textContent = title || summary;
-
-			var sumEl = document.getElementById('vote-modal-summary');
-			var sumBlock = document.getElementById('vote-modal-summary-block');
-			if (summary && summary !== title) {
-				sumEl.textContent = summary;
-				sumBlock.style.display = '';
+		function setOpen(row, open) {
+			row.setAttribute('aria-expanded', open ? 'true' : 'false');
+			var detail = row.nextElementSibling;
+			if (!detail || !detail.classList.contains('vote-matrix-detail')) return;
+			if (open) {
+				detail.removeAttribute('hidden');
+				// next frame so the transition has a starting state to animate from
+				requestAnimationFrame(function() {
+					requestAnimationFrame(function() { detail.classList.add('is-open'); });
+				});
 			} else {
-				sumBlock.style.display = 'none';
+				detail.classList.remove('is-open');
+				var inner = detail.querySelector('.vote-matrix-detail-inner');
+				if (!inner) { detail.setAttribute('hidden', ''); return; }
+				inner.addEventListener('transitionend', function handler() {
+					inner.removeEventListener('transitionend', handler);
+					if (!detail.classList.contains('is-open')) detail.setAttribute('hidden', '');
+				}, { once: true });
 			}
-
-			var resultEl = document.getElementById('vote-modal-result');
-			resultEl.textContent = result;
-			resultEl.className = 'motion-modal-result motion-modal-result--' + result.toLowerCase();
-
-			document.getElementById('vote-modal-date').textContent = row.dataset.motionDate;
-			document.getElementById('vote-modal-link').href = row.dataset.motionUrl;
-
-			var mediaEl = document.getElementById('vote-modal-media');
-			if (row.dataset.motionMedia) {
-				mediaEl.href = row.dataset.motionMedia;
-				mediaEl.hidden = false;
-			} else {
-				mediaEl.hidden = true;
-			}
-
-			var slot = document.getElementById('vote-modal-roster');
-			slot.innerHTML = '';
-			var motionId = row.dataset.motionId;
-			if (motionId) {
-				var tpl = document.getElementById('vote-roster-' + motionId);
-				if (tpl && tpl.content) {
-					slot.appendChild(tpl.content.cloneNode(true));
-				}
-			}
-
-			modal.showModal();
 		}
 
-		function closeModal() {
-			modal.classList.add('motion-modal-closing');
-			modal.addEventListener('animationend', function handler() {
-				modal.classList.remove('motion-modal-closing');
-				modal.close();
-				modal.removeEventListener('animationend', handler);
-			}, { once: true });
-		}
-
-		// Use document delegation so it survives HTMX DOM swaps
 		document.addEventListener('click', function(e) {
-			var row = e.target.closest('[data-motion-title]');
-			if (row) openModal(row);
+			// Show-all check first — the button itself would trip the a/button bail-out below.
+			var showAll = e.target.closest('.vote-matrix-show-all');
+			if (showAll) {
+				var wrap = showAll.closest('.vote-matrix-mobile');
+				var rest = wrap && wrap.querySelector('.vote-matrix-mobile-rest');
+				if (rest) {
+					rest.removeAttribute('hidden');
+					requestAnimationFrame(function() {
+						requestAnimationFrame(function() { rest.classList.add('is-open'); });
+					});
+				}
+				showAll.setAttribute('hidden', '');
+				return;
+			}
+
+			// Don't intercept clicks on links inside a row (e.g. action buttons).
+			if (e.target.closest('a, button')) return;
+
+			var row = e.target.closest('.vote-matrix-row');
+			if (row) {
+				if (openRow && openRow !== row) setOpen(openRow, false);
+				var willOpen = row.getAttribute('aria-expanded') !== 'true';
+				setOpen(row, willOpen);
+				openRow = willOpen ? row : null;
+			}
 		});
 
-		modal.querySelector('.motion-modal-close').addEventListener('click', closeModal);
-		modal.addEventListener('click', function(e) {
-			if (e.target === modal) closeModal();
+		document.addEventListener('keydown', function(e) {
+			if (e.key !== 'Enter' && e.key !== ' ') return;
+			var row = e.target.closest('.vote-matrix-row');
+			if (!row) return;
+			e.preventDefault();
+			row.click();
 		});
-
 	})();
 	</script>
 }
@@ -470,7 +449,7 @@ templ voteMatrixPhotoSync() {
 			var s = document.querySelector('.vote-matrix-sticky-scroll');
 			if (!w || !s) return;
 			// Sync column widths from a data row
-			var dataRows = w.querySelectorAll('tbody tr:not(.vote-matrix-date-row)');
+			var dataRows = w.querySelectorAll('tbody tr.vote-matrix-row');
 			var dr = dataRows.length > 0 ? dataRows[0] : null;
 			if (dr) {
 				s.querySelectorAll('tr').forEach(function(pr) {

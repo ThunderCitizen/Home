@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"thundercitizen/internal/httperr"
 	"thundercitizen/internal/logger"
 )
 
@@ -26,6 +27,15 @@ func RecordError(ctx context.Context, err error) {
 	if ec, ok := ctx.Value(errCarrierKey{}).(*errCarrier); ok {
 		ec.err = err
 	}
+}
+
+// HandleUnavailable records err on the request context (so PageUnavailable
+// can render the diagnostic) and writes a 503 response. Use at every
+// page-handler boundary where a downstream dep failed — this is the
+// canonical pairing of RecordError + httperr.Unavailable.
+func HandleUnavailable(ctx context.Context, w http.ResponseWriter, msg string, err error) {
+	RecordError(ctx, err)
+	httperr.Unavailable(w, msg)
 }
 
 // PageUnavailable intercepts HTTP 503 responses on HTML page routes and

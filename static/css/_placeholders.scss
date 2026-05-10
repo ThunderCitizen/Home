@@ -68,7 +68,7 @@
   border-radius: 3px;
   font-family: var(--font-mono);
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--term-fg-bright);
@@ -92,11 +92,13 @@
 %badge-base {
   display: inline-block;
   padding: 0 0.5rem;
+  min-width: 3.75rem; // keep short labels (TIE, LOST) visually aligned with longer ones (CARRIED)
   font-family: var(--font-mono);
   font-size: 0.6rem;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-align: center;
   border-radius: 999px;
   border: 1px solid var(--badge-border);
   background: var(--badge-fill);
@@ -158,12 +160,26 @@ a.badge {
   margin-left: 0.25em;
 }
 
-// Reusable card with accent border — extend for directory items, proposal cards
+// Reusable card with accent border — extend for directory items, proposal cards.
+// Light chrome (no shadow) — pick this for one row in a list of many.
 %card-accent {
   border-radius: var(--radius-md);
   background: var(--pico-card-background-color);
   border: 1px solid var(--thunder-200);
   padding: var(--space-3);
+}
+
+// Reusable card surface — padding/border/shadow/radius. Extend for the standard
+// shadowed card chrome (a standalone summary unit). For variant tinting (left
+// border + bg tint) compose with @include motion-card-variant() or define your
+// own. Don't reach for this on list rows or table cells — the term "card" is
+// overloaded and a row/cell needs neither shadow nor padding-4.
+%card-base {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+  padding: var(--space-4);
 }
 
 // Suppress iOS tap-flash + tune gesture responsiveness for buttony controls

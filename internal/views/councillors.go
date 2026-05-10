@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"thundercitizen/internal/council"
 	"thundercitizen/internal/data"
@@ -91,6 +92,10 @@ type VoteMatrixRow struct {
 type VoteMatrixViewModel struct {
 	Columns []VoteMatrixColumn
 	Rows    []VoteMatrixRow
+	// MobileVisibleCount is how many leading columns the mobile view shows by
+	// default (rest hidden behind "Show all"). Computed from a trailing date
+	// window, not a fixed count.
+	MobileVisibleCount int
 }
 
 // KeyVoteView is a presentation-ready key vote with optional media link.
@@ -179,16 +184,21 @@ func NewCouncillorsViewModel(termYear int, vd TermVoteData) CouncillorsViewModel
 	return vm
 }
 
-// PhotoByName returns a map of councillor full name → /static photo URL,
-// built from data.CouncilByTerm. Empty Photo entries are omitted.
+// PhotoByName returns a map of councillor name → /static photo URL,
+// keyed by both full name ("Albert Aiello") and last name ("Aiello") so
+// callers that only have the surname (e.g. parsed vote records) still hit.
+// Empty Photo entries are omitted.
 func PhotoByName() map[string]string {
 	out := make(map[string]string)
 	for _, term := range data.CouncilByTerm {
 		all := append(append([]models.Councillor{term.Mayor}, term.AtLarge...), term.Ward...)
 		for _, c := range all {
-			if c.Photo != "" {
-				out[c.Name] = "/static/councillors/" + c.Photo
+			if c.Photo == "" {
+				continue
 			}
+			url := "/static/councillors/" + c.Photo
+			out[c.Name] = url
+			out[lastName(c.Name)] = url
 		}
 	}
 	return out
@@ -426,9 +436,31 @@ func BuildVoteMatrix(
 	}
 
 	return &VoteMatrixViewModel{
-		Columns: columns,
-		Rows:    rows,
+		Columns:            columns,
+		Rows:               rows,
+		MobileVisibleCount: trailingMonthsCount(motions, 3),
 	}
+}
+
+// trailingMonthsCount returns how many leading motions fall within `months`
+// of the most recent motion's date. Motions are assumed to be sorted DESC by
+// date (which is how store.VoteMatrix returns them).
+func trailingMonthsCount(motions []council.VoteMatrixMotion, months int) int {
+	if len(motions) == 0 {
+		return 0
+	}
+	newest, err := time.Parse("2006-01-02", motions[0].Date)
+	if err != nil {
+		return len(motions)
+	}
+	cutoff := newest.AddDate(0, -months, 0)
+	for i, m := range motions {
+		t, err := time.Parse("2006-01-02", m.Date)
+		if err != nil || t.Before(cutoff) {
+			return i
+		}
+	}
+	return len(motions)
 }
 
 // buildKeyVotes returns DB headline votes if available, falling back to static data.

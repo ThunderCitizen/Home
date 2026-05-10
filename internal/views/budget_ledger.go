@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"thundercitizen/internal/budget"
+	"thundercitizen/internal/data"
 )
 
 // BuildSankeyFromLedger builds the overview Sankey and service drill-down
@@ -106,12 +107,6 @@ func BuildSankeyFromLedger(ctx context.Context, ledger *budget.Ledger, year int,
 	return sd, svcDetails, nil
 }
 
-// revenueEarmarks maps a revenue code to the sub-account it funds directly.
-// These revenues flow 100% to their target rather than being split proportionally.
-var revenueEarmarks = map[string]string{
-	"revenue.housing_rents": "service.tbdssab_levy.community_housing_homelessness",
-}
-
 // subLedgerCreditRollups groups revenue codes under a different display code in
 // per-service drill-downs only. TbayTel dividends aren't earmarked to any
 // service, so attributing them per-service is misleading — fold into "Other
@@ -191,7 +186,7 @@ func buildServiceDrillDown(ctx context.Context, ledger *budget.Ledger, year int,
 	earmarked := map[string]float64{} // sub-account code → total earmarked into it
 	var poolTotal float64
 	for _, rs := range revSources {
-		target, ok := revenueEarmarks[rs.code]
+		target, ok := data.RevenueEarmarks[rs.code]
 		if ok {
 			if tgtIdx, found := nodeIndex[target]; found {
 				val := math.Round(rs.val*10) / 10
@@ -223,7 +218,7 @@ func buildServiceDrillDown(ctx context.Context, ledger *budget.Ledger, year int,
 			tgtIdx := nodeIndex[n.Code]
 			share := subRemaining[i] / remainingTotal
 			for _, rs := range revSources {
-				if _, isEarmarked := revenueEarmarks[rs.code]; isEarmarked {
+				if _, isEarmarked := data.RevenueEarmarks[rs.code]; isEarmarked {
 					continue
 				}
 				val := math.Round(poolTotal*share*(rs.val/poolTotal)*10) / 10

@@ -60,79 +60,22 @@ type MapProps struct {
 
 ## Color Theming
 
-**Terminal aesthetic site-wide.** Solarized cream light mode + green phosphor dark mode. All theme colors via CSS custom properties — never hardcode hex for theme decisions. Use `color-mix()` for tinted backgrounds (badges, alerts, motion cards).
+Terminal aesthetic — Solarized cream (light) + green phosphor (dark). Theme colors via CSS custom properties only (never hardcode hex); `color-mix()` for tints.
 
-### Palettes
+**Quick rules:**
+- `--accent` → interactive (links/buttons/focus). `--heading` → headings/terminal labels. Never reuse one for the other.
+- Tokens: spacing `--space-1..8`, type `--text-2xs..2xl`, weight `--weight-*`, radius `--radius-*` (in `_tokens.scss`). Snap to nearest, don't invent.
+- Mono only — `--font-mono` is the single typeface; `--font-prose` is an alias kept for legacy callers.
+- Pills/badges via `%badge-base` + size (`%badge-info` static / `%badge-action` interactive) + symmetric `badge-light-hue` / `badge-dark-hue` mixins. Mirror in both theme aggregators or it'll be themeless on one side.
+- Cards: `%card-accent` (list rows) vs `%card-base` (standalone). Don't use either on table cells.
 
-**Light (Fractured Stone — cool/ash):** three-tier stone hierarchy — page `#e1d9c9` (light stone), card body `#cfc7b5` (mid stone), nav/strip/footer `#beb5a1` (deep stone). Solarized blue `#155a8a` for interactive affordances (links, buttons, focus) and deeper `#0b4670` for headings/terminal labels — both darkened from prior cream-palette values so AA holds on the deeper surfaces. Muted text (`--term-fg-dim`) is `#2f4550` — darkened so it reaches 4.9:1 on the deep-stone strip (footer, card footer, panel bars), not just the mid-stone card body.
-
-**Dark (Green Phosphor):** near-black green bg `#0d1a0d` (page), `#141e14` (card, lifted above page per Material-Dark elevation convention), `#0a100a` (strip/nav/footer, deepest). Phosphor green text `#4ade80` (10.3:1). Nav + site footer carry a phosphor-green halo box-shadow (`--strip-edge-glow-below/-above`) so they frame visibly against the near-black tiers. Headings collapse onto `--accent` — single-phosphor CRT vibe. CRT scanlines on header, green glow on title.
-
-Dark mode is defined via `@mixin dark-theme` applied to both `@media (prefers-color-scheme: dark)` and `:root[data-theme="dark"]`. Console helper: `toggleTheme()` / `toggleTheme("dark")` / `toggleTheme("light")`.
-
-### CSS variables (`:root` in `static/css/_tokens.scss`)
-
-| Variable | Light | Dark | Purpose |
-|----------|-------|------|---------|
-| `--thunder-900` to `--thunder-50` | Solarized grey scale | Green phosphor scale | Text/bg hierarchy (flips) |
-| `--accent` | `#4a6100` (olive green) | `#4ade80` (phosphor) | Interactive affordances: links, buttons, focus rings |
-| `--heading` | `#155a8a` (Solarized blue, darkened) | `var(--accent)` — phosphor green | h1/h2/h3 + terminal-label family. Light uses classic Solarized blue; dark collapses onto --accent so the green-phosphor CRT look stays unified |
-| `--heading-glow` | `none` | phosphor bloom | Heading text-shadow. Off in light; `0 0 6px rgba(74,222,128,0.35)` in dark for the CRT glow |
-| `--heading-warm` | `#7a3f0a` (darkened Solarized orange) | `var(--accent)` — phosphor green | Scoped warm-accent variant. Applied via `.home article > header` to give home-page card header bars a rust/amber tone against the beige strip. Dark mode collapses onto --accent so the phosphor look stays unified |
-| `--term-*` tokens | Solarized values | Phosphor values | Semantic terminal tokens (bg, fg, border, glow) |
-| `--surface-dark` | `#002b36` | `#0a100a` | Header/footer background |
-| `--status-ok/warn/error/info/early-dep/muted` | Darkened for AA on cream | Bright for dark bg | Status semantics |
-| `--proposal-1/2/3` | Stable | Stable | Proposal accent colors |
-
-### Typography
-
-**Mono-only.** There is a single type face site-wide — `--font-mono`. `--font-prose` is an alias that resolves to `--font-mono`, so existing `font-family: var(--font-prose)` declarations (e.g. `.lead`, `.motion-text`, `.motion-heading`, `.motion-agenda-item`, `.sankey-detail-body p`, `.councillor-bio`) continue to work but render in mono. Don't add new `--font-prose` consumers; new code should inherit the default mono or omit `font-family` entirely.
-
-**Mono stack** covers Apple (SF Mono, Menlo) → Windows 11 (Cascadia Mono) → Windows (Consolas) → Android (Roboto Mono) → Ubuntu (Ubuntu Mono) → other Linux (DejaVu Sans Mono) → older Windows (Courier New) → generic `monospace`. Full stack in `static/css/_tokens.scss`.
-
-**Headings** are terminal labels: all `0.72rem`, uppercase, `letter-spacing: 0.08em`, `color: var(--heading)` (Solarized blue in light, phosphor green in dark). Weight is the hierarchy lever: h1=800, h2=700, h3=600. In dark mode a subtle phosphor text-shadow is applied via `--heading-glow` (no-op in light). `--accent` is reserved for interactive affordances (links, buttons, focus) — never use it for heading text.
-
-### Accessing theme colors
-
-- **SCSS**: `color: var(--status-error);` or `background: color-mix(in srgb, var(--status-error) 15%, var(--thunder-50));`
-- **Templates**: Use `.text-status-ok`, `.text-status-error` etc. utility classes. For inline styles: `style="border-left-color:var(--proposal-1)"`.
-- **Vanilla JS**: `var tc = ThemeColors();` then `tc.statusOk`, `tc.accent`, `tc.termAccent`, etc. (`static/js/theme-colors.js` loaded globally)
-- **TypeScript**: `import { readThemeColors } from "../theme-colors";` then call after DOMContentLoaded
-
-### Phosphor Pills
-
-All colored pill/badge/label elements use the **phosphor pill system** — two Sass mixins that emit `--badge-*` CSS tokens consumed by `%badge-base` (in `_placeholders.scss`).
-
-**Light mode** (`badge-light-hue($hue)`) — ward-map aesthetic: washed tinted fill (22% hue on cream), solid hue border, darkened hue text, no glow.
-
-**Dark mode** (`badge-dark-hue($hue)`) — CRT aesthetic: dark near-black fill (14% hue tint), saturated phosphor text + border, drop-shadow glow, scanline overlay.
-
-**Size system** — the pill's size signals whether it's clickable. Pick one:
-
-| Placeholder | Size | Use for | Class name pattern |
-|-------------|------|---------|--------------------|
-| `%badge-info` | 0.55rem | Static labels (status, tags, counts) | Nouns: `-status`, `-badge`, `-tag`, `-label`, `-count` |
-| `%badge-action` | 0.72rem | Interactive `<a>` / `<button>` only | Verbs: `-btn`, `-action`, `-link` |
-
-Keep the contract — bigger pills are clickable, smaller pills are not. Mismatched size ↔ interactivity is a bug: fix the class name, not the styles.
-
-**To add a new pill variant:**
-1. Component SCSS: `@extend %badge-base; @extend %badge-info; @include badge-light-hue(#hex);` (swap `%badge-info` → `%badge-action` for interactive pills)
-2. Add dark override to `@mixin badge-dark-overrides` in `style.scss`: `@include badge-dark-hue(#hex);`
-
-Existing consumers: `.badge-*` (result/significance/term), ward subtitle badges, `.motion-filter-pill--*` (active state), `.recent-meeting-status` (info), `.meeting-row-btn` (action). Full docs in `_mixins.scss`.
-
-### What NOT to tokenize
-- **Route identity colors** (ROUTE_COLORS maps) — GTFS data, not theme. Also used for Sankey budget nodes.
-- **Ward identity colors** — data
-- **Term badge colors** (belt progression) — domain data with manual dark mode overrides
-- **HSL interpolations** (delay ring gradient) — computed, not a token
+Full palette tables, typography stack, accessing colors from JS/SCSS, phosphor-pill recipe, header pattern matrix, what-not-to-tokenize → [docs/design-system.md](docs/design-system.md).
 
 ## Transit Page UI
 
 - **Tab order**: Live, Terminals, Metrics, Routes, Method
 - **Terminals tab** shows real-time departures from four canonical terminals (Waterfront, City Hall, Confederation College, Lakehead University). Header has selectable terminal tabs + Kiosk mode toggle. Client polls `/api/transit/stop/{id}/predictions` every 15s (exponential backoff on error, pauses when tab hidden). Fullscreen/kiosk mode targets TV displays — locks to a fixed **3×3 grid** (`.terminal-card-grid` in `body.terminal-fullscreen`), no pagination/rotation: every realistic terminal has ≤9 active routes so all groups fit on one page. Canonical terminals hardcoded in `handler.go:canonicalTerminals` (4 stop IDs) — not data-driven, update manually if GTFS stop IDs change.
-- **Terminal card** (`renderCard` in `static/transit/terminal-board.js`, CSS in `static/css/_transit.scss` `.terminal-card*`): two-row grid (header / body). Header is `pill + headsign + status` (3-col grid `auto minmax(0,1fr) auto` — headsign always ellipsizes, status floats right). Body is a 66/33 split: hero on the left (clock-time meta row, then big minutes value, then optional cancelled banner), Then/Later cells stacked vertically on the right with a left divider separating them from the hero. Hero is `white-space: nowrap` with both axes bounded so it never wraps or overflows. Pico's default `article > header` chrome (border-bottom, sectioning bg, negative margins) is explicitly overridden on `.terminal-card-head`. In fullscreen the card sets `container-type: size; container-name: tcard` and a `@container tcard` block at the bottom of `_transit.scss` rewrites every text size as a `cqi` percentage that mirrors the web view's rem ratios (each cqi % ≈ web rem ÷ 17rem card width) — kiosk is a scaled copy of the web card, same hierarchy.
+- **Terminal card** (`renderCard` in `static/transit/terminal-board.js`, CSS in `static/css/_transit.scss` `.terminal-card*`): extends `%card-base` for chrome (surface, border, radius, shadow, padding) and adds a 6px left-border that status variants (`-cancelled`, `-late`, `-early`, `-ontime`, `-scheduled`) recolor to encode arrival state. Layout is a two-row grid (header / body). Header is `pill + headsign + status` (3-col grid `auto minmax(0,1fr) auto` — headsign always ellipsizes, status floats right). Body is a 66/33 split: hero on the left (clock-time meta row, then big minutes value, then optional cancelled banner), Then/Later cells stacked vertically on the right with a left divider separating them from the hero. Hero is `white-space: nowrap` with both axes bounded so it never wraps or overflows. Pico's default `article > header` chrome (border-bottom, sectioning bg, negative margins) is explicitly overridden on `.terminal-card-head`. In fullscreen the card sets `container-type: size; container-name: tcard` and a `@container tcard` block at the bottom of `_transit.scss` rewrites every text size as a `cqi` percentage that mirrors the web view's rem ratios (each cqi % ≈ web rem ÷ 17rem card width) — kiosk is a scaled copy of the web card, same hierarchy.
 - **Metrics tab** has 6 KPI cards in a 3×2 grid, a trend chart (click card to switch KPI), and a route comparison bar chart
 - **KPI card convention**: main value in `.kpi-value`, three sub-slots showing Morning/Midday/Evening breakdown. Server-rendered via `KPIFromChunks(vm.Chunks, metric, band)` in `view_helpers.go`
 - **6 metrics** (ordered simplest→hardest, matching Method tab): OTP, Cancellation Rate, Cancel Notice, Stop Wait, EWT, Headway Cv
@@ -157,46 +100,12 @@ Existing consumers: `.badge-*` (result/significance/term), ward subtitle badges,
 - **Map container** uses shared `LeafletMap` with `Class: "transit-map-wrap"` for terminal theming. Transit's custom `terminal-map-header` sits above it with title, layer bar, and Features controls.
 - **Zoom buttons** — shared component positions them bottom-left. Pico CSS overrides ensure `+` has rounded top, `-` has rounded bottom
 
-## Sticky Table Headers
+## Responsive Patterns
 
-Tables with data that scrolls beyond the viewport use sticky headers with a glass-effect bar (`backdrop-filter: blur`, `--glass-bg`, `--glass-border`). Two patterns depending on whether the table is inside a horizontal scroll container:
+- Sticky table headers (CSS-only inside flow; JS-synced clone inside `overflow-x: auto`).
+- Multi-group toolbar wrap → CSS grid with named areas + `display: contents` on group wrappers (so labels align across rows). Never `flex-wrap` a labeled toolbar.
 
-### Pattern 1: CSS-only (no overflow container)
-
-For tables not inside `overflow-x: auto`, sticky works directly on `<thead>` or `<th>`:
-
-```scss
-thead {
-  position: sticky;
-  top: 2.1rem; // clear sticky nav
-  z-index: 2;
-}
-th {
-  background: var(--glass-bg);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid var(--glass-border);
-}
-```
-
-Requires `border-collapse: separate; border-spacing: 0` on the table. Parent containers must not have `overflow: hidden` (use `overflow: clip` instead if clipping is needed for scanlines/rounded corners).
-
-**Used by:** Route directory table (`.route-table` in `transit.templ`)
-
-### Pattern 2: Extracted header + JS sync (inside overflow container)
-
-When the table is inside `overflow-x: auto` (for horizontal scrolling), `position: sticky` can't reach the viewport. Extract the header into a separate sticky element above the scroll container:
-
-1. **Template**: Render header twice via a shared sub-template — once in a `.sticky-header` div above the scroll container, once as a hidden `<thead>` inside the table (for column sizing + a11y)
-2. **CSS**: `.sticky-header` gets `position: sticky; top: 2.1rem` + glass effect. Original `<thead>` gets `visibility: collapse`
-3. **JS**: Sync column widths from the hidden thead to the clone, and sync `scrollLeft` on the scroll container's `scroll` event. Re-run on `htmx:afterSwap` for dynamic content
-
-**Used by:** Route timetable (`.route-tp-sticky-header` in `route.templ`), vote matrix photo bar (`.vote-matrix-photo-bar` in `councillors.templ`)
-
-### Gotchas
-- `overflow: hidden` on any ancestor kills sticky — switch to `overflow: clip`
-- `overflow-x: auto` implicitly sets `overflow-y: auto`; add `overflow-y: hidden` if vertical scroll is unwanted
-- The article scanline rule (`article > *:not(.sr-only)`) sets `position: relative` on direct children — exclude sticky elements via `:not(.your-sticky-class)`
-- `top: 2.1rem` assumes the site's sticky nav height; adjust if nav changes
+Recipes, gotchas, examples → [docs/responsive-patterns.md](docs/responsive-patterns.md).
 
 ## Docs
 
@@ -204,6 +113,8 @@ When the table is inside `overflow-x: auto` (for horizontal scrolling), `positio
 - [docs/development.md](docs/development.md) - Local setup and commands
 - [docs/database.md](docs/database.md) - Schema, PostGIS, indexes, connection pooling
 - [docs/docker.md](docs/docker.md) - Docker Compose services and commands
+- [docs/design-system.md](docs/design-system.md) - Color tokens, typography, cards, phosphor pills
+- [docs/responsive-patterns.md](docs/responsive-patterns.md) - Sticky headers, toolbar wrap grid
 - [docs/transit.md](docs/transit.md) - GTFS-RT feeds, recorder, trip planner (RAPTOR), PostGIS
 - [docs/transit-metrics.md](docs/transit-metrics.md) - Performance KPIs, methodology, incident detection
 - [docs/council.md](docs/council.md) - Council minutes scraping, vote parsing

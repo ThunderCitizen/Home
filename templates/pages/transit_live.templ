@@ -38,20 +38,24 @@ templ TransitLive(vm transit.LiveViewModel) {
 		<section class="route-panel" aria-label="Live transit map and routes">
 			<input type="checkbox" id="trip-toggle" class="trip-toggle"/>
 			<div class="terminal-map-header">
-				<span class="terminal-map-title">Transit Map <span id="transit-status" class="transit-status transit-status-off" role="status" aria-live="polite">Live</span></span>
+				<span class="terminal-map-title">Transit Map</span>
+				<span id="transit-status" class="transit-status transit-status-off" role="status" aria-live="polite">Live</span>
 				<div id="selector-bar">
 					@components.MapLayerBar(transitLayerGroups())
 				</div>
 				<div class="selector-bar">
 					<span class="selector-bar-label">Features</span>
-					<button type="button" id="map-locate-btn" class="selector-bar-btn" title="Show my location" aria-label="Show my location">
-						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
-						<span>Locate</span>
-					</button>
-					<label for="trip-toggle" id="find-route-btn" class="selector-bar-btn trip-planner-open">
-						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-						<span>Find Route</span>
-					</label>
+					<div class="selector-bar-btns">
+						<button type="button" id="map-locate-btn" class="selector-bar-btn" title="Show my location" aria-label="Show my location">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+							<span>Locate</span>
+						</button>
+						<label for="trip-toggle" id="find-route-btn" class="selector-bar-btn trip-planner-open">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+							<span>Find Route</span>
+						</label>
+						<span class="selector-bar-btn selector-bar-btn-spacer" aria-hidden="true"></span>
+					</div>
 				</div>
 			</div>
 				@templ.JSONScript("route-meta", vm.RouteMeta)

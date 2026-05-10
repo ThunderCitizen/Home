@@ -9,7 +9,7 @@
 // long-form readability (the body default is monospace).
 .councillor-bio {
   font-family: var(--font-prose);
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   line-height: 1.55;
   color: var(--thunder-700);
 }
@@ -35,25 +35,25 @@
 .councillor-avatar-lg {
   width: 96px;
   height: 96px;
-  font-size: 2rem;
+  font-size: var(--text-2xl);
   flex-shrink: 0;
 }
 
 .councillor-votes-table {
-  font-size: 0.85rem;
+  font-size: var(--text-base);
 
   .vote-date {
     white-space: nowrap;
-    font-weight: 600;
+    font-weight: var(--weight-semi);
   }
 
   .vote-agenda {
-    font-size: 0.85rem;
+    font-size: var(--text-base);
     display: block;
   }
 
   .vote-summary {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     color: var(--thunder-500);
     margin: 0.15rem 0 0;
     line-height: 1.3;
@@ -84,12 +84,12 @@
 }
 
 .recent-meeting-count {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--thunder-600);
 }
 
 .recent-meeting-summary {
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   color: var(--thunder-600);
   margin: 0;
   line-height: 1.55;
@@ -98,7 +98,7 @@
 .recent-meetings-more {
   text-align: center;
   margin: 1rem 0 0;
-  font-size: 0.9rem;
+  font-size: var(--text-base);
 }
 
 .recent-meeting-status {
@@ -115,7 +115,7 @@
   margin: 0.4rem 0 0.5rem;
   padding-left: 1.1rem;
   color: var(--thunder-600);
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   line-height: 1.5;
 
   li { margin-bottom: 0.15rem; }
@@ -133,8 +133,8 @@
 }
 
 .recent-meeting-eta {
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--thunder-600);
@@ -143,24 +143,24 @@
 
 
 .stat-explainer {
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   color: var(--thunder-500);
   text-align: center;
   margin: 0.5rem 0 0;
 }
 
 .meeting-summary-text {
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
   color: var(--thunder-800);
   line-height: 1.55;
   margin: 0;
 }
 
 .motion-summary {
-  font-size: 0.95rem;
+  font-size: var(--text-md);
   color: var(--thunder-700);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   margin: 0.5rem 0 0.25rem;
 }
 
@@ -211,8 +211,8 @@
   gap: 0.5rem;
   margin: 0.9rem 0 0.6rem;
   font-family: var(--font-mono);
-  font-size: 0.55rem;
-  font-weight: 700;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--heading);
@@ -238,7 +238,7 @@
 
 .meeting-row-summary {
   margin: 0 0 0.5rem;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   line-height: 1.6;
   color: var(--thunder-700);
 }
@@ -252,7 +252,7 @@
 
 .llm-disclaimer {
   margin: 0;
-  font-size: 0.6rem;
+  font-size: var(--text-2xs);
   line-height: 1.4;
   color: var(--accent);
   letter-spacing: 0.04em;
@@ -263,7 +263,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 0.5rem;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   color: var(--thunder-500);
 
   .meeting-row-btn { margin-left: auto; }
@@ -301,8 +301,8 @@
 
 .motion-heading {
   font-family: var(--font-prose);
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
   text-transform: none;
   letter-spacing: -0.005em;
   line-height: 1.3;
@@ -321,8 +321,8 @@
   background: var(--pico-card-background-color);
 
   h1 {
-    font-size: 1.1rem;
-    font-weight: 800;
+    font-size: 1.1rem; // sits in the gap between --text-md (1) and --text-lg (1.4)
+    font-weight: var(--weight-heavy);
     margin: 0;
     line-height: 1.2;
   }
@@ -336,13 +336,13 @@
   margin-bottom: 0.6rem;
   padding-bottom: 0.55rem;
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
 }
 
 .meeting-detail-back {
   color: var(--accent);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: var(--weight-semi);
   letter-spacing: 0.02em;
 
   &:hover { text-decoration: underline; }
@@ -354,11 +354,11 @@
   gap: 0.5rem 0.75rem;
   flex-wrap: wrap;
   margin-bottom: 0.5rem;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
 }
 
 .meeting-detail-overline {
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   color: var(--thunder-500);
   margin: 0;
   text-transform: uppercase;
@@ -370,7 +370,7 @@
   margin-left: auto;
   text-decoration: none;
   cursor: pointer;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   padding: 0.25rem 0.65rem;
 
   &:hover { filter: brightness(1.15); }
@@ -489,8 +489,8 @@
 
 .meeting-minutes-link {
   margin-left: auto;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semi);
   padding: 0.15rem 0.5rem;
   border: 1px solid var(--accent);
   border-radius: 4px;
@@ -500,7 +500,7 @@
 
   &:hover {
     background: var(--accent);
-    color: #fff;
+    color: var(--text-on-dark);
     text-decoration: none;
   }
 }
@@ -513,6 +513,9 @@
   margin-bottom: 0.25rem;
 }
 
+// Push the result badge (and anything after it) to the trailing edge of the row.
+.motion-row-result { margin-left: auto; }
+
 .motion-substantive {
   @include motion-card-variant(var(--pico-card-background-color));
 }
@@ -523,12 +526,12 @@
 }
 
 .motion-procedural-text {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--thunder-500);
 }
 
 .motion-clauses {
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   line-height: 1.5;
   color: var(--thunder-800);
   padding-left: 1.5rem;
@@ -541,8 +544,8 @@
 }
 
 .motion-index {
-  font-weight: 600;
-  font-size: 0.8rem;
+  font-weight: var(--weight-semi);
+  font-size: var(--text-sm);
   color: var(--thunder-400);
 }
 
@@ -550,8 +553,8 @@
   margin-top: 0.5rem;
 
   summary {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: var(--text-base);
+    font-weight: var(--weight-semi);
     cursor: pointer;
   }
 
@@ -582,7 +585,7 @@
   flex-wrap: wrap;
 
   input[type="search"] {
-    font-size: 0.82rem;
+    font-size: var(--text-base);
     font-family: var(--font-mono);
     padding: 0.4rem 0.6rem;
     margin-bottom: 0;
@@ -658,7 +661,7 @@
 .filter-chip {
   display: inline-block;
   padding: 0.3rem 0.65rem;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   color: var(--thunder-600);
   text-decoration: none;
   cursor: pointer;
@@ -673,7 +676,7 @@
 
   &.active {
     background: var(--accent);
-    color: #fff;
+    color: var(--text-on-dark);
 
     &:hover { opacity: 0.9; background: var(--accent-hover); text-decoration: none; }
   }
@@ -689,7 +692,7 @@
 }
 
 .motions-count {
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   color: var(--thunder-500);
   margin: 0;
 }
@@ -697,7 +700,7 @@
 .pagination-compact {
   display: flex;
   gap: 1rem;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
 
   a, .pagination-disabled { white-space: nowrap; }
   .pagination-disabled { color: var(--thunder-300); cursor: default; }
@@ -713,7 +716,7 @@
 // ==========================================================================
 // VOTE ROSTER — shared photo-strip display for motion vote breakdowns.
 // Used on the motion detail page and inside the vote-matrix modal.
-// Visual language lifted from .vote-cell scanline + .motion-modal-result tally.
+// Visual language lifted from .vote-cell scanline + result-tally treatment.
 // ==========================================================================
 
 .vote-roster {
@@ -732,8 +735,8 @@
 
 .vote-roster-tally {
   display: inline-block;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.15rem 0.5rem;
@@ -745,8 +748,8 @@
 }
 
 .vote-roster-count {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semi);
   color: var(--thunder-600);
   letter-spacing: 0.02em;
 }
@@ -782,8 +785,8 @@
 
 .vote-roster-label {
   display: block;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 0.4rem;
@@ -825,8 +828,8 @@
 }
 
 .vote-roster-avatar--initials {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   color: var(--thunder-700);
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -835,7 +838,7 @@
 .vote-roster-name {
   display: block;
   margin-top: 0.25rem;
-  font-size: 0.66rem;
+  font-size: var(--text-xs);
   line-height: 1.15;
   color: var(--thunder-700);
   white-space: nowrap;
@@ -844,24 +847,23 @@
   max-width: 100%;
 }
 
-// In the modal, the roster sits in the slot we replaced the old vote-split with.
-// Modal scopes override the roster to a more compact layout — the motion page
-// keeps the full-size version.
-.motion-modal-roster {
-  margin-bottom: 0.6rem;
+// Compact roster used inline in mobile vote-matrix cards. The motion detail
+// page keeps the full-size version of .vote-roster.
+.vote-matrix-card-roster {
+  margin: 0.5rem 0 0.6rem;
 
   .vote-roster { margin-top: 0; gap: 0.35rem; }
   .vote-roster-headline { gap: 0.35rem; }
   .vote-roster-tally {
-    font-size: 0.6rem;
+    font-size: var(--text-2xs);
     padding: 0.1rem 0.4rem;
   }
-  .vote-roster-count { font-size: 0.68rem; }
+  .vote-roster-count { font-size: var(--text-xs); }
   .vote-roster-row {
     padding: 0.35rem 0.45rem;
   }
   .vote-roster-label {
-    font-size: 0.6rem;
+    font-size: var(--text-2xs);
     margin-bottom: 0.3rem;
     letter-spacing: 0.05em;
   }
@@ -872,10 +874,88 @@
     height: 1.7rem;
     border-width: 1.5px;
   }
-  .vote-roster-avatar--initials { font-size: 0.6rem; }
+  .vote-roster-avatar--initials { font-size: var(--text-2xs); }
   .vote-roster-name {
-    font-size: 0.58rem;
+    font-size: var(--text-2xs);
     margin-top: 0.15rem;
   }
+}
+
+// ==========================================================================
+// COUNCIL BADGES — phosphor pill variants owned by the council domain
+// ==========================================================================
+// Each variant only sets the hue. %badge-base shape/font/scanline is provided
+// by `.badge` in style.scss; templates always pair `.badge` with one of these
+// modifiers (e.g. `class="badge badge-carried"`). Dark-mode hues live in the
+// `badge-dark-overrides-council` mixin below; style.scss aggregates it into
+// the global `badge-dark-overrides` mixin.
+
+// Light/dark hues live in mirrored mixins so theme switches stay in lockstep.
+// Both are aggregated into the global badge-{light,dark}-overrides mixins in
+// style.scss and applied at :root scope — that bumps modifier specificity
+// above the single-class `.badge` default so hues actually take effect.
+
+@mixin badge-light-overrides-council {
+  .badge-carried  { @include badge-light-hue(#4ade80); }
+  .badge-lost     { @include badge-light-hue(#f87171); }
+  .badge-tie      { @include badge-light-hue(#fbbf24); }
+  .badge-headline { @include badge-light-hue(#60a5fa); }
+  .badge-notable  { @include badge-light-hue(#c084fc); }
+  .badge-vote     { @include badge-light-hue(#073642); } // solarized base02 = term-fg-bright light
+
+  .badge-term-1 { @include badge-light-hue(#facc15); } // yellow
+  .badge-term-2 { @include badge-light-hue(#fb923c); } // orange
+  .badge-term-3 { @include badge-light-hue(#4ade80); } // green
+  .badge-term-4 { @include badge-light-hue(#60a5fa); } // blue
+  .badge-term-5 { @include badge-light-hue(#c084fc); } // purple
+  .badge-term-6 { @include badge-light-hue(#d4a574); } // warm brown
+  .badge-term-7 { @include badge-light-hue(#e5e7eb); } // white phosphor
+  .badge-term-8 { @include badge-light-hue(#e5e7eb); }
+
+  // Ward subtitle badges
+  [data-ward="Current River"] .accordion-subtitle { @include badge-light-hue(#60a5fa); }
+  [data-ward="McIntyre"]      .accordion-subtitle { @include badge-light-hue(#4ade80); }
+  [data-ward="McKellar"]      .accordion-subtitle { @include badge-light-hue(#fbbf24); }
+  [data-ward="Westfort"]      .accordion-subtitle { @include badge-light-hue(#f87171); }
+  [data-ward="Neebing"]       .accordion-subtitle { @include badge-light-hue(#c084fc); }
+  [data-ward="Northwood"]     .accordion-subtitle { @include badge-light-hue(#22d3ee); }
+  [data-ward="Red River"]     .accordion-subtitle { @include badge-light-hue(#f472b6); }
+}
+
+@mixin badge-dark-overrides-council {
+  .badge-carried  { @include badge-dark-hue(#4ade80); }
+  .badge-lost     { @include badge-dark-hue(#f87171); }
+  .badge-tie      { @include badge-dark-hue(#fbbf24); }
+  .badge-headline { @include badge-dark-hue(#60a5fa); }
+  .badge-notable  { @include badge-dark-hue(#c084fc); }
+  .badge-vote     { @include badge-dark-hue(#86efac); } // term-fg-bright dark
+  .badge-term-1   { @include badge-dark-hue(#facc15); }
+  .badge-term-2   { @include badge-dark-hue(#fb923c); }
+  .badge-term-3   { @include badge-dark-hue(#4ade80); }
+  .badge-term-4   { @include badge-dark-hue(#60a5fa); }
+  .badge-term-5   { @include badge-dark-hue(#c084fc); }
+  .badge-term-6   { @include badge-dark-hue(#d4a574); }
+  .badge-term-7   { @include badge-dark-hue(#e5e7eb); }
+  .badge-term-8   { @include badge-dark-hue(#e5e7eb); }
+  [data-ward="Current River"] .accordion-subtitle { @include badge-dark-hue(#60a5fa); }
+  [data-ward="McIntyre"]      .accordion-subtitle { @include badge-dark-hue(#4ade80); }
+  [data-ward="McKellar"]      .accordion-subtitle { @include badge-dark-hue(#fbbf24); }
+  [data-ward="Westfort"]      .accordion-subtitle { @include badge-dark-hue(#f87171); }
+  [data-ward="Neebing"]       .accordion-subtitle { @include badge-dark-hue(#c084fc); }
+  [data-ward="Northwood"]     .accordion-subtitle { @include badge-dark-hue(#22d3ee); }
+  [data-ward="Red River"]     .accordion-subtitle { @include badge-dark-hue(#f472b6); }
+  // Motion filter pills (active state only; inactive uses neutral --thunder-* vars)
+  .motion-filter-pill--all:has(input:checked)        { @include badge-dark-hue(#4ade80); }
+  .motion-filter-pill--carried:has(input:checked)    { @include badge-dark-hue(#4ade80); }
+  .motion-filter-pill--defeated:has(input:checked)   { @include badge-dark-hue(#f87171); }
+  .motion-filter-pill--recorded:has(input:checked)   { @include badge-dark-hue(#86efac); }
+  .motion-filter-pill--procedural:has(input:checked) { @include badge-dark-hue(#d4a574); }
+  .recent-meeting-status        { @include badge-dark-hue(#9ca3af); }
+  .meeting-row-btn              { @include badge-dark-hue(#60a5fa); }
+  .meeting-row-btn-external     { @include badge-dark-hue(#60a5fa); }
+  .vote-matrix-media-badge      { @include badge-dark-hue(#60a5fa); }
+  .vote-matrix-result--carried  { @include badge-dark-hue(#4ade80); }
+  .vote-matrix-result--lost     { @include badge-dark-hue(#f87171); }
+  .vote-matrix-result--tie      { @include badge-dark-hue(#fbbf24); }
 }
 

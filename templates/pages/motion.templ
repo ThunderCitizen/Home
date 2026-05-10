@@ -150,9 +150,6 @@ templ proceduralMotion(m views.MotionView, index int) {
 	>
 		<div class="motion-row-header">
 			<a href={ templ.SafeURL(fmt.Sprintf("#motion-%d", m.ID)) } class="motion-index" title="Link to this motion">{ fmt.Sprintf("#%d", index+1) }</a>
-			if m.Result != "" {
-				<span class={ "badge", "badge-" + m.ResultClass }>{ m.Result }</span>
-			}
 			<span class="motion-procedural-text">
 				if m.Summary != "" {
 					{ m.Summary }
@@ -162,6 +159,7 @@ templ proceduralMotion(m views.MotionView, index int) {
 					{ m.TextPreview }
 				}
 			</span>
+			<span class={ "badge", "badge-" + m.ResultClass, "motion-row-result" }>{ m.Result }</span>
 		</div>
 		<div class="meeting-row-meta">
 			<span>Moved by { m.MovedBy }</span>
@@ -186,19 +184,17 @@ templ substantiveMotion(m views.MotionView, index int) {
 		}
 		<div class="motion-row-header">
 			<a href={ templ.SafeURL(fmt.Sprintf("#motion-%d", m.ID)) } class="motion-index" title="Link to this motion">{ fmt.Sprintf("#%d", index+1) }</a>
-			if m.Result != "" {
-				<span class={ "badge", "badge-" + m.ResultClass }>{ m.Result }</span>
-			}
 			if m.Significance == "headline" || m.Significance == "notable" {
 				if m.MediaURL == "" {
 					<span class={ "badge", "badge-" + m.Significance }>{ m.Significance }</span>
 				}
 			}
-			if m.HasVote {
-				<span class="badge badge-vote">Recorded vote: { m.VoteSummary }</span>
-			}
 			if m.MediaURL != "" {
 				<a href={ templ.SafeURL(m.MediaURL) } target="_blank" rel="noopener" class="badge badge-headline motion-media-link">media</a>
+			}
+			<span class={ "badge", "badge-" + m.ResultClass, "motion-row-result" }>{ m.Result }</span>
+			if m.HasVote {
+				<span class="badge badge-vote">Recorded vote: { m.VoteSummary }</span>
 			}
 		</div>
 		if m.Roster != nil {
