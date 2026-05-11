@@ -15,13 +15,13 @@ templ About() {
 		})
 
 		@components.Card(components.CardProps{Title: "What this is"}) {
-			<p><strong>Thunder Citizen</strong> is Thunder Bay&rsquo;s public data, in one place &mdash; transit performance, council votes, city budgets, and more.</p>
-			<p>This information is already public, but it&rsquo;s scattered across feeds, PDFs, and meeting minutes that most people will never read. We collect it, organize it, and present it.</p>
-			<p>We&rsquo;d love to hear from you &mdash; questions, ideas or just hello. Drop us a line at <a href="mailto:hello@thundercitizen.ca">hello@thundercitizen.ca</a>.</p>
+			<p><strong>Thunder Citizen</strong> puts Thunder Bay&rsquo;s public data in one place: transit performance, council votes, city budgets, and more. The information is already public, but it&rsquo;s scattered across feeds, PDFs, and meeting minutes that most people will never open. We collect it, organize it, and present it.</p>
+			<p>Thunder Citizen is also a software project. The backend uses <a href="https://go.dev/" target="_blank" rel="noopener">Go</a> for ingestion, parsing, indexing, and serving; the frontend uses <a href="https://htmx.org/" target="_blank" rel="noopener">HTMX</a> for progressive enhancement on server-rendered pages, so it stays fast and works without JavaScript. The source code is open. <a href="https://github.com/ThunderCitizen/Home" target="_blank" rel="noopener">Follow along on GitHub</a>.</p>
+			<p>Questions, ideas, or just hello? Drop us a line at <a href="mailto:hello@thundercitizen.ca">hello@thundercitizen.ca</a>.</p>
 		}
 
 		@components.Card(components.CardProps{Title: "How it works"}) {
-			<p>Transit data comes from Thunder Bay Transit's real-time feeds. Council votes are scraped from the city's published minutes. Budget figures reference specific pages in official documents.</p>
+			<p>Transit data comes from Thunder Bay Transit&rsquo;s real-time feeds. Council votes are scraped from the city&rsquo;s published minutes. Budget figures reference specific pages in official documents.</p>
 			<svg class="about-pipeline-svg" viewBox="0 0 760 130" fill="none" role="img" aria-label="Data pipeline: public sources flow through collect, process, and publish stages.">
 				<path d="M42,48 a14,14 0 0,1 7,-14 a11,11 0 0,1 18,-2 a13,13 0 0,1 22,9 a9,9 0 0,1 -2,13 h-40 a10,10 0 0,1 -5,-6z" stroke="var(--term-fg-dim)" stroke-width="1.5" fill="none"/>
 				<text x="62" y="82" text-anchor="middle" fill="var(--term-fg-dim)" font-size="9" font-weight="600">PUBLIC</text>
@@ -51,15 +51,32 @@ templ About() {
 				<circle cx="692.5" cy="57" r="1.2" fill="var(--term-fg-dim)"/>
 				<text x="678" y="82" text-anchor="middle" fill="var(--term-fg-dim)" font-size="9" font-weight="600">PUBLIC</text>
 			</svg>
+			<p>Transit pulls live <a href="https://gtfs.org/realtime/" target="_blank" rel="noopener">GTFS-RT</a> feeds for vehicle positions and delays, and budget flows are rendered as <a href="https://en.wikipedia.org/wiki/Sankey_diagram" target="_blank" rel="noopener">Sankey diagrams</a> so revenue and expenditure can be traced end to end.</p>
+			<p>Raw feeds and PDFs aren&rsquo;t built for humans. We translate them: bus arrivals become &ldquo;3 min late&rdquo; instead of a Unix timestamp, line items become labelled categories, motions get plain-language summaries with the official wording one click away. The goal is to make the answer to a question take seconds, not an afternoon.</p>
+			<p>Every figure stays traceable to its source. Budget numbers cite their FIR page, council votes link back to the minutes, transit metrics show the formula. Friendly on the surface, auditable underneath.</p>
 		}
 
 		@components.Card(components.CardProps{Title: "Other local sites we like"}) {
-			<p>No affiliation — just other locals building useful things for Thunder Bay.</p>
-			<ul>
-				<li><a href="https://tbshows.com/" target="_blank" rel="noopener">TB Shows</a> — What's on this weekend</li>
-				<li><a href="https://justthemenu.ca/" target="_blank" rel="noopener">Just The Menu</a> — Local restaurant menus, no fluff</li>
-				<li><a href="https://opendata.thunderbay.ca/" target="_blank" rel="noopener">Thunder Bay Open Data</a> — The city's open data portal</li>
-			</ul>
+			<p>No affiliation. Just other locals building useful things for Thunder Bay.</p>
+			<table>
+				<thead>
+					<tr><th scope="col">Site</th><th scope="col">What it does</th></tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><a href="https://tbshows.com/" target="_blank" rel="noopener">TB Shows</a></td>
+						<td>What&rsquo;s on this weekend</td>
+					</tr>
+					<tr>
+						<td><a href="https://justthemenu.ca/" target="_blank" rel="noopener">Just The Menu</a></td>
+						<td>Local restaurant menus, no fluff</td>
+					</tr>
+					<tr>
+						<td><a href="https://opendata.thunderbay.ca/" target="_blank" rel="noopener">Thunder Bay Open Data</a></td>
+						<td>The city&rsquo;s open data portal</td>
+					</tr>
+				</tbody>
+			</table>
 		}
 
 		@components.Card(components.CardProps{Title: "Disclaimers"}) {

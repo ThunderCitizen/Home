@@ -183,9 +183,9 @@ func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) (B
 	vm.TopLine = BudgetTopLine{
 		TotalRevenue: totalLabel,
 		PropertyTax:  taxLevyLabel,
-		TaxPct:       pctLabel(summary.PropertyTax, summary.TotalExpenditure),
+		TaxPct:       pctOfTotalLabel(summary.PropertyTax, summary.TotalExpenditure),
 		OtherSources: dollarsToMillionsLabel(summary.OtherRevenue),
-		OtherPct:     pctLabel(summary.OtherRevenue, summary.TotalExpenditure),
+		OtherPct:     pctOfTotalLabel(summary.OtherRevenue, summary.TotalExpenditure),
 		Operating:    totalLabel,
 		HasSpending:  true,
 	}
@@ -208,4 +208,11 @@ func pctLabel(part, total float64) string {
 		return ""
 	}
 	return fmt.Sprintf("%.1f%%", part/total*100)
+}
+
+func pctOfTotalLabel(part, total float64) string {
+	if total <= 0 || part <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.1f%% of total revenue", part/total*100)
 }

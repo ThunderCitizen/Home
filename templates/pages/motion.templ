@@ -15,7 +15,6 @@ templ CouncilMeeting(vm views.MeetingViewModel) {
 	}) {
 		@components.HeroStats(components.HeroStatsProps{
 			Title: vm.Date,
-			Footer: meetingDetailFooter(vm),
 		}) {
 			<div class="meeting-detail-overline-row">
 				<a href="/minutes" class="meeting-detail-back">&larr; Back to Minutes</a>
@@ -46,6 +45,7 @@ templ CouncilMeeting(vm views.MeetingViewModel) {
 				</button>
 			</div>
 		}
+		@aiSummaryBanner(vm.MinutesURL, vm.VideoURL, "")
 		if vm.Summary != "" {
 			@components.Card(components.CardProps{Title: "Summary"}) {
 				<p class="meeting-summary-text">{ vm.Summary }</p>
@@ -76,17 +76,6 @@ templ CouncilMeeting(vm views.MeetingViewModel) {
 		</div>
 		@motionFilterScript()
 	}
-}
-
-templ meetingDetailFooter(vm views.MeetingViewModel) {
-	<p class="llm-disclaimer">
-		Summaries are generated with Anthropic AI. Reader discretion is advised.
-		if vm.VideoURL != "" {
-			Watch the
-			<a href={ templ.SafeURL(vm.VideoURL) } target="_blank" rel="noopener">recording</a>
-			for more details.
-		}
-	</p>
 }
 
 templ motionFilterScript() {

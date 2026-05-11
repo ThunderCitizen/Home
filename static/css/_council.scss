@@ -258,6 +258,42 @@
   letter-spacing: 0.04em;
 }
 
+.ai-summary-banner {
+  margin: 0 0 1.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pico-muted-color);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+
+  .ai-summary-banner-headline {
+    margin: 0 0 0.3rem;
+    color: var(--pico-color);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0;
+
+    strong { color: inherit; font-weight: inherit; }
+  }
+
+  .ai-summary-banner-body {
+    margin: 0 0 0.4rem;
+  }
+
+  .ai-summary-banner-sources {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+
+    a {
+      color: var(--accent);
+    }
+  }
+}
+
 .meeting-row-meta {
   display: flex;
   flex-wrap: wrap;

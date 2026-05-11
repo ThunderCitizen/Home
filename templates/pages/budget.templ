@@ -16,7 +16,7 @@ func budgetHeroItems(vm views.BudgetViewModel) []components.StatItem {
 		items = append(items, components.StatItem{Value: vm.TopLine.OtherSources, Label: "Other Sources", Note: vm.TopLine.OtherPct})
 	}
 	if vm.TopLine.HasSpending {
-		items = append(items, components.StatItem{Value: vm.TopLine.Operating, Label: "Operating", Note: "day-to-day services"})
+		items = append(items, components.StatItem{Value: vm.TopLine.Operating, Label: "Operating Expense", Note: "day-to-day services"})
 	}
 	return items
 }
@@ -33,7 +33,11 @@ func budgetHeroCols(vm views.BudgetViewModel) int {
 }
 
 templ budgetHeroFooter() {
-	<span>Source: <a href="https://www.thunderbay.ca/en/city-hall/resources/Budget/Original-2026-Budget---Operating-Budget-Final.pdf" target="_blank" rel="noopener">City of Thunder Bay — 2026 Operating Budget</a></span>
+	<span class="budget-hero-footer-text">
+		Ontario law requires municipalities to balance operating budgets, meaning total revenue
+		must equal total operating expenditure.
+		Data Source: <a href="https://www.thunderbay.ca/en/city-hall/resources/Budget/Original-2026-Budget---Operating-Budget-Final.pdf" target="_blank" rel="noopener">City of Thunder Bay, 2026 Operating Budget</a>.
+	</span>
 }
 
 templ budgetExpandToggle() {
@@ -97,6 +101,7 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 				<div id="sankey-detail" class="sankey-detail"></div>
 			</div>
 			@components.TermPanel(components.TermPanelProps{Title: "Service Details", HeaderAction: budgetExpandToggle()}) {
+				<p class="service-details-legend">Percentages and bar widths are share of the total operating budget.</p>
 				<div id="service-details-list" data-section="serviceDetails">
 					for _, item := range vm.ItemsDesc {
 						<details class="service-detail-item">

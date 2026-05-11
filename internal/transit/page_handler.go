@@ -2,6 +2,7 @@ package transit
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -10,6 +11,18 @@ import (
 	"thundercitizen/internal/httperr"
 	"thundercitizen/internal/middleware"
 )
+
+// formatPollInterval renders a poll cadence like time.Duration.String() but
+// drops trailing zero units ("1m0s" → "1m") for cleaner copy in the UI.
+func formatPollInterval(d time.Duration) string {
+	s := d.String()
+	s = strings.TrimSuffix(s, "0s")
+	s = strings.TrimSuffix(s, "0m")
+	if s == "" {
+		return "0s"
+	}
+	return s
+}
 
 // --- Page handlers ---
 
@@ -70,9 +83,9 @@ func (h *Handler) transitRoutesPage(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) transitMethodPage(w http.ResponseWriter, r *http.Request) {
 	h.render.TransitMethod(MethodViewModel{
-		VehiclePoll: VehiclePollInterval.String(),
-		TripPoll:    TripPollInterval.String(),
-		AlertPoll:   AlertPollInterval.String(),
+		VehiclePoll: formatPollInterval(VehiclePollInterval),
+		TripPoll:    formatPollInterval(TripPollInterval),
+		AlertPoll:   formatPollInterval(AlertPollInterval),
 	})(r.Context(), w)
 }
 

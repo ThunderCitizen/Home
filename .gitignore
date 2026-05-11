@@ -1,6 +1,7 @@
 # Generated files
 *_templ.go
 static/css/style.css
+style.css.map
 
 # Binaries (bin/ is `make all`; root-level are stray `go build` outputs)
 bin/

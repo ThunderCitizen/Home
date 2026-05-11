@@ -23,7 +23,6 @@ templ Council(vm views.CouncilViewModel) {
 		})
 		@components.HeroStats(components.HeroStatsProps{
 			Title: "Council Meeting Minutes",
-			Footer: minutesDisclaimer(),
 		}) {
 			@components.StatGrid(components.StatGridProps{
 				Items: []components.StatItem{
@@ -36,6 +35,7 @@ templ Council(vm views.CouncilViewModel) {
 			<p class="hero-stats-lead">A <strong>recorded vote</strong> happens when a councillor requests a roll call, putting each member's yea or nay on the public record. Most motions pass by voice vote. For full agendas and documents, visit the <a href="https://pub-thunderbay.escribemeetings.com/" target="_blank" rel="noopener">City's eScribe Portal</a>.</p>
 		}
 		@components.TermPanel(components.TermPanelProps{Title: "Meetings"}) {
+			@aiSummaryBanner("", "", "")
 			@minutesSearchBar(vm)
 			<div id="meetings-content">
 				if vm.MotionSearch != nil {
@@ -49,8 +49,38 @@ templ Council(vm views.CouncilViewModel) {
 	}
 }
 
-templ minutesDisclaimer() {
-	<p class="llm-disclaimer">Summaries are generated with Anthropic AI. Reader discretion is advised. Watch the recording for more details.</p>
+// aiSummaryBanner renders a containment notice above AI-generated council
+// summaries. The four named sources below — Minutes (PDF), Agenda,
+// Recording, and the AI summary — are listed in authority order: official
+// city documents first, the AI summary last.
+templ aiSummaryBanner(minutesURL, videoURL, agendaURL string) {
+	<aside class="ai-summary-banner" role="note" aria-label="About these AI summaries">
+		<p class="ai-summary-banner-body">
+			Summaries on this page are generated with Anthropic AI to help you
+			find topics in plain language without wrestling with jargon. For
+			the binding record, see the
+			if minutesURL != "" {
+				<a href={ templ.SafeURL(minutesURL) } target="_blank" rel="noopener">official minutes (PDF)</a>
+			} else {
+				<a href="https://pub-thunderbay.escribemeetings.com/" target="_blank" rel="noopener">City&rsquo;s eScribe portal</a>
+			}
+			if agendaURL != "" || videoURL != "" {
+				, the
+				if agendaURL != "" {
+					<a href={ templ.SafeURL(agendaURL) } target="_blank" rel="noopener">agenda</a>
+				}
+				if agendaURL != "" && videoURL != "" {
+					, or the
+				} else if videoURL != "" {
+					or the
+				}
+				if videoURL != "" {
+					<a href={ templ.SafeURL(videoURL) } target="_blank" rel="noopener">meeting recording</a>
+				}
+			}
+			.
+		</p>
+	</aside>
 }
 
 templ meetingsSwapAnimation() {

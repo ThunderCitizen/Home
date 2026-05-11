@@ -1123,7 +1123,7 @@ path.stop-selected {
   column-gap: 1.25rem;
   row-gap: 0.4rem;
 
-  > #transit-status { grid-column: 1; justify-self: start; }
+  > .transit-status-cell { grid-column: 1; justify-self: start; }
   > #selector-bar   { grid-column: 2; min-width: 0; }
   > .selector-bar   { grid-column: 4; justify-self: end; }
 
@@ -1150,7 +1150,7 @@ path.stop-selected {
       "status   layers"
       ".        features";
 
-    > #transit-status { grid-area: status; }
+    > .transit-status-cell { grid-area: status; }
     > #selector-bar   { grid-area: layers;   justify-self: stretch; min-width: 0; }
     > .selector-bar   { grid-area: features; justify-self: stretch; min-width: 0; }
 
@@ -2465,6 +2465,25 @@ tr.route-tp-canceled {
 .methods-tag-regularity { background: var(--status-ok); }
 .methods-tag-architecture { background: var(--accent); }
 .methods-tag-accessibility { background: var(--status-early-dep); }
+
+.transit-status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.methods-rubric {
+  display: block;
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.85rem;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+
+  strong { color: var(--heading); }
+}
 
 .methods-star {
   color: #f5b301;

@@ -136,6 +136,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.service-details-legend {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-2xs);
+  color: var(--pico-muted-color);
+  font-style: italic;
+}
+
 .service-detail-item {
   border-bottom: 1px solid var(--thunder-200);
   margin-bottom: 0;

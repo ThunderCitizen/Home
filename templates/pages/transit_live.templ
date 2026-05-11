@@ -67,7 +67,9 @@ templ TransitLive(vm transit.LiveViewModel) {
 
 		<section class="route-panel" aria-label="Live transit map and routes">
 			<div class="terminal-map-header" id="map-info-host">
-				<span id="transit-status" class="transit-status transit-status-off" role="status" aria-live="polite">Live</span>
+				<span class="transit-status-cell">
+					<span id="transit-status" class="transit-status transit-status-off" role="status" aria-live="polite">Live</span>
+				</span>
 				<div id="selector-bar">
 					@components.MapLayerBar(transitLayerGroups())
 				</div>

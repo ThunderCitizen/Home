@@ -19,7 +19,7 @@ templ TransitMethod(vm transit.MethodViewModel) {
 }
 
 templ transitDataCollection(vm transit.MethodViewModel) {
-	<section aria-label="Data collection" class="report-methodology">
+	<section id="data-collection" aria-label="Data collection" class="report-methodology">
 		<article>
 			<header class="methods-header"><h3>Data Collection</h3></header>
 			<p>
@@ -43,9 +43,7 @@ templ transitDataCollection(vm transit.MethodViewModel) {
 			<p>
 				The feeds are encoded as
 				<a href="https://protobuf.dev/" target="_blank" rel="noopener">Protocol Buffers</a>
-				(protobuf) &mdash; an advanced binary serialization format developed at
-				Google. The small efficiency gain per message, multiplied by Google
-				scale, saves a significant amount of electricity.
+				(protobuf) &mdash; a compact binary serialization format.
 			</p>
 		</article>
 	</section>
@@ -82,10 +80,9 @@ templ transitMethodology() {
 				<footer>&mdash; <cite><a href="https://sre.google/sre-book/service-level-objectives/" target="_blank" rel="noopener">Google SRE Handbook</a>, Ch. 4</cite></footer>
 			</blockquote>
 			<p>
-				Google is the company who defined the GTFS transit standard
-				and are known for running complex systems with legendary reliability.
-				The SRE Handbook is very influential to how I think about building and operating
-				software systems.
+				Google authored the GTFS transit standard and publishes the SRE Handbook
+				openly. The handbook&rsquo;s framing of indicators and objectives shapes
+				how this site reasons about transit service quality.
 			</p>
 
 			<p>
@@ -233,17 +230,21 @@ templ transitMethodology() {
 			<header class="methods-header"><h3>On-Time Performance (OTP)</h3><span class="methods-tag methods-tag-schedule">Schedule</span></header>
 			<p>
 				A trip is "on time" if it arrives within <strong>1 minute early to 5
-				minutes late</strong> of schedule. This is the standard window used by
-				most North American agencies.
+				minutes late</strong> of schedule. This window is the
+				<a href="https://www.apta.com/research-technical-resources/transit-statistics/" target="_blank" rel="noopener">standard definition</a>
+				used by most North American agencies.
 			</p>
 			<p>
 				Early departures are penalized because if a bus leaves a stop before the
 				scheduled time, you miss it — that's worse than a bus running late.
 			</p>
-			<p>
-				Typical range for a mid-size Canadian city: 65–85%. Above 90% is
-				world-class. Below 60% indicates a systemic problem.
-			</p>
+			<aside class="methods-rubric">
+				<strong>TC interpretive rubric</strong> &mdash; not an industry standard.
+				For a mid-size Canadian city we treat <strong>65&ndash;85%</strong> as a
+				typical range, <strong>90%+</strong> as exceptional, and
+				<strong>below 60%</strong> as a sign of a systemic problem. These bands
+				are editorial calibration, not an SLO published by Thunder Bay Transit.
+			</aside>
 		</article>
 
 
@@ -330,13 +331,15 @@ templ transitMethodology() {
 				el.innerHTML = svg;
 			})();
 			</script>
-			<p>
-				Below 0.3 is good &mdash; riders perceive the service as regular.
-				A Cv near zero isn&rsquo;t the goal either &mdash; that would be like
-				standing too close to the dartboard, where hitting the bullseye says
-				nothing about your aim. Some variance is inevitable and healthy.
-				Above 0.5, gaps feel random and riders lose trust in the system.
-			</p>
+			<aside class="methods-rubric">
+				<strong>TC interpretive rubric.</strong> We treat
+				<strong>Cv &lt; 0.3</strong> as service riders perceive as regular and
+				<strong>Cv &gt; 0.5</strong> as gaps that feel random. The
+				0.10 / 0.30 / 0.50 dartboard bands above are TC editorial
+				calibration. A Cv near zero isn&rsquo;t the goal either &mdash; that
+				would be like standing too close to the dartboard, where hitting the
+				bullseye says nothing about your aim. Some variance is inevitable.
+			</aside>
 			<p>
 				Cv only judges <em>regularity</em>, not whether the bus is on time. A
 				route that runs every 20 minutes when the schedule promised every 10
@@ -348,7 +351,10 @@ templ transitMethodology() {
 		<article>
 			<header class="methods-header"><h3><svg class="methods-star" viewBox="0 0 24 24" fill="currentColor" width="0.9em" height="0.9em" aria-label="North-star metric"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Excess Wait Time (EWT)</h3><span class="methods-tag methods-tag-delay">Delay</span></header>
 			<p>
-				Excess Wait Time seems to be the most important operation metric. Transit managers publish a schedule
+				Excess Wait Time, as defined by
+				<a href="https://content.tfl.gov.uk/bus-performance-data-methodology.pdf" target="_blank" rel="noopener">Transport for London</a>,
+				is the operational metric we lean on most.
+				Transit managers publish a schedule
 				&mdash; that schedule is a promise. EWT measures how many extra minutes
 				you actually wait beyond that promise because buses aren&rsquo;t arriving
 				at regular intervals. It&rsquo;s the gap between what was committed to
@@ -479,6 +485,13 @@ templ transitMethodology() {
 					<tbody>
 						<tr>
 							<td>
+								<a href="https://www.apta.com/research-technical-resources/transit-statistics/" target="_blank" rel="noopener">APTA Transit Statistics</a>
+							</td>
+							<td>OTP definition (1 min early to 5 min late) used across North America</td>
+							<td>Source for the definition. The 65/85/90% bands shown above are our editorial calibration, not from APTA.</td>
+						</tr>
+						<tr>
+							<td>
 								<a href="https://humantransit.org/2010/10/beyond-on-time-performance.html" target="_blank" rel="noopener">Human Transit: Beyond On-Time Performance</a>
 							</td>
 							<td>Why frequency and network design matter more than schedule adherence</td>
@@ -489,7 +502,7 @@ templ transitMethodology() {
 								<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/raptor_alenex.pdf" target="_blank" rel="noopener">Delling, Pajor, Werneck &mdash; Round-Based Public Transit Routing (PDF)</a>
 							</td>
 							<td>RAPTOR &mdash; the algorithm powering the route finder feature</td>
-							<td>Our initial approach was graph-based; we&rsquo;re still working on understanding this paper properly</td>
+							<td>Initial implementation was graph-based (Dijkstra); migration to RAPTOR is in progress</td>
 						</tr>
 						<tr>
 							<td>
