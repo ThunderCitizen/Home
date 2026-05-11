@@ -87,6 +87,7 @@ templ Councillors(vm views.CouncillorsViewModel) {
 		Description: "Thunder Bay's 13 city councillors — profiles, voting records across notable motions, and an interactive ward map.",
 		OGImage:     "/static/og/councillors.png",
 	}) {
+		<h1 class="sr-only">Councillors</h1>
 		<div id="councillor-content">
 			@CouncillorsPartial(vm)
 		</div>
@@ -102,7 +103,7 @@ templ Councillors(vm views.CouncillorsViewModel) {
 templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	<div class="councillor-sticky-area">
 		@components.YearSelector(vm.TermSelector)
-		@components.TermPanel(components.TermPanelProps{Title: "Council Structure", Footer: compensationSource(vm.Source)}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Council Structure", Footer: compensationSource(vm.Source), HeadingLevel: 2}) {
 			<p class="compensation-lead">Thunder Bay's 13-member council: 1 mayor, 5 at-large, and 7 ward representatives.</p>
 			@components.TermMetricGrid(components.TermMetricGridProps{Cols: 3}) {
 				for _, item := range vm.CompensationStats.Items {
@@ -111,7 +112,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 			}
 		}
 
-	@components.TermPanel(components.TermPanelProps{Title: "Members", HeaderAction: accordionToggle()}) {
+	@components.TermPanel(components.TermPanelProps{Title: "Members", HeaderAction: accordionToggle(), HeadingLevel: 2}) {
 		<h3 class="section-subheader">Mayor</h3>
 		<div data-section="mayor">
 			@councillorItem(vm.Mayor)
@@ -134,7 +135,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	}
 
 	if vm.VoteMatrix != nil && len(vm.VoteMatrix.Columns) > 0 {
-		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes"}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes", HeadingLevel: 2}) {
 			@voteMatrix(vm.VoteMatrix)
 		}
 	}

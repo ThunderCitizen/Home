@@ -1944,6 +1944,27 @@ function wireStopSearch(inputId: string, resultsId: string, onSelect: (stop: Sto
   const resultsEl = document.getElementById(resultsId) as HTMLElement | null;
   if (!input || !resultsEl) return;
 
+  // ARIA combobox state — keep aria-expanded on the input in sync with the
+  // dropdown's visibility, and aria-activedescendant pointing at the
+  // currently-highlighted option (or unset when none).
+  function setListboxOpen(open: boolean): void {
+    if (!input || !resultsEl) return;
+    resultsEl.hidden = !open;
+    input.setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) input.removeAttribute("aria-activedescendant");
+  }
+  function setActiveOption(item: HTMLElement | null): void {
+    if (!input || !resultsEl) return;
+    const prev = resultsEl.querySelector('[aria-selected="true"]');
+    if (prev) prev.setAttribute("aria-selected", "false");
+    if (item) {
+      item.setAttribute("aria-selected", "true");
+      if (item.id) input.setAttribute("aria-activedescendant", item.id);
+    } else {
+      input.removeAttribute("aria-activedescendant");
+    }
+  }
+
   let debounce: ReturnType<typeof setTimeout> | null = null;
 
   input.addEventListener("input", function () {
@@ -1966,25 +1987,26 @@ function wireStopSearch(inputId: string, resultsId: string, onSelect: (stop: Sto
     }
     const q = input.value.trim();
     if (q.length < 2) {
-      resultsEl.hidden = true;
+      setListboxOpen(false);
       return;
     }
     debounce = setTimeout(function () {
       const matches = searchStops(q);
       if (matches.length === 0) {
-        resultsEl.hidden = true;
+        setListboxOpen(false);
         return;
       }
       let html = "";
       for (let i = 0; i < matches.length; i++) {
         const s = matches[i];
-        html += '<button type="button" class="trip-search-item" data-idx="' + i + '">';
+        const optId = inputId + "-opt-" + i;
+        html += '<button type="button" class="trip-search-item" role="option" aria-selected="false" id="' + optId + '" data-idx="' + i + '">';
         html += '<span class="trip-search-name">' + escapeHtml(s.stop_name) + '</span>';
         html += '<span class="trip-search-id">#' + escapeHtml(s.stop_id) + '</span>';
         html += '</button>';
       }
       resultsEl.innerHTML = html;
-      resultsEl.hidden = false;
+      setListboxOpen(true);
 
       // Wire click handlers
       const items = resultsEl.querySelectorAll(".trip-search-item");
@@ -1992,7 +2014,7 @@ function wireStopSearch(inputId: string, resultsId: string, onSelect: (stop: Sto
         (function (stop: Stop) {
           items[j].addEventListener("mousedown", function (e: Event) {
             e.preventDefault();
-            resultsEl.hidden = true;
+            setListboxOpen(false);
             input.value = stop.stop_name + " #" + stop.stop_id;
             onSelect(stop);
             input.blur();
@@ -2028,8 +2050,10 @@ function wireStopSearch(inputId: string, resultsId: string, onSelect: (stop: Sto
         if (active) active.classList.remove("trip-search-active");
         if (e.key === "ArrowDown") idx = (idx + 1) % items.length;
         else idx = (idx - 1 + items.length) % items.length;
-        items[idx].classList.add("trip-search-active");
-        items[idx].scrollIntoView({ block: "nearest" });
+        const next = items[idx] as HTMLElement;
+        next.classList.add("trip-search-active");
+        next.scrollIntoView({ block: "nearest" });
+        setActiveOption(next);
         return;
       }
       // Empty or no dropdown — enumerate all stops
@@ -2050,7 +2074,7 @@ function wireStopSearch(inputId: string, resultsId: string, onSelect: (stop: Sto
   });
 
   input.addEventListener("blur", function () {
-    setTimeout(function () { resultsEl.hidden = true; }, 200);
+    setTimeout(function () { setListboxOpen(false); }, 200);
   });
 
   input.addEventListener("focus", function () {
@@ -2080,18 +2104,20 @@ function showDefaultStops(resultsEl: HTMLElement, input: HTMLInputElement, onSel
   regular.sort(function (a, b) { return (b.routes || 0) - (a.routes || 0); });
   const stops = hubs.concat(regular).slice(0, 8);
 
+  const baseId = input.id + "-defopt";
+
   // "My location" blended in as the first option
   if (showLocate) {
-    html += '<button type="button" class="trip-search-item" data-locate="1">';
+    html += '<button type="button" class="trip-search-item" role="option" aria-selected="false" id="' + baseId + '-locate" data-locate="1">';
     html += '<span class="trip-search-name">' + locateIcon + ' Use my location</span>';
     html += '</button>';
   }
 
   if (stops.length > 0) {
-    html += '<div class="trip-search-hint">Popular stops</div>';
+    html += '<div class="trip-search-hint" aria-hidden="true">Popular stops</div>';
     for (let j = 0; j < stops.length; j++) {
       const s = stops[j];
-      html += '<button type="button" class="trip-search-item" data-idx="' + j + '">';
+      html += '<button type="button" class="trip-search-item" role="option" aria-selected="false" id="' + baseId + '-' + j + '" data-idx="' + j + '">';
       html += '<span class="trip-search-name">' + escapeHtml(s.stop_name) + '</span>';
       html += '<span class="trip-search-id">#' + escapeHtml(s.stop_id) + '</span>';
       html += '</button>';
@@ -2101,6 +2127,7 @@ function showDefaultStops(resultsEl: HTMLElement, input: HTMLInputElement, onSel
   if (!html) return;
   resultsEl.innerHTML = html;
   resultsEl.hidden = false;
+  input.setAttribute("aria-expanded", "true");
 
   // Wire locate option
   const locateOpt = resultsEl.querySelector("[data-locate]");
@@ -2108,6 +2135,8 @@ function showDefaultStops(resultsEl: HTMLElement, input: HTMLInputElement, onSel
     locateOpt.addEventListener("mousedown", function (e: Event) {
       e.preventDefault();
       resultsEl.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+      input.removeAttribute("aria-activedescendant");
       onLocateClick(true);
       input.blur();
     });
@@ -2120,6 +2149,8 @@ function showDefaultStops(resultsEl: HTMLElement, input: HTMLInputElement, onSel
       items[k].addEventListener("mousedown", function (e: Event) {
         e.preventDefault();
         resultsEl.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
         input.value = stop.stop_name + " #" + stop.stop_id;
         onSelect(stop);
         input.blur();

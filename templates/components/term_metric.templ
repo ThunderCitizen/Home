@@ -57,6 +57,12 @@ type TermPanelProps struct {
 	ID           string          // optional ID for HTMX targeting
 	HeaderAction templ.Component // optional action rendered right-aligned in header
 	Footer       templ.Component // optional footer rendered as <footer> after body
+
+	// HeadingLevel selects the title element (2 → h2, 3 → h3). Defaults to
+	// h3. Set to 2 when the panel is a top-level section of the page so the
+	// outline reads h1 → h2 → h3 instead of skipping a level. Visual size
+	// is fixed by .term-panel-title CSS and is independent of this prop.
+	HeadingLevel int
 }
 
 // TermPanel renders a terminal-styled card with header and children slot.
@@ -64,7 +70,11 @@ templ TermPanel(props TermPanelProps) {
 	<article class="term-panel" { panelAttrs(props)... }>
 		if props.Title != "" {
 			<header class="term-panel-header">
-				<h3 class="term-panel-title">{ props.Title }</h3>
+				if props.HeadingLevel == 2 {
+					<h2 class="term-panel-title">{ props.Title }</h2>
+				} else {
+					<h3 class="term-panel-title">{ props.Title }</h3>
+				}
 				if props.HeaderAction != nil {
 					@props.HeaderAction
 				}

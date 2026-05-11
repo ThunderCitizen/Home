@@ -14,14 +14,15 @@ package components
 //	    @components.StatGrid(...)
 //	}
 type HeroStatsProps struct {
-	Title  string          // terminal header label
-	Lead   string          // optional prose paragraph below stats
-	Footer templ.Component // optional footer slot (disclaimer, source)
-	Accent string          // optional left-border accent color
+	Title        string          // terminal header label
+	Lead         string          // optional prose paragraph below stats
+	Footer       templ.Component // optional footer slot (disclaimer, source)
+	Accent       string          // optional left-border accent color
+	HeadingLevel int             // 2 or 3 — see TermPanelProps.HeadingLevel
 }
 
 templ HeroStats(props HeroStatsProps) {
-	@TermPanel(TermPanelProps{Title: props.Title, Accent: props.Accent, Footer: props.Footer}) {
+	@TermPanel(TermPanelProps{Title: props.Title, Accent: props.Accent, Footer: props.Footer, HeadingLevel: props.HeadingLevel}) {
 		<div class="hero-stats">
 			{ children... }
 			if props.Lead != "" {

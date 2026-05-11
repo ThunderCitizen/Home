@@ -2,10 +2,52 @@ package pages
 
 import (
 	"fmt"
+	"html"
+	"strings"
 	"thundercitizen/internal/views"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
+
+// aiSummaryBannerTail assembles the link-bearing tail of the AI summary
+// banner sentence as a single HTML fragment so the period sits flush
+// against the final link. Built in Go because templ emits whitespace
+// around if/else blocks, which leaves a stray space before the period.
+func aiSummaryBannerTail(minutesURL, videoURL, agendaURL string) string {
+	link := func(href, text string) string {
+		return `<a href="` + html.EscapeString(href) + `" target="_blank" rel="noopener">` + text + `</a>`
+	}
+	primary := link("https://pub-thunderbay.escribemeetings.com/", "City&rsquo;s eScribe portal")
+	if minutesURL != "" {
+		primary = link(minutesURL, "official minutes (PDF)")
+	}
+	var extras []string
+	if agendaURL != "" {
+		extras = append(extras, link(agendaURL, "agenda"))
+	}
+	if videoURL != "" {
+		extras = append(extras, link(videoURL, "meeting recording"))
+	}
+	out := primary
+	switch len(extras) {
+	case 1:
+		out += ", the " + extras[0]
+	case 2:
+		out += ", the " + extras[0] + ", or the " + extras[1]
+	}
+	return out + "."
+}
+
+func aiSummaryBannerLead() string {
+	return "Summaries on this page are generated with Anthropic AI to help you find topics in plain language without wrestling with jargon. For the binding record, see the "
+}
+
+// safeBannerHTML joins the lead prose with the assembled link tail. Both
+// halves are trusted strings — lead is a constant, tail builds links from
+// view-model URLs that pgx-loaded into typed fields.
+func safeBannerHTML(minutesURL, videoURL, agendaURL string) string {
+	return strings.TrimSpace(aiSummaryBannerLead()) + " " + aiSummaryBannerTail(minutesURL, videoURL, agendaURL)
+}
 
 templ Council(vm views.CouncilViewModel) {
 	@templates.Layout(templates.SocialMeta{
@@ -13,6 +55,7 @@ templ Council(vm views.CouncilViewModel) {
 		Description: "Every Thunder Bay city council meeting, searchable — motion summaries, recorded votes, and headline decisions from each session.",
 		OGImage:     "/static/og/minutes.png",
 	}) {
+		<h1 class="sr-only">Council Meeting Minutes</h1>
 		@components.YearSelector(components.YearSelectorProps{
 			Years:     []int{2022},
 			Current:   vm.Filter.TermYear,
@@ -22,7 +65,8 @@ templ Council(vm views.CouncilViewModel) {
 			AriaLabel: "Select council term",
 		})
 		@components.HeroStats(components.HeroStatsProps{
-			Title: "Council Meeting Minutes",
+			Title:        "Council Meeting Minutes",
+			HeadingLevel: 2,
 		}) {
 			@components.StatGrid(components.StatGridProps{
 				Items: []components.StatItem{
@@ -32,9 +76,9 @@ templ Council(vm views.CouncilViewModel) {
 				},
 				Columns: 3,
 			})
-			<p class="hero-stats-lead">A <strong>recorded vote</strong> happens when a councillor requests a roll call, putting each member's yea or nay on the public record. Most motions pass by voice vote. For full agendas and documents, visit the <a href="https://pub-thunderbay.escribemeetings.com/" target="_blank" rel="noopener">City's eScribe Portal</a>.</p>
+			<p class="hero-stats-lead">A <strong>recorded vote</strong> happens when a councillor requests a roll call. Most motions pass by voice vote.</p>
 		}
-		@components.TermPanel(components.TermPanelProps{Title: "Meetings"}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Meetings", HeadingLevel: 2}) {
 			@aiSummaryBanner("", "", "")
 			@minutesSearchBar(vm)
 			<div id="meetings-content">
@@ -56,29 +100,7 @@ templ Council(vm views.CouncilViewModel) {
 templ aiSummaryBanner(minutesURL, videoURL, agendaURL string) {
 	<aside class="ai-summary-banner" role="note" aria-label="About these AI summaries">
 		<p class="ai-summary-banner-body">
-			Summaries on this page are generated with Anthropic AI to help you
-			find topics in plain language without wrestling with jargon. For
-			the binding record, see the
-			if minutesURL != "" {
-				<a href={ templ.SafeURL(minutesURL) } target="_blank" rel="noopener">official minutes (PDF)</a>
-			} else {
-				<a href="https://pub-thunderbay.escribemeetings.com/" target="_blank" rel="noopener">City&rsquo;s eScribe portal</a>
-			}
-			if agendaURL != "" || videoURL != "" {
-				, the
-				if agendaURL != "" {
-					<a href={ templ.SafeURL(agendaURL) } target="_blank" rel="noopener">agenda</a>
-				}
-				if agendaURL != "" && videoURL != "" {
-					, or the
-				} else if videoURL != "" {
-					or the
-				}
-				if videoURL != "" {
-					<a href={ templ.SafeURL(videoURL) } target="_blank" rel="noopener">meeting recording</a>
-				}
-			}
-			.
+			@templ.Raw(safeBannerHTML(minutesURL, videoURL, agendaURL))
 		</p>
 	</aside>
 }
@@ -228,7 +250,7 @@ templ meetingRow(m views.MeetingSummaryView) {
 			if m.LostCount > 0 {
 				<span class="badge badge-lost">{ fmt.Sprintf("%d defeated", m.LostCount) }</span>
 			}
-			<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">Minutes</a>
+			<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">Minutes <span class="meeting-row-btn-arrow" aria-hidden="true">→</span></a>
 		</div>
 	</div>
 }

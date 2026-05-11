@@ -142,6 +142,9 @@ article > header {
 
   .term-panel-title {
     margin: 0;
+    // Pin weight so promoting the element to <h2> for semantics (page-level
+    // panels) doesn't visually bold the title.
+    font-weight: var(--weight-semi);
   }
 }
 

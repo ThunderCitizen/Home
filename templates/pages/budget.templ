@@ -81,8 +81,9 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 				</article>
 			} else {
 			@components.HeroStats(components.HeroStatsProps{
-				Title: fmt.Sprintf("%d Operating Budget · %s", vm.Year, vm.TopLine.TotalRevenue),
-				Footer: budgetHeroFooter(),
+				Title:        fmt.Sprintf("%d Operating Budget · %s", vm.Year, vm.TopLine.TotalRevenue),
+				Footer:       budgetHeroFooter(),
+				HeadingLevel: 2,
 			}) {
 				@components.StatGrid(components.StatGridProps{
 					Items: budgetHeroItems(vm),
@@ -100,7 +101,7 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 				</article>
 				<div id="sankey-detail" class="sankey-detail"></div>
 			</div>
-			@components.TermPanel(components.TermPanelProps{Title: "Service Details", HeaderAction: budgetExpandToggle()}) {
+			@components.TermPanel(components.TermPanelProps{Title: "Service Details", HeaderAction: budgetExpandToggle(), HeadingLevel: 2}) {
 				<p class="service-details-legend">Percentages and bar widths are share of the total operating budget.</p>
 				<div id="service-details-list" data-section="serviceDetails">
 					for _, item := range vm.ItemsDesc {

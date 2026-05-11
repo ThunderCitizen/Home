@@ -327,6 +327,17 @@
 
   &:hover { filter: brightness(1.1); }
 
+  &-arrow {
+    display: inline-block;
+    margin-left: 0.15rem;
+    transition: transform 0.15s ease;
+  }
+
+  &:hover &-arrow,
+  &:focus-visible &-arrow {
+    transform: translateX(2px);
+  }
+
   &-external {
     @include badge-light-hue(#60a5fa);
     margin-left: auto;

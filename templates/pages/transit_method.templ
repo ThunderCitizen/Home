@@ -13,6 +13,7 @@ templ TransitMethod(vm transit.MethodViewModel) {
 		OGImage:     "/static/og/transit.png",
 	}) {
 		@components.TransitNav(components.TransitNavProps{Current: "method"})
+		<h1 class="sr-only">Method</h1>
 		@transitMethodology()
 		@transitDataCollection(vm)
 	}

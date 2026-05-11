@@ -97,6 +97,28 @@ Budget bar fill colors need 3:1 against the track background (`--thunder-100` #d
 
 ## Implementation Patterns
 
+### Landmarks (native HTML)
+
+Use semantic HTML; **do not** add redundant ARIA roles. Every native element below has an implicit role that screen readers already recognize:
+
+| Element                | Implicit role  | Use for                              |
+| ---------------------- | -------------- | ------------------------------------ |
+| `<header>` (top level) | `banner`       | Site header in `layout.templ`        |
+| `<nav>`                | `navigation`   | Any nav block (always `aria-label` it if there are multiple) |
+| `<main>`               | `main`         | Page content wrapper (one per page)  |
+| `<footer>` (top level) | `contentinfo`  | Site footer in `layout.templ`        |
+| `<section aria-label>` | `region`       | Major sub-area of a page             |
+
+Writing `role="banner"` on a `<header>` is redundant noise. Only add explicit roles when no native element fits (e.g., `role="tablist"`, `role="radiogroup"`, `role="status"`).
+
+### Heading hierarchy
+
+**Every page must have exactly one `<h1>`.** It names the page for screen-reader users who jump by heading. Either render a visible `<h1>` (preferred when the page has a clear title) or an `<h1 class="sr-only">` when the visual design already conveys the page name through terminal-styled chrome.
+
+- Pages built on `@components.PageHeader` or `@components.Hero` inherit an h1 from the component.
+- Pages using `@components.HeroStats` or `@components.TermPanel` do **not** get an h1 from those components — they render their titles as `<h3>`. Add an `<h1 class="sr-only">` above the TermPanel.
+- Inside a page, step heading levels by one (`h1 → h2 → h3`). Avoid jumping `h1 → h3`. Avoid inversions (`h3 → h2`).
+
 ### Data visualizations
 
 Always provide **two representations**:
@@ -130,43 +152,11 @@ Navigation, maps, footer, and decorative elements are hidden. External link URLs
 
 ## Testing
 
-We test at three levels, from fast/automated to slow/manual.
+### Level 1: Manual browser audit
 
-### Level 1: Go unit tests (CI-safe, no server needed)
+For checks that require a live page (color contrast, nested interactives, Leaflet-generated DOM), use the [axe DevTools](https://www.deque.com/axe/devtools/) browser extension against the running dev server. Run WCAG 2.2 AA rules on each page.
 
-```bash
-go test ./internal/views/ -run 'Layout|Budget|Transit'
-```
-
-13 tests verify rendered HTML contains required ARIA attributes, landmarks, heading hierarchy, live regions, sr-only tables, and aria-hidden on decorative elements.
-
-These run in under 1 second with no dependencies. Add a test for every new ARIA pattern.
-
-**Test file**: `internal/views/a11y_test.go`
-
-| Test | WCAG | What it checks |
-|------|------|----------------|
-| `TestLayout_LangAttribute` | 3.1.1 | `<html lang="en">` |
-| `TestLayout_SkipLink` | 2.4.1 | Skip-to-main link present with text |
-| `TestLayout_Landmarks` | 1.3.1 | `<nav>`, `<main>`, `<footer>` elements |
-| `TestLayout_NavLabel` | 1.3.1 | `aria-label` on nav |
-| `TestLayout_PageTitle` | 2.4.2 | `<title>` matches page name |
-| `TestLayout_AriaCurrentPage` | 2.4.8 | `aria-current="page"` on active link |
-| `TestLayout_MenuToggleAriaExpanded` | 4.1.2 | `aria-expanded` + `aria-label` on toggle |
-| `TestBudget_SrOnlyDataTable` | 1.1.1 | `.sr-only` table with `<caption>` and `scope` |
-| `TestBudget_BarsAriaHidden` | 1.1.1 | Visual bars marked `aria-hidden` |
-| `TestBudget_HeadingHierarchy` | 2.4.6 | Single h1, h2s come after |
-| `TestTransit_LiveRegions` | 4.1.3 | `aria-live="polite"` and `role="status"` |
-| `TestTransit_MapAccessible` | 1.1.1 | Map has `role="region"` + `aria-label` |
-| `TestTransit_StatsRegion` | 4.1.3 | `aria-atomic="true"` on stats |
-
-### Level 2: Manual browser audit
-
-For checks the unit tests can't catch (color contrast, nested interactives, Leaflet-generated DOM), use the [axe DevTools](https://www.deque.com/axe/devtools/) browser extension against the running dev server. Run WCAG 2.2 AA rules on each page.
-
-### Level 3: Manual testing checklist
-
-Automated tools catch ~40% of accessibility issues. The rest require human judgment.
+### Level 2: Manual testing checklist
 
 Before each release:
 
@@ -178,11 +168,3 @@ Before each release:
 - [ ] **Print**: Print preview (Cmd+P) — readable without nav/map clutter?
 - [ ] **Color contrast**: Check any new colors against [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
 - [ ] **Content**: Do headings describe their sections? Are link texts descriptive?
-
-### Running all tests
-
-```bash
-make test-a11y
-```
-
-This runs the Go unit tests first, then the live page audit. If either fails, the command exits non-zero.
