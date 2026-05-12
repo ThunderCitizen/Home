@@ -168,17 +168,17 @@ templ minutesSearchBar(vm views.CouncilViewModel) {
 		/>
 		<nav class="meeting-filters" aria-label="Filter meetings">
 			<a
-				href={ templ.SafeURL(meetingFilterURL(vm, "", "")) }
+				href={ templ.SafeURL(meetingFilterURL(vm, "")) }
 				class={ "filter-chip", templ.KV("active", !vm.Filter.RecordedVotes) }
-				hx-get={ meetingFilterURL(vm, "", "") }
+				hx-get={ meetingFilterURL(vm, "") }
 				hx-target="#meetings-content"
 				hx-swap="innerHTML"
 				hx-push-url="true"
 			>All</a>
 			<a
-				href={ templ.SafeURL(meetingFilterURL(vm, "", "votes")) }
+				href={ templ.SafeURL(meetingFilterURL(vm, "votes")) }
 				class={ "filter-chip", templ.KV("active", vm.Filter.RecordedVotes) }
-				hx-get={ meetingFilterURL(vm, "", "votes") }
+				hx-get={ meetingFilterURL(vm, "votes") }
 				hx-target="#meetings-content"
 				hx-swap="innerHTML"
 				hx-push-url="true"
@@ -242,7 +242,7 @@ templ meetingRow(m views.MeetingSummaryView) {
 		<div class="meeting-row-meta">
 			<span class="meeting-row-count">{ fmt.Sprintf("%d motions", m.MotionCount) }</span>
 			if m.MediaCount > 0 {
-				<span class="badge badge-notable">{ fmt.Sprintf("%d notable", m.MediaCount) }</span>
+				<span class="badge badge-media">{ fmt.Sprintf("%d media", m.MediaCount) }</span>
 			}
 			if m.RecordedVotes > 0 {
 				<span class="badge badge-vote">{ fmt.Sprintf("%d recorded", m.RecordedVotes) }</span>
@@ -260,27 +260,15 @@ func councilPaginationURL(vm views.CouncilViewModel, page int) string {
 	if vm.Filter.RecordedVotes {
 		url += "&votes=1"
 	}
-	if vm.Filter.Headline {
-		url += "&headline=1"
-	}
-	if vm.Filter.Notable {
-		url += "&notable=1"
-	}
 	if vm.Filter.Query != "" {
 		url += "&q=" + vm.Filter.Query
 	}
 	return url
 }
 
-func meetingFilterURL(vm views.CouncilViewModel, filter1, filter2 string) string {
+func meetingFilterURL(vm views.CouncilViewModel, filter string) string {
 	url := fmt.Sprintf("/minutes?term=%d", vm.Filter.TermYear)
-	if filter1 == "headline" {
-		url += "&headline=1"
-	}
-	if filter2 == "notable" {
-		url += "&notable=1"
-	}
-	if filter2 == "votes" {
+	if filter == "votes" {
 		url += "&votes=1"
 	}
 	return url
@@ -342,8 +330,8 @@ templ motionSearchResult(m views.MotionSearchRow) {
 		<header>
 			<div class="motion-header-row">
 				<span class={ "badge", fmt.Sprintf("badge-%s", m.ResultClass) }>{ m.Result }</span>
-				if m.Significance == "headline" || m.Significance == "notable" {
-					<span class={ "badge", fmt.Sprintf("badge-%s", m.Significance) }>{ m.Significance }</span>
+				if m.MediaURL != "" {
+					<a href={ templ.SafeURL(m.MediaURL) } target="_blank" rel="noopener" class="badge badge-media">media</a>
 				}
 				if m.HasVote {
 					<span class="badge badge-vote">{ m.VoteSummary }</span>
@@ -385,9 +373,6 @@ func motionPaginationURL(vm views.MotionSearchViewModel, page int) string {
 	}
 	if vm.Filter.Term != "" {
 		url += fmt.Sprintf("&term=%d", vm.Filter.TermYear)
-	}
-	if vm.Filter.Significance != "" {
-		url += "&significance=" + vm.Filter.Significance
 	}
 	if vm.Filter.Result != "" {
 		url += "&result=" + vm.Filter.Result

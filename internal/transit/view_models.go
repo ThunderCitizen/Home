@@ -22,14 +22,14 @@ type LiveViewModel struct {
 	RouteMeta       []RouteMetaAPI             // colors, names, terminals for JS
 }
 
-// DateRange holds the computed week range for the date range browser nav.
+// DateRange is the user-selectable window for metrics/routes pages.
+// Default = trailing 7 days from today. Driven by ?from=&to= query params,
+// rendered as two <input type="date"> fields in the header.
 type DateRange struct {
-	From     string // YYYY-MM-DD
-	To       string // YYYY-MM-DD
-	Label    string // "Mon Mar 24 – Sun Mar 30"
-	PrevURL  string // "?end=2026-03-24" or "" if at start
-	NextURL  string // "?end=2026-04-07" or "" if at end
-	IsLatest bool   // true when showing the default trailing-7-day range
+	From    string // YYYY-MM-DD
+	To      string // YYYY-MM-DD
+	MinDate string // earliest selectable date (data-availability boundary)
+	MaxDate string // latest selectable date (today)
 }
 
 // MetricsViewModel contains data for the metrics page (/transit/metrics).

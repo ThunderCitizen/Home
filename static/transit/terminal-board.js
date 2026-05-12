@@ -405,7 +405,7 @@ function pad2(n) {
           '<span class="terminal-card-hero-sub">' + escapeHTML(heroSubData.time) + "</span>" +
         "</div>" +
         (heroSubData.sched
-          ? '<span class="terminal-card-hero-sched">(' + escapeHTML(heroSubData.sched) + " sched)</span>"
+          ? '<span class="terminal-card-hero-sched">(sch: ' + escapeHTML(heroSubData.sched) + ")</span>"
           : "")
       : "";
 

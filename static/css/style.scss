@@ -1196,60 +1196,6 @@ details.accordion-item {
     color: var(--thunder-500);
   }
 
-  .notable-votes-heading {
-    margin: 0.6rem 0 0.25rem;
-  }
-
-  .notable-votes-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    margin: 0;
-
-    tr { border: none; }
-
-    td {
-      padding: 0.25rem 0;
-      vertical-align: baseline;
-      border: none;
-    }
-  }
-
-  .notable-vote-position {
-    width: 4.5rem;
-    white-space: nowrap;
-  }
-
-  .vote-position-badge {
-    display: inline-block;
-    font-size: 0.68rem;
-    font-weight: var(--weight-semi);
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    padding: 0.1rem 0.4rem;
-    border-radius: 3px;
-    background: var(--thunder-100);
-    color: var(--thunder-600);
-    width: 3.5rem;
-    text-align: center;
-
-    &.vote-position-for { background: tint(var(--status-ok)); color: var(--status-ok); }
-    &.vote-position-against { background: tint(var(--status-error)); color: var(--status-error); }
-  }
-
-  .notable-vote-summary {
-    a { text-decoration: none; &:hover { text-decoration: underline; } }
-  }
-
-  .notable-vote-result {
-    width: 4rem;
-    text-align: right;
-    font-size: 0.75rem;
-    color: var(--thunder-400);
-    white-space: nowrap;
-
-    &.vote-lost { color: var(--pico-del-color, #d32f2f); }
-  }
 }
 
 // ==========================================================================

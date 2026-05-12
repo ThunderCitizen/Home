@@ -149,6 +149,25 @@ let selectedRoute: string | null = null;
 let hoveredRoute: string | null = null;
 let sseSource: EventSource | null = null;
 let fallbackTimer: number | null = null;
+let lastLiveAt: number | null = null;
+let isDead = false;
+let reconnectDelay = 3000;
+let reconnectTimer: number | null = null;
+
+function formatLiveStamp(ms: number): string {
+  return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function scheduleReconnect(): void {
+  if (reconnectTimer !== null) clearTimeout(reconnectTimer);
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null;
+    if (sseSource) { sseSource.close(); sseSource = null; }
+    connectVehicleStream();
+    // Bump for next attempt; cap at 60s.
+    reconnectDelay = Math.min(reconnectDelay * 2, 60000);
+  }, reconnectDelay);
+}
 let selectedStop: { id: string; name: string } | null = null;
 let selectedStopMarker: L.CircleMarker | null = null;
 let tripStopHighlights: L.CircleMarker[] = [];
@@ -617,11 +636,7 @@ function connectVehicleStream(): void {
 
   sseSource = new EventSource(VEHICLE_STREAM_URL);
 
-  // Only show "Connecting..." if it takes more than 2 seconds
-  const slowTimer = setTimeout(() => updateStatus("quiet", "Connecting..."), 2000);
-
   sseSource.onmessage = function (e: MessageEvent) {
-    clearTimeout(slowTimer);
     try {
       const data = JSON.parse(e.data) as SSEPayload;
       if ("sleep" in data) {
@@ -631,6 +646,7 @@ function connectVehicleStream(): void {
         return;
       }
       handleVehicleData(data);
+      lastLiveAt = Date.now();
       updateStatus("live");
     } catch (err) {
       console.warn("SSE parse error:", err);
@@ -638,16 +654,32 @@ function connectVehicleStream(): void {
   };
 
   sseSource.onerror = function () {
-    // EventSource auto-reconnects; only show dead if truly closed
+    if (isDead) {
+      // Already in dead state — silently take over reconnect with backoff
+      // instead of letting the UI flicker back to "Reconnecting...".
+      if (sseSource) { sseSource.close(); sseSource = null; }
+      scheduleReconnect();
+      return;
+    }
+    // Brief blip: show "Reconnecting..." at 3s, escalate to dead at 6s.
     setTimeout(() => {
-      if (sseSource && sseSource.readyState === EventSource.CLOSED) {
-        updateStatus("dead");
+      if (!isDead && sseSource && sseSource.readyState !== EventSource.OPEN) {
+        updateStatus("warn", "Reconnecting...");
       }
     }, 3000);
+    setTimeout(() => {
+      if (!isDead && sseSource && sseSource.readyState !== EventSource.OPEN) {
+        isDead = true;
+        if (sseSource) { sseSource.close(); sseSource = null; }
+        updateStatus("dead");
+        scheduleReconnect();
+      }
+    }, 6000);
   };
 
   sseSource.onopen = function () {
-    clearTimeout(slowTimer);
+    isDead = false;
+    reconnectDelay = 3000;
     updateStatus("live");
   };
 }
@@ -1346,7 +1378,7 @@ function setStatValue(id: string, value: string): void {
   if (el) el.textContent = value;
 }
 
-type StatusState = "live" | "dead" | "quiet";
+type StatusState = "live" | "dead" | "quiet" | "warn";
 
 function updateStatus(state: StatusState, text?: string): void {
   const el = document.getElementById("transit-status");
@@ -1358,12 +1390,18 @@ function updateStatus(state: StatusState, text?: string): void {
       el.className = "transit-status";
       break;
     case "dead":
-      el.textContent = "Offline";
+      el.textContent = lastLiveAt
+        ? "Offline (as of " + formatLiveStamp(lastLiveAt) + ")"
+        : "Offline";
       el.className = "transit-status transit-status-error";
       break;
     case "quiet":
       el.textContent = text || "";
       el.className = "transit-status transit-status-quiet";
+      break;
+    case "warn":
+      el.textContent = text || "";
+      el.className = "transit-status transit-status-warn";
       break;
   }
 }
@@ -1817,16 +1855,25 @@ let tripToMarker: L.CircleMarker | null = null;
 let tripRouteLayer: L.LayerGroup | null = null;
 
 function initTripPlanner(): void {
-  // Open/close is handled by #trip-toggle checkbox + CSS — no JS needed
-  // When a route is drawn, Find Route button acts like Edit
-  const findRouteLabel = document.getElementById('find-route-btn');
-  if (findRouteLabel) {
-    findRouteLabel.addEventListener('click', function (e) {
+  // Find Route toggles the overlay; when a route is drawn it re-opens (Edit)
+  const findRouteBtn = document.getElementById('find-route-btn');
+  if (findRouteBtn) {
+    findRouteBtn.addEventListener('click', function () {
       if (tripRouteLayer) {
-        e.preventDefault();
         hideRouteSummaryBar();
-        openTripPlanner();
+        setTripPlannerOpen(true);
+        return;
       }
+      const overlay = document.getElementById("trip-planner");
+      const isOpen = overlay ? overlay.classList.contains("is-open") : false;
+      setTripPlannerOpen(!isOpen);
+    });
+  }
+
+  const closeBtn = document.getElementById('trip-planner-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function () {
+      setTripPlannerOpen(false);
     });
   }
 
@@ -2230,8 +2277,13 @@ function selectTripStop(which: 'from' | 'to', stop: Stop): void {
 }
 
 function setTripPlannerOpen(open: boolean): void {
-  const cb = document.getElementById("trip-toggle") as HTMLInputElement | null;
-  if (cb) cb.checked = open;
+  const overlay = document.getElementById("trip-planner");
+  const btn = document.getElementById("find-route-btn");
+  if (overlay) overlay.classList.toggle("is-open", open);
+  if (btn) {
+    btn.classList.toggle("is-active", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
 }
 
 function openTripPlanner(): void {

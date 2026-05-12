@@ -13,8 +13,6 @@ type MeetingFilter struct {
 	Term          string // "2018-2022", "2022-2026", or ""
 	Query         string // full-text search across motions
 	RecordedVotes bool   // only meetings with recorded votes
-	Headline      bool   // only meetings with headline motions
-	Notable       bool   // only meetings with notable motions
 	Limit         int
 	Offset        int
 }
@@ -66,12 +64,6 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 	}
 	if f.RecordedVotes {
 		where += " AND EXISTS (SELECT 1 FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.raw_text != '')"
-	}
-	if f.Headline {
-		where += " AND EXISTS (SELECT 1 FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.significance = 'headline')"
-	}
-	if f.Notable {
-		where += " AND EXISTS (SELECT 1 FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.significance IN ('headline', 'notable'))"
 	}
 
 	var total int
@@ -222,12 +214,11 @@ func (s *Store) loadMeetingMotions(ctx context.Context, md *MeetingDetail) (*Mee
 // MotionFilter specifies search and filter criteria for motions.
 
 type MotionFilter struct {
-	Term         string // "2018-2022", "2022-2026", or "" for all
-	Significance string // "headline", "notable", "routine", "procedural", or ""
-	Result       string // "CARRIED", "LOST", or ""
-	Query        string // full-text search query
-	Limit        int
-	Offset       int
+	Term   string // "2018-2022", "2022-2026", or "" for all
+	Result string // "CARRIED", "LOST", or ""
+	Query  string // full-text search query
+	Limit  int
+	Offset int
 }
 
 // MotionRow is a motion joined with its meeting context and vote summary.
@@ -303,9 +294,6 @@ func (s *Store) SearchMotions(ctx context.Context, f MotionFilter) ([]MotionRow,
 
 	if f.Term != "" {
 		where += " AND m.term = " + nextArg(f.Term)
-	}
-	if f.Significance != "" {
-		where += " AND mo.significance = " + nextArg(f.Significance)
 	}
 	if f.Result != "" {
 		where += " AND mo.result = " + nextArg(f.Result)
@@ -690,52 +678,6 @@ func (s *Store) loadVoteRecords(ctx context.Context, motionID int64) (*VoteRecor
 	return vr, rows.Err()
 }
 
-// HeadlineVote is a motion with media coverage — qualifies as a key vote.
-
-type HeadlineVote struct {
-	AgendaItem string
-	Result     string
-	VoteTally  string // "7-6" or "" if no recorded vote
-	MediaURL   string
-	MeetingID  string
-	MotionID   int64
-	Date       string
-}
-
-// HeadlineVotes returns motions with significance='headline' for a term.
-
-func (s *Store) HeadlineVotes(ctx context.Context, term string) ([]HeadlineVote, error) {
-	rows, err := s.db.Query(ctx, `
-		SELECT COALESCE(NULLIF(mo.agenda_item, ''), LEFT(mo.motion_text, 80)),
-		       mo.result,
-		       COALESCE(mo.media_url, ''),
-		       m.id, mo.id, m.date::text,
-		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'for'), 0),
-		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'against'), 0)
-		FROM council_motions mo
-		JOIN council_meetings m ON m.id = mo.meeting_id
-		WHERE m.term = $1 AND mo.significance = 'headline'
-		ORDER BY m.date DESC`, term)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var votes []HeadlineVote
-	for rows.Next() {
-		var hv HeadlineVote
-		var yea, nay int
-		if err := rows.Scan(&hv.AgendaItem, &hv.Result, &hv.MediaURL, &hv.MeetingID, &hv.MotionID, &hv.Date, &yea, &nay); err != nil {
-			return nil, err
-		}
-		if yea+nay > 0 {
-			hv.VoteTally = fmt.Sprintf("%d-%d", yea, nay)
-		}
-		votes = append(votes, hv)
-	}
-	return votes, rows.Err()
-}
-
 // CouncillorVoteStats holds aggregate voting counts for a single councillor.
 
 type CouncillorVoteStats struct {
@@ -755,17 +697,6 @@ func (s CouncillorVoteStats) TotalRecorded() int {
 
 func (s CouncillorVoteStats) VotesCast() int {
 	return s.ForCount + s.AgainstCount
-}
-
-// CouncillorNotableVote is a notable/headline motion a councillor voted on.
-
-type CouncillorNotableVote struct {
-	MotionID  int64
-	MeetingID string
-	Summary   string
-	Position  string // for, against, absent
-	Result    string // CARRIED, LOST
-	Date      string
 }
 
 // VoteMatrixMotion is a column header in the vote matrix.
@@ -885,37 +816,4 @@ func (s *Store) CouncillorVoteStatsAll(ctx context.Context, term string) (map[st
 		stats[name] = cs
 	}
 	return stats, rows.Err()
-}
-
-// CouncillorNotableVotesAll returns notable/headline motions per councillor for a term.
-// Returns at most 5 per councillor, most recent first.
-
-func (s *Store) CouncillorNotableVotesAll(ctx context.Context, term string) (map[string][]CouncillorNotableVote, error) {
-	rows, err := s.db.Query(ctx, `
-		SELECT vr.councillor, mo.id, m.id,
-		       COALESCE(NULLIF(mo.llm_summary, ''), LEFT(mo.motion_text, 120)),
-		       vr.position, mo.result, m.date::text
-		FROM council_vote_records vr
-		JOIN council_motions mo ON mo.id = vr.motion_id
-		JOIN council_meetings m ON m.id = mo.meeting_id
-		WHERE m.term = $1
-		  AND mo.significance IN ('headline', 'notable')
-		ORDER BY m.date DESC, mo.motion_index`, term)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	result := make(map[string][]CouncillorNotableVote)
-	for rows.Next() {
-		var name string
-		var nv CouncillorNotableVote
-		if err := rows.Scan(&name, &nv.MotionID, &nv.MeetingID, &nv.Summary, &nv.Position, &nv.Result, &nv.Date); err != nil {
-			return nil, err
-		}
-		if len(result[name]) < 5 {
-			result[name] = append(result[name], nv)
-		}
-	}
-	return result, rows.Err()
 }

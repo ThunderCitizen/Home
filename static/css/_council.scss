@@ -525,8 +525,8 @@
   &[data-filter="recorded"] {
     .meeting-row:not([data-recorded="true"]) { display: none; }
   }
-  &[data-filter="notable"] {
-    .meeting-row:not([data-notable="true"]) { display: none; }
+  &[data-filter="media"] {
+    .meeting-row:not([data-media="true"]) { display: none; }
     [data-section="procedural"], [data-list="procedural"] { display: none; }
   }
   &[data-filter="procedural"] {
@@ -946,8 +946,7 @@
   .badge-carried  { @include badge-light-hue(#4ade80); }
   .badge-lost     { @include badge-light-hue(#f87171); }
   .badge-tie      { @include badge-light-hue(#fbbf24); }
-  .badge-headline { @include badge-light-hue(#60a5fa); }
-  .badge-notable  { @include badge-light-hue(#c084fc); }
+  .badge-media    { @include badge-light-hue(#60a5fa); }
   .badge-vote     { @include badge-light-hue(#073642); } // solarized base02 = term-fg-bright light
 
   .badge-term-1 { @include badge-light-hue(#facc15); } // yellow
@@ -973,8 +972,7 @@
   .badge-carried  { @include badge-dark-hue(#4ade80); }
   .badge-lost     { @include badge-dark-hue(#f87171); }
   .badge-tie      { @include badge-dark-hue(#fbbf24); }
-  .badge-headline { @include badge-dark-hue(#60a5fa); }
-  .badge-notable  { @include badge-dark-hue(#c084fc); }
+  .badge-media    { @include badge-dark-hue(#60a5fa); }
   .badge-vote     { @include badge-dark-hue(#86efac); } // term-fg-bright dark
   .badge-term-1   { @include badge-dark-hue(#facc15); }
   .badge-term-2   { @include badge-dark-hue(#fb923c); }

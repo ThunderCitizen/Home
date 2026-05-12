@@ -84,7 +84,7 @@ templ accordionToggle() {
 templ Councillors(vm views.CouncillorsViewModel) {
 	@templates.Layout(templates.SocialMeta{
 		Title:       "Councillors",
-		Description: "Thunder Bay's 13 city councillors — profiles, voting records across notable motions, and an interactive ward map.",
+		Description: "Thunder Bay's 13 city councillors — profiles, voting records, and an interactive ward map.",
 		OGImage:     "/static/og/councillors.png",
 	}) {
 		<h1 class="sr-only">Councillors</h1>
@@ -319,7 +319,7 @@ templ mobileMatrixGroup(cols []views.VoteMatrixColumn) {
 			}
 			if col.MediaURL != "" {
 				<div class="vote-matrix-card-footer">
-					<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="badge badge-headline vote-matrix-card-media-link">
+					<a href={ templ.SafeURL(col.MediaURL) } target="_blank" rel="noopener" class="badge badge-media vote-matrix-card-media-link">
 						TBNews <span class="ext-link-icon" aria-hidden="true"></span>
 					</a>
 				</div>

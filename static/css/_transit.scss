@@ -774,33 +774,14 @@ path.stop-selected {
 
 }
 
-// Checkbox drives the slide-in — no JS needed for open/close
-.trip-toggle {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.route-panel:has(.trip-toggle:checked) .trip-planner-overlay {
+.trip-planner-overlay.is-open {
   transform: translateX(0);
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
 }
 
-.route-panel:has(.trip-toggle:checked) .trip-planner-open {
+.trip-planner-open.is-active {
   color: var(--term-bg);
   background: var(--term-accent);
-}
-
-.trip-toggle:focus-visible + .trip-planner-open {
-  background: color-mix(in srgb, var(--term-accent) 18%, transparent);
-  color: var(--term-fg-bright);
-  box-shadow: inset 0 0 0 1px var(--term-accent);
 }
 
 .trip-planner-tab {
@@ -921,7 +902,7 @@ path.stop-selected {
   opacity: 0;
   transition: opacity 0.2s ease 0.05s;
 
-  .route-panel:has(.trip-toggle:checked) & {
+  .trip-planner-overlay.is-open & {
     opacity: 1;
   }
 
@@ -1104,6 +1085,7 @@ path.stop-selected {
 // terminals selector header (.terminal-board-page) wear this skin.
 .terminal-map-header {
   padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--term-border);
   border-bottom: 1px solid var(--term-border);
   background: var(--term-bg-deep);
   box-shadow: var(--strip-edge-glow-below);
@@ -1144,21 +1126,31 @@ path.stop-selected {
   }
 
   @include respond-to('lg') {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 1fr;
     column-gap: var(--space-5);
+    padding-inline: 0;
     grid-template-areas:
-      "status   layers"
-      ".        features";
+      "status"
+      "layers"
+      "features";
 
-    > .transit-status-cell { grid-area: status; }
+    > .transit-status-cell { grid-area: status; padding-inline: 0.6rem; }
     > #selector-bar   { grid-area: layers;   justify-self: stretch; min-width: 0; }
     > .selector-bar   { grid-area: features; justify-self: stretch; min-width: 0; }
 
+    > #selector-bar .selector-bar-label,
+    > .selector-bar .selector-bar-label { display: none; }
+
     > #selector-bar .selector-bar,
     > #selector-bar .selector-bar-btns,
-    > .selector-bar .selector-bar-btns { width: 100%; }
+    > .selector-bar .selector-bar-btns { width: 100%; padding: 2px; gap: 2px; }
     > #selector-bar .selector-bar-btn,
-    > .selector-bar .selector-bar-btn { flex: 1 1 0; }
+    > .selector-bar .selector-bar-btn {
+      flex: 1 1 0;
+      height: 24px;
+      min-height: 24px;
+      padding: 0 0.5rem;
+    }
   }
 }
 
@@ -1250,6 +1242,20 @@ path.stop-selected {
     pointer-events: none;
     animation: map-info-slide-up 0.3s cubic-bezier(0.1, 0, 0.4, 1) both;
   }
+
+  // On mobile the layer covers the full multi-row strip, so let the
+  // cancellation alert wrap onto its own line instead of being clipped.
+  @include respond-to('lg') {
+    flex-wrap: wrap;
+    white-space: normal;
+    align-content: center;
+    row-gap: 0.3rem;
+
+    > .info-alert {
+      flex-basis: 100%;
+      margin-left: 0;
+    }
+  }
 }
 
 .tmi-hover     { z-index: 5; }
@@ -1312,6 +1318,8 @@ path.stop-selected {
   align-items: center;
   gap: 0.5rem;
   white-space: nowrap;
+  margin: 0;
+  line-height: 1;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   text-transform: uppercase;
@@ -1354,7 +1362,15 @@ path.stop-selected {
     opacity: 0.6;
 
     &::before {
-      display: none;
+      background: var(--term-fg-dim);
+    }
+  }
+
+  &.transit-status-warn {
+    color: var(--term-fg-dim);
+
+    &::before {
+      background: var(--term-fg-dim);
     }
   }
 }
@@ -2574,15 +2590,25 @@ tr.route-tp-canceled {
   }
 }
 
+// Metrics + routes share the .terminal-map-header chrome (scanlines,
+// edge glow, term-bg-deep); this layout positions title left and the
+// date-range form right, with stacking on narrow viewports.
 .metrics-panel-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem;
-  padding: 0.4rem 0.75rem;
+  column-gap: 1rem;
   margin: 0 -0.75rem 0.75rem;
-  border-bottom: 1px solid var(--term-border);
-  background: var(--term-bg-deep);
+
+  > .terminal-map-title { grid-column: 1; }
+  > .drb-nav { grid-column: 2; justify-self: end; }
+
+  @include respond-to('md') {
+    grid-template-columns: 1fr;
+
+    > .terminal-map-title { grid-column: 1; }
+    > .drb-nav { grid-column: 1; justify-self: stretch; }
+  }
 }
 
 .metrics-disclaimer {
@@ -2596,50 +2622,78 @@ tr.route-tp-canceled {
 }
 
 .drb-nav {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-}
-
-.drb-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  padding: 0;
+  gap: 0.5rem;
   margin: 0;
-  font-size: 1.1rem; // sits in --text-md (1) → --text-lg (1.4) gap
-  font-weight: var(--weight-semi);
-  line-height: 1;
-  border: 1px solid var(--thunder-200);
-  border-radius: var(--radius-full);
+}
+
+.drb-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.drb-field-label {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--term-fg-dim);
+}
+
+// Inputs + Apply both extend %term-control so they share height/font
+// with .selector-bar-btn — switching tabs doesn't jank the row.
+// Scoped inside .drb-nav so the selectors beat Pico's input[type=date]
+// form-element padding.
+.drb-nav input.drb-input {
+  @extend %term-control;
+  border: 1px solid var(--term-border);
   background: var(--pico-card-background-color);
-  color: var(--thunder-600);
-  cursor: pointer;
-  transition: all 0.12s;
+  color: var(--term-fg);
 
-  text-decoration: none;
+  &::-webkit-datetime-edit { padding: 0; }
+  &::-webkit-calendar-picker-indicator { padding: 0; margin-left: 0.2rem; }
 
-  &:hover:not(.drb-disabled) {
-    border-color: var(--thunder-400);
-    background: var(--thunder-50);
-  }
-
-  &.drb-disabled {
-    opacity: 0.35;
-    cursor: default;
-    pointer-events: none;
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
   }
 }
 
-.drb-label {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semi);
-  color: var(--thunder-700);
-  min-width: 14rem;
-  text-align: center;
-  white-space: nowrap;
+.drb-nav button.drb-apply {
+  @extend %term-control;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+
+  &:hover {
+    background: var(--accent);
+    color: var(--term-bg);
+  }
+}
+
+@include respond-to('md') {
+  .drb-nav {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .drb-field {
+    flex: 1 1 40%;
+  }
+  .drb-input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .drb-apply {
+    flex: 1 1 100%;
+  }
 }
 
 // --- KPI card grid ---
@@ -2925,20 +2979,8 @@ tr.route-tp-canceled {
 }
 
 .selector-bar-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  white-space: nowrap;
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-semi);
-
-  letter-spacing: 0.01em;
-  min-height: 28px;
-  padding: 0.3rem 0.6rem;
-  margin: 0;
+  @extend %term-control;
   border: 0;
-  border-radius: var(--radius-xs, 3px);
   background: transparent;
   color: var(--term-fg);
   cursor: pointer;

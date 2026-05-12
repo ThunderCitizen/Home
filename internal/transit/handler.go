@@ -93,79 +93,59 @@ func (h *Handler) APIRoutes() chi.Router {
 	return r
 }
 
-// parseDateRange builds a DateRange from the "end" query param.
-// No param = 7-day trailing from today. With param = 7 days ending on that date.
-//
-// The window is ALWAYS 7 days wide. If the underlying data only goes back
-// 2 days, we still render a 7-day grid — the empty days show up as
-// blank cells, which is more honest than collapsing the window. The
-// PrevURL link below still gets disabled at the data boundary so users
-// can't keep clicking into the void, but the visible shape stays
-// consistent at 7 × 3 cells regardless of how much history we have.
+// MaxRangeDays caps how wide a custom window can be. One year keeps
+// query cost bounded and the chunk cache from being asked to hydrate
+// the universe on a malformed link.
+const MaxRangeDays = 366
+
+// parseDateRange builds a DateRange from ?from= and ?to= query params.
+// Both omitted → trailing 7 days ending today. Either malformed → falls
+// back to the default. To is clamped to today, From to today-365. If
+// from > to they're swapped. If the span exceeds MaxRangeDays, From
+// gets pulled forward to To - 365.
 func parseDateRange(r *http.Request, sinceDate string) DateRange {
 	today := Today()
+	q := r.URL.Query()
 
-	// Default: trailing 7 days ending today
+	parse := func(s string) (time.Time, bool) {
+		t, err := time.ParseInLocation("2006-01-02", s, TZ)
+		return t, err == nil
+	}
+
 	to := today
-
-	if s := r.URL.Query().Get("end"); s != "" {
-		if parsed, err := time.ParseInLocation("2006-01-02", s, TZ); err == nil {
-			to = parsed
-			if to.After(today) {
-				to = today
-			}
-		}
+	if t, ok := parse(q.Get("to")); ok {
+		to = t
+	}
+	if to.After(today) {
+		to = today
 	}
 
 	from := to.AddDate(0, 0, -6)
+	if t, ok := parse(q.Get("from")); ok {
+		from = t
+	}
 
-	// Parse the data-availability boundary for the prev/next arrow
-	// disable logic, but DO NOT clamp `from` to it — the window stays
-	// 7 days wide even when we don't have data that far back.
-	var since time.Time
+	if from.After(to) {
+		from, to = to, from
+	}
+
+	if span := int(to.Sub(from).Hours()/24) + 1; span > MaxRangeDays {
+		from = to.AddDate(0, 0, -(MaxRangeDays - 1))
+	}
+
+	min := from
 	if sinceDate != "" {
-		if parsed, err := time.ParseInLocation("2006-01-02", sinceDate, TZ); err == nil {
-			since = parsed
+		if parsed, ok := parse(sinceDate); ok {
+			min = parsed
 		}
 	}
 
-	// Format label: "Mon Mar 24 – Sun Mar 30"
-	days := [...]string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
-	mos := [...]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
-	fmtD := func(t time.Time) string {
-		return fmt.Sprintf("%s %s %d", days[t.Weekday()], mos[t.Month()-1], t.Day())
+	return DateRange{
+		From:    from.Format("2006-01-02"),
+		To:      to.Format("2006-01-02"),
+		MinDate: min.Format("2006-01-02"),
+		MaxDate: today.Format("2006-01-02"),
 	}
-
-	basePath := r.URL.Path
-
-	dr := DateRange{
-		From:  from.Format("2006-01-02"),
-		To:    to.Format("2006-01-02"),
-		Label: fmtD(from) + " – " + fmtD(to),
-	}
-
-	dr.IsLatest = !to.Before(today)
-
-	// Prev: 7 days earlier
-	prevTo := to.AddDate(0, 0, -7)
-	if !since.IsZero() && prevTo.Before(since) {
-		dr.PrevURL = ""
-	} else {
-		dr.PrevURL = basePath + "?end=" + prevTo.Format("2006-01-02")
-	}
-
-	// Next: 7 days later (no param if it lands on today)
-	atEnd := !to.Before(today)
-	if !atEnd {
-		nextTo := to.AddDate(0, 0, 7)
-		if !nextTo.Before(today) {
-			dr.NextURL = basePath // no param = latest
-		} else {
-			dr.NextURL = basePath + "?end=" + nextTo.Format("2006-01-02")
-		}
-	}
-
-	return dr
 }
 
 // --- helpers ---

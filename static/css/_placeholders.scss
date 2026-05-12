@@ -187,3 +187,27 @@ a.badge {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
+
+// Shared sizing for small terminal-themed controls — buttons, inputs,
+// segmented toggles. One source of truth for "normal control height" so
+// rows stay the same height across tabs and Pico's form-element padding
+// can't blow the layout open. Visual chrome (color, border, background)
+// is left to the consumer.
+%term-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semi);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 0.6rem;
+  margin: 0;
+  box-sizing: border-box;
+  border-radius: var(--radius-xs, 3px);
+}

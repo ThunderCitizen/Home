@@ -74,21 +74,21 @@ func totalCancelledFromChunks(chunks []chunk.ChunkView) string {
 	return fmt.Sprintf("%d", n)
 }
 
-// dateRangeNav renders the server-driven week selector nav.
+// dateRangeNav renders the from/to date inputs. Default = trailing
+// 7 days from today; users can pick any window up to 1 year wide.
+// Submits as GET so the page URL stays shareable.
 templ dateRangeNav(dr transit.DateRange) {
-	<div class="drb-nav" data-from={ dr.From } data-to={ dr.To }>
-		if dr.PrevURL != "" {
-			<a href={ templ.SafeURL(dr.PrevURL) } class="drb-arrow drb-prev" aria-label="Previous week">&lsaquo;</a>
-		} else {
-			<span class="drb-arrow drb-prev drb-disabled" aria-disabled="true" title="No earlier data available">&lsaquo;</span>
-		}
-		<span class="drb-label">{ dr.Label }</span>
-		if dr.NextURL != "" {
-			<a href={ templ.SafeURL(dr.NextURL) } class="drb-arrow drb-next" aria-label="Next week">&rsaquo;</a>
-		} else {
-			<span class="drb-arrow drb-next drb-disabled" aria-disabled="true">&rsaquo;</span>
-		}
-	</div>
+	<form class="drb-nav" method="get" data-from={ dr.From } data-to={ dr.To }>
+		<label class="drb-field">
+			<span class="drb-field-label">From</span>
+			<input type="date" name="from" value={ dr.From } min={ dr.MinDate } max={ dr.MaxDate } class="drb-input"/>
+		</label>
+		<label class="drb-field">
+			<span class="drb-field-label">To</span>
+			<input type="date" name="to" value={ dr.To } min={ dr.MinDate } max={ dr.MaxDate } class="drb-input"/>
+		</label>
+		<button type="submit" class="drb-apply">Apply</button>
+	</form>
 }
 
 func routeCardStyle(color string) templ.Attributes {

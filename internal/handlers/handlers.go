@@ -48,8 +48,6 @@ type Handlers struct {
 type councilStore interface {
 	ListMeetingSummaries(ctx context.Context, f council.MeetingFilter) ([]council.MeetingSummary, int, error)
 	CouncillorVoteStatsAll(ctx context.Context, term string) (map[string]council.CouncillorVoteStats, error)
-	CouncillorNotableVotesAll(ctx context.Context, term string) (map[string][]council.CouncillorNotableVote, error)
-	HeadlineVotes(ctx context.Context, term string) ([]council.HeadlineVote, error)
 	VoteMatrix(ctx context.Context, term string) ([]council.VoteMatrixMotion, []council.VoteMatrixRecord, error)
 	MotionStats(ctx context.Context, term string) (int, int, int, error)
 	SearchMotions(ctx context.Context, f council.MotionFilter) ([]council.MotionRow, int, error)
@@ -146,16 +144,6 @@ func (h *Handlers) Councillors(w http.ResponseWriter, r *http.Request) {
 			middleware.HandleUnavailable(ctx, w, "councillor data unavailable", err)
 			return
 		}
-		nv, err := store.CouncillorNotableVotesAll(ctx, term)
-		if err != nil {
-			middleware.HandleUnavailable(ctx, w, "councillor data unavailable", err)
-			return
-		}
-		hv, err := store.HeadlineVotes(ctx, term)
-		if err != nil {
-			middleware.HandleUnavailable(ctx, w, "councillor data unavailable", err)
-			return
-		}
 		mm, mr, err := store.VoteMatrix(ctx, term)
 		if err != nil {
 			middleware.HandleUnavailable(ctx, w, "councillor data unavailable", err)
@@ -163,8 +151,6 @@ func (h *Handlers) Councillors(w http.ResponseWriter, r *http.Request) {
 		}
 		vd = views.TermVoteData{
 			VoteStats:     vs,
-			NotableVotes:  nv,
-			HeadlineVotes: hv,
 			MatrixMotions: mm,
 			MatrixRecords: mr,
 		}
@@ -203,8 +189,6 @@ func (h *Handlers) Council(w http.ResponseWriter, r *http.Request) {
 		Term:          term,
 		Query:         r.URL.Query().Get("q"),
 		RecordedVotes: r.URL.Query().Get("votes") == "1",
-		Headline:      r.URL.Query().Get("headline") == "1",
-		Notable:       r.URL.Query().Get("notable") == "1",
 		Limit:         25,
 	}
 	filter.Offset = pageOffset(r, filter.Limit)

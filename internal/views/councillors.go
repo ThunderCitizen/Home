@@ -18,16 +18,6 @@ type CouncillorVoteStatsView struct {
 	AgainstCount string // "8"
 	AbsentCount  string // "5"
 	DissentRate  string // "12%"
-	NotableVotes []NotableVoteView
-}
-
-// NotableVoteView is a presentation-ready notable vote.
-type NotableVoteView struct {
-	Summary  string
-	Position string // "For" / "Against" / "Absent"
-	Result   string // "Carried" / "Lost"
-	Date     string
-	URL      string // /minutes/{meetingID}
 }
 
 // CouncillorView is a view-ready councillor with presentation data
@@ -75,7 +65,6 @@ type VoteMatrixColumn struct {
 	Result     string                      // "Carried" / "Lost"
 	URL        string                      // /minutes/{meetingID}#motion-{id}
 	MeetingURL string                      // /minutes/{meetingID}
-	IsKeyVote  bool                        // headline significance
 	MediaURL   string                      // press coverage link
 	Roster     *components.VoteRosterProps // pre-rendered into a hidden <template> for the modal
 }
@@ -98,20 +87,9 @@ type VoteMatrixViewModel struct {
 	MobileVisibleCount int
 }
 
-// KeyVoteView is a presentation-ready key vote with optional media link.
-type KeyVoteView struct {
-	Issue    string
-	Result   string
-	Vote     string // "7-6" or ""
-	MediaURL string // link to press coverage
-	URL      string // link to motion in minutes
-}
-
 // TermVoteData holds all DB vote data for a single council term.
 type TermVoteData struct {
 	VoteStats     map[string]council.CouncillorVoteStats
-	NotableVotes  map[string][]council.CouncillorNotableVote
-	HeadlineVotes []council.HeadlineVote
 	MatrixMotions []council.VoteMatrixMotion
 	MatrixRecords []council.VoteMatrixRecord
 }
@@ -126,8 +104,6 @@ type CouncillorsViewModel struct {
 	Mayor              CouncillorView
 	AtLargeCouncillors []CouncillorView
 	WardCouncillors    []CouncillorView
-	KeyVotes           []KeyVoteView
-	KeyVotesTitle      string
 	VoteMatrix         *VoteMatrixViewModel
 }
 
@@ -140,16 +116,16 @@ func NewCouncillorsViewModel(termYear int, vd TermVoteData) CouncillorsViewModel
 	stats := t.Stats
 
 	mayorView := councillorToView(t.Mayor, 0)
-	mayorView.VoteStats = buildVoteStatsView(t.Mayor.Name, vd.VoteStats, vd.NotableVotes)
+	mayorView.VoteStats = buildVoteStatsView(t.Mayor.Name, vd.VoteStats)
 
 	atLargeViews := councillorsToViews(t.AtLarge)
 	for i := range atLargeViews {
-		atLargeViews[i].VoteStats = buildVoteStatsView(t.AtLarge[i].Name, vd.VoteStats, vd.NotableVotes)
+		atLargeViews[i].VoteStats = buildVoteStatsView(t.AtLarge[i].Name, vd.VoteStats)
 	}
 
 	wardViews := councillorsToViews(t.Ward)
 	for i := range wardViews {
-		wardViews[i].VoteStats = buildVoteStatsView(t.Ward[i].Name, vd.VoteStats, vd.NotableVotes)
+		wardViews[i].VoteStats = buildVoteStatsView(t.Ward[i].Name, vd.VoteStats)
 	}
 
 	vm := CouncillorsViewModel{
@@ -177,10 +153,8 @@ func NewCouncillorsViewModel(termYear int, vd TermVoteData) CouncillorsViewModel
 		Mayor:              mayorView,
 		AtLargeCouncillors: atLargeViews,
 		WardCouncillors:    wardViews,
-		KeyVotes:           buildKeyVotes(t.KeyVotes, vd.HeadlineVotes),
-		KeyVotesTitle:      "Key Votes (" + label + ")",
 	}
-	vm.VoteMatrix = BuildVoteMatrix(vd.MatrixMotions, vd.MatrixRecords, vd.HeadlineVotes)
+	vm.VoteMatrix = BuildVoteMatrix(vd.MatrixMotions, vd.MatrixRecords)
 	return vm
 }
 
@@ -230,36 +204,12 @@ func findVoteStats(name string, stats map[string]council.CouncillorVoteStats) (c
 	return council.CouncillorVoteStats{}, false
 }
 
-// findNotableVotes looks up notable votes by trying the full name first, then last name.
-func findNotableVotes(name string, nvs map[string][]council.CouncillorNotableVote) []council.CouncillorNotableVote {
-	if nvs == nil {
-		return nil
-	}
-	if v, ok := nvs[name]; ok {
-		return v
-	}
-	last := lastName(name)
-	for k, v := range nvs {
-		if lastName(k) == last {
-			return v
-		}
-	}
-	return nil
-}
-
 func formatPercent(num, denom int) string {
 	if denom == 0 {
 		return "—"
 	}
 	pct := float64(num) * 100.0 / float64(denom)
 	return fmt.Sprintf("%.0f%%", pct)
-}
-
-func titleCase(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 func resultDisplay(r string) string {
@@ -278,32 +228,19 @@ func resultDisplay(r string) string {
 func buildVoteStatsView(
 	name string,
 	stats map[string]council.CouncillorVoteStats,
-	nvs map[string][]council.CouncillorNotableVote,
 ) *CouncillorVoteStatsView {
 	cs, ok := findVoteStats(name, stats)
 	if !ok {
 		return nil
 	}
 
-	view := &CouncillorVoteStatsView{
+	return &CouncillorVoteStatsView{
 		Attendance:   formatPercent(cs.VotesCast(), cs.TotalRecorded()),
 		ForCount:     itoa(cs.ForCount),
 		AgainstCount: itoa(cs.AgainstCount),
 		AbsentCount:  itoa(cs.AbsentCount),
 		DissentRate:  formatPercent(cs.DissentCount, cs.VotesCast()),
 	}
-
-	for _, nv := range findNotableVotes(name, nvs) {
-		view.NotableVotes = append(view.NotableVotes, NotableVoteView{
-			Summary:  nv.Summary,
-			Position: titleCase(nv.Position),
-			Result:   resultDisplay(nv.Result),
-			Date:     nv.Date,
-			URL:      "/minutes/" + council.MeetingSlug("City Council", nv.Date),
-		})
-	}
-
-	return view
 }
 
 func councillorToView(c models.Councillor, index int) CouncillorView {
@@ -338,18 +275,9 @@ func councillorsToViews(councillors []models.Councillor) []CouncillorView {
 func BuildVoteMatrix(
 	motions []council.VoteMatrixMotion,
 	records []council.VoteMatrixRecord,
-	headlines []council.HeadlineVote,
 ) *VoteMatrixViewModel {
 	if len(motions) == 0 {
 		return nil
-	}
-
-	// Build headline media URL lookup by motion ID
-	headlineMedia := make(map[int64]string)
-	for _, hv := range headlines {
-		if hv.MediaURL != "" {
-			headlineMedia[hv.MotionID] = hv.MediaURL
-		}
 	}
 
 	// Group records by councillor (for the matrix rows) and by motion (for the modal roster)
@@ -379,10 +307,6 @@ func BuildVoteMatrix(
 	columns := make([]VoteMatrixColumn, len(motions))
 	motionIndex := make(map[int64]int) // motion ID → column index
 	for i, m := range motions {
-		mediaURL := m.MediaURL
-		if mediaURL == "" {
-			mediaURL = headlineMedia[m.ID]
-		}
 		columns[i] = VoteMatrixColumn{
 			MotionID:   m.ID,
 			Label:      m.AgendaItem,
@@ -392,8 +316,7 @@ func BuildVoteMatrix(
 			Result:     resultDisplay(m.Result),
 			URL:        fmt.Sprintf("/minutes/%s#motion-%d", council.MeetingSlug("City Council", m.Date), m.ID),
 			MeetingURL: fmt.Sprintf("/minutes/%s", council.MeetingSlug("City Council", m.Date)),
-			IsKeyVote:  m.Significance == "headline",
-			MediaURL:   mediaURL,
+			MediaURL:   m.MediaURL,
 			Roster:     BuildVoteRoster(byMotion[m.ID], m.Result, photos),
 		}
 		motionIndex[m.ID] = i
@@ -461,31 +384,4 @@ func trailingMonthsCount(motions []council.VoteMatrixMotion, months int) int {
 		}
 	}
 	return len(motions)
-}
-
-// buildKeyVotes returns DB headline votes if available, falling back to static data.
-func buildKeyVotes(static []models.KeyVote, headlines []council.HeadlineVote) []KeyVoteView {
-	if len(headlines) > 0 {
-		views := make([]KeyVoteView, len(headlines))
-		for i, hv := range headlines {
-			views[i] = KeyVoteView{
-				Issue:    hv.AgendaItem,
-				Result:   resultDisplay(hv.Result),
-				Vote:     hv.VoteTally,
-				MediaURL: hv.MediaURL,
-				URL:      fmt.Sprintf("/minutes/%s#motion-%d", council.MeetingSlug("City Council", hv.Date), hv.MotionID),
-			}
-		}
-		return views
-	}
-	views := make([]KeyVoteView, len(static))
-	for i, kv := range static {
-		views[i] = KeyVoteView{
-			Issue:    kv.Issue,
-			Result:   kv.Result,
-			Vote:     kv.Vote,
-			MediaURL: kv.MediaURL,
-		}
-	}
-	return views
 }

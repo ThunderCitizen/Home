@@ -37,7 +37,7 @@ type MeetingViewModel struct {
 	ProceduralCount  int
 	CarriedCount     int // substantive motions with result CARRIED
 	LostCount        int // substantive motions with result LOST
-	NotableCount     int // motions that are headline/notable OR have media coverage
+	MediaCount       int // motions with press coverage attached
 }
 
 // MeetingSummaryView is a meeting row for the list page.
@@ -98,8 +98,6 @@ type CouncilFilterView struct {
 	Term          string
 	TermYear      int // for YearSelector (2022 or 2018)
 	RecordedVotes bool
-	Headline      bool
-	Notable       bool
 }
 
 // PaginationView holds pagination state.
@@ -168,8 +166,6 @@ func NewCouncilViewModel(meetings []council.MeetingSummary, total int, stats [3]
 			Term:          filter.Term,
 			TermYear:      termYear(filter.Term),
 			RecordedVotes: filter.RecordedVotes,
-			Headline:      filter.Headline,
-			Notable:       filter.Notable,
 		},
 		Pagination: PaginationView{
 			Page:       page,
@@ -195,13 +191,13 @@ func NewMeetingViewModel(md *council.MeetingDetail) MeetingViewModel {
 	// Counts span all motions (substantive + procedural) so the filter pills
 	// add up consistently against the "All" total.
 	var recorded, substantive, procedural, carried, lost int
-	var notable int
+	var media int
 	for _, m := range motions {
 		if m.HasVote {
 			recorded++
 		}
 		if m.MediaURL != "" {
-			notable++
+			media++
 		}
 		if m.IsProcedural {
 			procedural++
@@ -238,7 +234,7 @@ func NewMeetingViewModel(md *council.MeetingDetail) MeetingViewModel {
 		ProceduralCount:  procedural,
 		CarriedCount:     carried,
 		LostCount:        lost,
-		NotableCount:     notable,
+		MediaCount:       media,
 	}
 }
 
@@ -330,11 +326,10 @@ type MotionSearchRow struct {
 
 // MotionSearchFilter holds current search/filter state.
 type MotionSearchFilter struct {
-	Query        string
-	Term         string
-	TermYear     int
-	Significance string
-	Result       string
+	Query    string
+	Term     string
+	TermYear int
+	Result   string
 }
 
 // NewMotionSearchViewModel builds the motion search view model.
@@ -366,11 +361,10 @@ func NewMotionSearchViewModel(motions []council.MotionRow, total int, filter cou
 	return MotionSearchViewModel{
 		Motions: rows,
 		Filter: MotionSearchFilter{
-			Query:        filter.Query,
-			Term:         filter.Term,
-			TermYear:     termYear(filter.Term),
-			Significance: filter.Significance,
-			Result:       filter.Result,
+			Query:    filter.Query,
+			Term:     filter.Term,
+			TermYear: termYear(filter.Term),
+			Result:   filter.Result,
 		},
 		Pagination: PaginationView{
 			Page:       page,

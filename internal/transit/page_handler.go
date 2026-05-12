@@ -52,16 +52,27 @@ func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 	vm.RouteMeta = h.svc.RouteMeta()
 	vm.Range = parseDateRange(r, h.svc.SinceDate(r.Context()))
 
-	if from, err := time.ParseInLocation("2006-01-02", vm.Range.From, TZ); err == nil {
-		if to, err := time.ParseInLocation("2006-01-02", vm.Range.To, TZ); err == nil {
-			if chunks, err := h.svc.Chunks(r.Context(), from, to); err == nil {
+	from, errFrom := time.ParseInLocation("2006-01-02", vm.Range.From, TZ)
+	to, errTo := time.ParseInLocation("2006-01-02", vm.Range.To, TZ)
+	if errFrom == nil && errTo == nil {
+		// Chunks and cancel details are independent reads. Run them in
+		// parallel so wall time collapses to whichever is slower instead
+		// of the sum. Both fail open (page renders empty cells).
+		g, ctx := errgroup.WithContext(r.Context())
+		g.Go(func() error {
+			if chunks, err := h.svc.Chunks(ctx, from, to); err == nil {
 				vm.Chunks = chunks
 				vm.HasData = len(chunks) > 0
 			}
-			if cancels, err := LoadCancelDetails(r.Context(), h.svc.db, from, to); err == nil {
+			return nil
+		})
+		g.Go(func() error {
+			if cancels, err := LoadCancelDetails(ctx, h.svc.db, from, to); err == nil {
 				vm.CancelledTrips = cancels
 			}
-		}
+			return nil
+		})
+		_ = g.Wait()
 	}
 
 	h.render.TransitMetrics(vm)(r.Context(), w)

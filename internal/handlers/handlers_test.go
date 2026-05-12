@@ -18,8 +18,6 @@ import (
 type stubCouncilStore struct {
 	listMeetingSummaries   func(ctx context.Context, f council.MeetingFilter) ([]council.MeetingSummary, int, error)
 	councillorVoteStatsAll func(ctx context.Context, term string) (map[string]council.CouncillorVoteStats, error)
-	councillorNotableAll   func(ctx context.Context, term string) (map[string][]council.CouncillorNotableVote, error)
-	headlineVotes          func(ctx context.Context, term string) ([]council.HeadlineVote, error)
 	voteMatrix             func(ctx context.Context, term string) ([]council.VoteMatrixMotion, []council.VoteMatrixRecord, error)
 	motionStats            func(ctx context.Context, term string) (int, int, int, error)
 	searchMotions          func(ctx context.Context, f council.MotionFilter) ([]council.MotionRow, int, error)
@@ -33,12 +31,6 @@ func (s stubCouncilStore) ListMeetingSummaries(ctx context.Context, f council.Me
 }
 func (s stubCouncilStore) CouncillorVoteStatsAll(ctx context.Context, term string) (map[string]council.CouncillorVoteStats, error) {
 	return s.councillorVoteStatsAll(ctx, term)
-}
-func (s stubCouncilStore) CouncillorNotableVotesAll(ctx context.Context, term string) (map[string][]council.CouncillorNotableVote, error) {
-	return s.councillorNotableAll(ctx, term)
-}
-func (s stubCouncilStore) HeadlineVotes(ctx context.Context, term string) ([]council.HeadlineVote, error) {
-	return s.headlineVotes(ctx, term)
 }
 func (s stubCouncilStore) VoteMatrix(ctx context.Context, term string) ([]council.VoteMatrixMotion, []council.VoteMatrixRecord, error) {
 	return s.voteMatrix(ctx, term)
@@ -90,10 +82,6 @@ func TestCouncillorsReturnsUnavailableWhenVoteMatrixFails(t *testing.T) {
 			councillorVoteStatsAll: func(context.Context, string) (map[string]council.CouncillorVoteStats, error) {
 				return map[string]council.CouncillorVoteStats{}, nil
 			},
-			councillorNotableAll: func(context.Context, string) (map[string][]council.CouncillorNotableVote, error) {
-				return map[string][]council.CouncillorNotableVote{}, nil
-			},
-			headlineVotes: func(context.Context, string) ([]council.HeadlineVote, error) { return nil, nil },
 			voteMatrix: func(context.Context, string) ([]council.VoteMatrixMotion, []council.VoteMatrixRecord, error) {
 				return nil, nil, errors.New("vote matrix failed")
 			},
