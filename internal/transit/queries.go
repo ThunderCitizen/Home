@@ -341,21 +341,24 @@ func CancelIncidents(ctx context.Context, db *pgxpool.Pool) ([]CancelIncident, e
 		incidents[i] = builds[i].incident
 	}
 
-	// If schedule-walk found nothing, fall back to CancelledTripDetails
-	// (handles trips with IDs that don't match static GTFS)
-	if len(incidents) == 0 {
-		details, err := CancelledTripDetails(ctx, db, todayDate)
-		if err != nil {
-			return nil, err
-		}
-		for routeID, trips := range details {
-			if len(trips) > 0 {
-				incidents = append(incidents, CancelIncident{RouteID: routeID, Trips: trips})
-			}
+	return incidents, nil
+}
+
+// IncidentsFromDetails turns a map of cancelled trips (as returned by
+// CancelledTripDetails) into a flat []CancelIncident — one per route. Used
+// as the fallback when the schedule-walk in CancelIncidents finds nothing
+// (handles trips whose IDs don't match static GTFS).
+func IncidentsFromDetails(details map[string][]CancelledTrip) []CancelIncident {
+	if len(details) == 0 {
+		return nil
+	}
+	incidents := make([]CancelIncident, 0, len(details))
+	for routeID, trips := range details {
+		if len(trips) > 0 {
+			incidents = append(incidents, CancelIncident{RouteID: routeID, Trips: trips})
 		}
 	}
-
-	return incidents, nil
+	return incidents
 }
 
 // CancelledTripDetails returns cancelled trips for a specific service date

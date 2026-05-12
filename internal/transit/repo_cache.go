@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // liveTTL is how long the live dashboard bundle stays cached before the
@@ -87,17 +89,48 @@ func NewRepoCache(reporter *Reporter) *RepoCache {
 		}),
 
 		live: NewCacheSlotTTL("live-data", liveTTL, func(ctx context.Context) (*liveData, error) {
-			dashboard, err := reporter.Dashboard(ctx)
-			if err != nil {
+			// All three loaders are independent at the DB layer. Run them
+			// concurrently so wall-clock collapses to the slowest single
+			// query instead of the sum.
+			var (
+				dashboard *DashboardReport
+				incidents []CancelIncident
+				noSvc     []string
+			)
+			today := ServiceDate()
+			g, gctx := errgroup.WithContext(ctx)
+			g.Go(func() error {
+				v, err := reporter.Dashboard(gctx)
+				if err != nil {
+					return err
+				}
+				dashboard = v
+				return nil
+			})
+			g.Go(func() error {
+				v, err := reporter.CancelIncidents(gctx)
+				if err != nil {
+					return fmt.Errorf("incidents: %w", err)
+				}
+				incidents = v
+				return nil
+			})
+			g.Go(func() error {
+				v, err := NoServiceRoutes(gctx, db, today)
+				if err != nil {
+					return fmt.Errorf("no-service routes: %w", err)
+				}
+				noSvc = v
+				return nil
+			})
+			if err := g.Wait(); err != nil {
 				return nil, err
 			}
-			incidents, err := reporter.CancelIncidents(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("incidents: %w", err)
-			}
-			noSvc, err := NoServiceRoutes(ctx, db, ServiceDate())
-			if err != nil {
-				return nil, fmt.Errorf("no-service routes: %w", err)
+			// CancelIncidents' schedule-walk can return empty when trip IDs
+			// don't line up with static GTFS. Fall back to the cancellation
+			// details Dashboard already loaded — avoids a duplicate query.
+			if len(incidents) == 0 && dashboard != nil {
+				incidents = IncidentsFromDetails(dashboard.CancelledTrips)
 			}
 			return &liveData{
 				dashboard: dashboard,
