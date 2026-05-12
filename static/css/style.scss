@@ -769,7 +769,7 @@ article > header {
     font-size: 0.8rem;
     color: inherit;
     letter-spacing: 0.06em;
-    margin: 0;
+    margin: var(--space-1) 0 0;
     opacity: 0.65;
   }
 
