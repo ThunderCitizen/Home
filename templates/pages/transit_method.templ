@@ -250,22 +250,23 @@ templ transitMethodology() {
 
 
 		<article>
-			<header class="methods-header"><h3>Headway Covariance</h3><span class="methods-tag methods-tag-regularity">Regularity</span></header>
+			<header class="methods-header"><h3>Headway Cv</h3><span class="methods-tag methods-tag-regularity">Regularity</span></header>
 			<p>
-				This metric measures how evenly spaced buses are along a route. If buses
-				arrive at perfectly even intervals, this number is zero &mdash; regardless
+				Cv is the <em>coefficient of variation</em> of headways &mdash;
+				the standard deviation of gaps between buses, divided by the average gap.
+				If buses arrive at perfectly even intervals, Cv is zero &mdash; regardless
 				of whether those intervals match the published schedule. In practice,
 				buses bunch up or leave big gaps &mdash; the higher the number, the more
 				unpredictable your wait becomes.
 			</p>
 			<p>
 				Think of it like darts. The bullseye is the average gap between buses.
-				Each actual arrival is a throw. Low covariance means the darts cluster
+				Each actual arrival is a throw. Low Cv means the darts cluster
 				around the bullseye &mdash; gaps between buses stay consistent. High
-				covariance means darts scattered across the board &mdash; gaps are all
+				Cv means darts scattered across the board &mdash; gaps are all
 				over the place.
 			</p>
-			<div class="cv-dartboards" id="cv-dartboards" aria-label="Dartboard analogy for headway covariance"></div>
+			<div class="cv-dartboards" id="cv-dartboards" aria-label="Dartboard analogy for headway Cv"></div>
 			<script>
 			(function() {
 				var el = document.getElementById('cv-dartboards');
