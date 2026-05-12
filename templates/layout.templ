@@ -69,6 +69,7 @@ templ Layout(meta SocialMeta) {
 			<meta name="description" content={ meta.Description }/>
 			<link rel="canonical" href={ canonicalURL(ctx) }/>
 			<meta name="theme-color" content="#4a6100"/>
+			<meta name="color-scheme" content="light dark"/>
 			<meta property="og:site_name" content="Thunder Citizen"/>
 			<meta property="og:title" content={ meta.Title + " · Thunder Citizen" }/>
 			<meta property="og:description" content={ meta.Description }/>
@@ -113,7 +114,7 @@ document.documentElement.classList.remove('no-js');
 		return cache;
 	}
 	if (window.matchMedia) {
-		window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(){ cache = null; });
+		window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(){ cache = null; if (window.applyDarkReaderLock) window.applyDarkReaderLock(); });
 	}
 	window.ThemeColors = function(){ return cache || read(); };
 	var _isTouch = null;
@@ -134,8 +135,24 @@ document.documentElement.classList.remove('no-js');
 		}
 		cache = null;
 		updateThemePicker(mode);
+		applyDarkReaderLock();
 		setTimeout(function(){ root.classList.remove("theme-transition"); }, 500);
 	};
+	window.applyDarkReaderLock = function(){
+		var explicit = document.documentElement.getAttribute("data-theme");
+		var isDark = explicit === "dark" || (!explicit && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+		var existing = document.querySelector('meta[name="darkreader-lock"]');
+		if (isDark) {
+			if (!existing) {
+				var m = document.createElement("meta");
+				m.name = "darkreader-lock";
+				document.head.appendChild(m);
+			}
+		} else if (existing) {
+			existing.parentNode.removeChild(existing);
+		}
+	};
+	var applyDarkReaderLock = window.applyDarkReaderLock;
 	window.toggleTheme = function(mode){
 		if (mode) { window.setTheme(mode); return; }
 		var current = document.documentElement.getAttribute("data-theme");
@@ -157,6 +174,7 @@ document.documentElement.classList.remove('no-js');
 	if (saved === "light" || saved === "dark") {
 		document.documentElement.setAttribute("data-theme", saved);
 	}
+	applyDarkReaderLock();
 	document.addEventListener("DOMContentLoaded", function(){
 		updateThemePicker(saved);
 		document.addEventListener("click", function(e){
