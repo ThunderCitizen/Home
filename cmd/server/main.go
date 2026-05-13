@@ -159,6 +159,9 @@ func main() {
 		},
 	}, recorder)
 	th.VehicleStream.Start(transitCtx)
+	// Keep the live-dashboard cache slot warm so /transit page requests
+	// never run the multi-query loader on the hot path. See LiveWarmer.
+	th.StartLiveWarmer(transitCtx)
 
 	h := handlers.New(db, recorder)
 	h.AttachMuni(trust, muniStatus)

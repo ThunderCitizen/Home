@@ -58,6 +58,12 @@ func NewHandler(db *pgxpool.Pool, render Renderer, recorder *Recorder) *Handler 
 	}
 }
 
+// StartLiveWarmer launches the background goroutine that keeps the live
+// dashboard slot warm. See LiveWarmer for details.
+func (h *Handler) StartLiveWarmer(ctx context.Context) {
+	NewLiveWarmer(h.svc).Start(ctx)
+}
+
 // PageRoutes returns a chi.Router with transit page routes.
 // Mount at /transit.
 func (h *Handler) PageRoutes() chi.Router {

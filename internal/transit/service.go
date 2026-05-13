@@ -129,6 +129,13 @@ func (s *Service) Live() (*liveData, error) {
 	return v, nil
 }
 
+// RefreshLive unconditionally reloads the live slot. Used by the background
+// warmer to keep the slot warm so /transit page requests never pay the
+// loader cost on the hot path.
+func (s *Service) RefreshLive(ctx context.Context) error {
+	return s.cache.live.Refresh(ctx)
+}
+
 // AllStops returns all stops (lazy-loaded on first call).
 func (s *Service) AllStops() []Stop {
 	ctx, cancel := newCacheCtx()
