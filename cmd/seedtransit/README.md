@@ -53,7 +53,7 @@ Stats improve linearly from "bad" to "good" over the requested range:
 |---------------|------------|------------|
 | OTP           | ~55%       | ~92%       |
 | Cancel rate   | ~6%        | ~0.5%      |
-| Headway Cv    | ~0.55      | ~0.15      |
+| Headway CV    | ~0.55      | ~0.15      |
 | EWT (derived) | ~4.5 min   | ~0.5 min   |
 
 EWT and Cv are mathematically linked through `EWT = (mean_h / 2) · Cv²`,

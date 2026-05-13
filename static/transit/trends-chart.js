@@ -6,7 +6,7 @@
   var KPI_LABELS = {
     otp: 'On-Time Performance',
     cancel: 'Cancellation Rate',
-    cv: 'Headway Cv',
+    cv: 'Headway CV',
     notice: 'Cancel Notice',
     ewt: 'Excess Wait Time',
     wait: 'Worst-Stop Wait'
@@ -115,7 +115,7 @@
     var COMPARE_METRICS = {
       otp:    { key: 'otp',    label: 'On-Time %',         unit: '%',    lower: false, fmt: function(v) { return v.toFixed(1); } },
       cancel: { key: 'cancel', label: 'Cancellation Rate', unit: '%',    lower: true,  fmt: function(v) { return v.toFixed(1); } },
-      cv:     { key: 'cv',     label: 'Headway Cv', unit: '',    lower: true,  fmt: function(v) { return v.toFixed(2); } },
+      cv:     { key: 'cv',     label: 'Headway CV', unit: '',    lower: true,  fmt: function(v) { return v.toFixed(2); } },
       ewt:    { key: 'ewt',    label: 'Excess Wait Time',  unit: '',     lower: true,  fmt: function(v) { return v.toFixed(1); } },
     };
 

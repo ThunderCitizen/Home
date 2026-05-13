@@ -170,7 +170,7 @@ All cards show three time-of-day bands — **Morning (6–12) / Midday (12–18)
 | **Cancel Notice** | `transit.cancellation` `feed_timestamp` vs `start_time` | First-stop departure hour |
 | **Stop Wait** | `transit.stop_visit` headways | Per-route headway gaps at each timepoint stop |
 | **EWT** | `transit.stop_visit` vs inline-computed schedule | Per-route; schedule from `gtfs.stop_times` filtered by observed service days |
-| **Headway Cv** | `transit.stop_visit` headways | Per-route at each stop |
+| **Headway CV** | `transit.stop_visit` headways | Per-route at each stop |
 
 **Why Cv is per-route:** Cv measures spacing regularity of a single service. Pooling multiple routes at a stop creates artificial variance from interleaving — a perfectly regular 20-min Route 1 and 30-min Route 5 produce highly variable 2/18/12/8-minute gaps. Cv at the chunk level captures the rider's experience of one route they're waiting for.
 
@@ -245,7 +245,7 @@ distance check (see `internal/transit/vehicle_tracker.go`):
 
 ### Route-Level Comparison
 
-Routes tab offers switchable bar chart comparing all routes by: EWT, OTP, Cancellations, P90, Headway Cv, Bunching Rate. Bars use each route's assigned color.
+Routes tab offers switchable bar chart comparing all routes by: EWT, OTP, Cancellations, P90, Headway CV, Bunching Rate. Bars use each route's assigned color.
 
 ### Timepoint Schedule
 

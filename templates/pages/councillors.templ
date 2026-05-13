@@ -29,6 +29,15 @@ func statusBadgeClass(status string) string {
 	return ""
 }
 
+// wardCouncillorMap builds a {wardName: councillorName} lookup for the ward map's info bar.
+func wardCouncillorMap(councillors []views.CouncillorView) map[string]string {
+	out := make(map[string]string, len(councillors))
+	for _, c := range councillors {
+		out[c.Position] = c.Name
+	}
+	return out
+}
+
 func wardLayerGroups() []components.MapLayerGroup {
 	return []components.MapLayerGroup{{
 		Label: "Layers",
@@ -36,15 +45,6 @@ func wardLayerGroups() []components.MapLayerGroup {
 			{Key: "wards", Label: "Wards", Active: true, Icon: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>`},
 		},
 	}}
-}
-
-// wardCouncillorMap builds a {wardName: councillorName} lookup for the ward map's hover info bar.
-func wardCouncillorMap(councillors []views.CouncillorView) map[string]string {
-	out := make(map[string]string, len(councillors))
-	for _, c := range councillors {
-		out[c.Position] = c.Name
-	}
-	return out
 }
 
 // matrixColSpan returns the total number of columns (2 fixed + councillors) as a string.
@@ -68,11 +68,18 @@ func splitMobileColumns(cols []views.VoteMatrixColumn, n int) ([]views.VoteMatri
 	return cols[:n], cols[n:]
 }
 
-templ compensationSource(ref models.SourceRef) {
+templ panelSource(ref models.SourceRef) {
 	<p class="compensation-source">
 		<span>Source: </span>
 		@components.SourceLink(ref)
 	</p>
+}
+
+// escribeRef is the canonical citation for council recorded votes — the city
+// publishes all motion records on its eScribe meeting portal.
+var escribeRef = models.SourceRef{
+	URL:   "https://pub-thunderbay.escribemeetings.com",
+	Label: "Thunder Bay eScribe",
 }
 
 templ accordionToggle() {
@@ -103,7 +110,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	<div class="councillor-sticky-area">
 		@components.YearSelector(vm.TermSelector)
 		@components.PageHeader(components.PageHeaderProps{Title: "Councillors"})
-		@components.TermPanel(components.TermPanelProps{Title: "Council Structure", Footer: compensationSource(vm.Source), HeadingLevel: 2}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Council Structure", HeadingLevel: 2}) {
 			<p class="compensation-lead">Thunder Bay's 13-member council: 1 mayor, 5 at-large, and 7 ward representatives.</p>
 			@components.TermMetricGrid(components.TermMetricGridProps{Cols: 3}) {
 				for _, item := range vm.CompensationStats.Items {
@@ -112,7 +119,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 			}
 		}
 
-	@components.TermPanel(components.TermPanelProps{Title: "Members", HeaderAction: accordionToggle(), HeadingLevel: 2}) {
+	@components.TermPanel(components.TermPanelProps{Title: "Members", HeaderAction: accordionToggle(), Footer: panelSource(vm.Source), HeadingLevel: 2}) {
 		<h3 class="section-subheader">Mayor</h3>
 		<div data-section="mayor">
 			@councillorItem(vm.Mayor)
@@ -135,17 +142,19 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	}
 
 	if vm.VoteMatrix != nil && len(vm.VoteMatrix.Columns) > 0 {
-		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes", HeadingLevel: 2}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes", Footer: panelSource(escribeRef), HeadingLevel: 2}) {
 			@voteMatrix(vm.VoteMatrix)
 		}
 	}
 	</div>
 
 	<section class="ward-panel" aria-label="Ward map">
-		<div class="terminal-map-header">
+		<div class="terminal-map-header" id="ward-map-header">
 			<span class="terminal-map-title">Ward Map</span>
 			<span class="ward-panel-subtitle">7 wards · 1 mayor · 5 at-large</span>
 			@components.MapLayerBar(wardLayerGroups())
+			<div class="tmi-layer tmi-hover" data-layer="hover" aria-live="polite"></div>
+			<div class="tmi-layer tmi-selection" data-layer="selection" aria-live="polite"></div>
 		</div>
 		@components.LeafletMap(components.MapProps{
 			ID:        "ward-map",
@@ -153,13 +162,6 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 			Class:     "ward-map-wrap",
 			Scripts:   []string{"/static/councillors/ward-map.js"},
 		}) {
-			<aside id="ward-info-overlay" class="trip-planner-overlay ward-info-overlay" aria-live="polite">
-				<button type="button" id="ward-info-close" class="trip-planner-tab" aria-label="Close ward details">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-					Close
-				</button>
-				<div id="ward-info-body" class="ward-info-body"></div>
-			</aside>
 			@templ.JSONScript("ward-councillors", wardCouncillorMap(vm.WardCouncillors))
 		}
 	</section>

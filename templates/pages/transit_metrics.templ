@@ -47,7 +47,7 @@ var kpiDefs = []kpiDef{
 		},
 	},
 	{
-		Key: "cv", Label: "Headway Cv", Tag: "Regularity",
+		Key: "cv", Label: "Headway CV", Tag: "Regularity",
 		Explain: "How evenly spaced buses are. Lower means predictable waits; higher means bunching and long gaps.",
 		Slots: [3]struct{ Attr, Class, Label string }{
 			{"cv_morn", "kpi-p50", "Morning"},
@@ -66,7 +66,7 @@ func kpiCardClass(active, current string) string {
 
 var kpiTitles = map[string]string{
 	"otp": "On-Time Performance", "cancel": "Cancellation Rate",
-	"ewt": "Excess Wait Time", "cv": "Headway Cv",
+	"ewt": "Excess Wait Time", "cv": "Headway CV",
 }
 
 templ TransitMetrics(vm transit.MetricsViewModel) {

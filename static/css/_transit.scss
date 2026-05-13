@@ -663,6 +663,16 @@
   color: var(--term-fg-dim);
 }
 
+.info-sep {
+  color: var(--term-fg-dim);
+  opacity: 0.6;
+  margin: 0 0.1rem;
+}
+
+.info-label {
+  @extend %transit-label-dim;
+}
+
 .info-btn {
   display: inline-flex;
   align-items: center;

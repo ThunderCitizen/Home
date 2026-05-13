@@ -20,60 +20,78 @@
   var tiles = ThunderMapTiles();
   tiles.addTo(map);
 
-  const overlay = document.getElementById("ward-info-overlay");
-  const infoBody = document.getElementById("ward-info-body");
-  const closeBtn = document.getElementById("ward-info-close");
-  let geojsonLayer = null;
-  let activeWard = null;
-
-  // Ward → councillor name lookup, embedded by the template.
   const WARD_COUNCILLORS = (function () {
-    const el = document.getElementById("ward-councillors");
-    if (!el) return {};
-    try { return JSON.parse(el.textContent || "{}"); } catch (e) { return {}; }
+    const node = document.getElementById("ward-councillors");
+    if (!node) return {};
+    try { return JSON.parse(node.textContent || "{}"); } catch (e) { return {}; }
   })();
 
-  function renderInfo(name) {
-    if (!infoBody || !name) return;
+  // tmi-layer info bar — same pattern as transit live map. Higher-priority
+  // layer (selection) z-orders above hover via CSS; each layer toggles its
+  // own .is-active / .is-clearing, no host-level state.
+  const infoHost = document.querySelector(".ward-panel > .terminal-map-header");
+  const layerClearTimers = { hover: 0, selection: 0 };
+  let hoverHideTimer = 0;
+
+  function getLayer(key) {
+    return infoHost ? infoHost.querySelector(".tmi-" + key) : null;
+  }
+  function setLayer(key, html) {
+    const layer = getLayer(key);
+    if (!layer) return;
+    if (layerClearTimers[key]) { clearTimeout(layerClearTimers[key]); layerClearTimers[key] = 0; }
+    layer.classList.remove("is-clearing");
+    layer.innerHTML = html;
+    layer.classList.add("is-active");
+  }
+  function clearLayer(key) {
+    const layer = getLayer(key);
+    if (!layer) return;
+    if (!layer.classList.contains("is-active")) { layer.innerHTML = ""; return; }
+    layer.classList.remove("is-active");
+    layer.classList.add("is-clearing");
+    if (layerClearTimers[key]) clearTimeout(layerClearTimers[key]);
+    layerClearTimers[key] = window.setTimeout(function () {
+      layerClearTimers[key] = 0;
+      const l = getLayer(key);
+      if (l) { l.classList.remove("is-clearing"); l.innerHTML = ""; }
+    }, 300);
+  }
+  function showHover(html) {
+    if (hoverHideTimer) { clearTimeout(hoverHideTimer); hoverHideTimer = 0; }
+    setLayer("hover", html);
+  }
+  function hideHoverDebounced() {
+    if (hoverHideTimer) clearTimeout(hoverHideTimer);
+    hoverHideTimer = window.setTimeout(function () {
+      hoverHideTimer = 0;
+      clearLayer("hover");
+    }, 200);
+  }
+
+  function wardInfoHtml(name) {
     const color = WARD_COLORS[name] || tc.statusMuted;
     const councillor = WARD_COUNCILLORS[name];
     let html =
-      '<div class="ward-info-head">' +
-        '<span class="ward-dot" style="background:' + color + '"></span>' +
-        '<span class="ward-name">' + name + ' Ward</span>' +
-      '</div>';
+      '<span class="info-route" style="background:' + color + '">' + name + '</span>' +
+      '<span class="info-name">' + name + ' Ward</span>';
     if (councillor) {
       html +=
-        '<dl class="ward-info-meta">' +
-          '<dt>Councillor</dt>' +
-          '<dd class="ward-councillor">' + councillor + '</dd>' +
-        '</dl>';
+        '<span class="info-sep" aria-hidden="true">—</span>' +
+        '<span class="info-detail">' + councillor + '</span>';
     }
-    infoBody.innerHTML = html;
+    return html;
   }
 
-  function showInfo(name) {
-    if (!overlay || !name) return;
-    renderInfo(name);
-    overlay.classList.add("is-open");
-  }
+  // Suppress mouseover info on touch — taps fire it alongside the click.
+  let lastPointerType = "mouse";
+  document.addEventListener("pointerdown", function (e) {
+    lastPointerType = e.pointerType || "mouse";
+  }, true);
 
-  function hideInfo() {
-    if (!overlay) return;
-    overlay.classList.remove("is-open");
-  }
+  let geojsonLayer = null;
+  let activeWard = null;
 
-  if (closeBtn) {
-    closeBtn.addEventListener("click", function () {
-      if (activeWard && geojsonLayer) {
-        geojsonLayer.eachLayer(function (l) { geojsonLayer.resetStyle(l); });
-        activeWard = null;
-      }
-      hideInfo();
-    });
-  }
-
-  // Layer bar toggle
   const layerBar = document.querySelector("[data-layer='wards']");
   let wardsVisible = layerBar ? layerBar.classList.contains("active") : true;
 
@@ -87,7 +105,8 @@
         } else {
           map.removeLayer(geojsonLayer);
           activeWard = null;
-          hideInfo();
+          clearLayer("hover");
+          clearLayer("selection");
         }
       }
     });
@@ -101,7 +120,7 @@
           return {
             color: WARD_COLORS[feature.properties.name] || tc.statusMuted,
             weight: 2,
-            fillOpacity: 0.25,
+            fillOpacity: 0.4,
           };
         },
         onEachFeature: function (feature, layer) {
@@ -114,31 +133,37 @@
           });
 
           layer.on("mouseover", function () {
-            if (activeWard === name) return;
-            layer.setStyle({ fillOpacity: 0.45, weight: 3 });
-            showInfo(name);
+            if (lastPointerType === "touch") return;
+            if (activeWard !== name) {
+              layer.setStyle({ weight: 4, opacity: 1 });
+              layer.bringToFront();
+            }
+            showHover(wardInfoHtml(name));
           });
 
           layer.on("mouseout", function () {
-            if (activeWard === name) return;
-            geojsonLayer.resetStyle(layer);
-            hideInfo();
+            if (lastPointerType === "touch") return;
+            if (activeWard !== name) {
+              geojsonLayer.resetStyle(layer);
+            }
+            hideHoverDebounced();
           });
 
-          layer.on("click", function () {
+          layer.on("click", function (e) {
+            if (e.originalEvent) e.originalEvent._wardHandled = true;
             if (activeWard === name) {
               activeWard = null;
               geojsonLayer.resetStyle(layer);
-              hideInfo();
+              clearLayer("selection");
               return;
             }
-            // Reset previous
             if (activeWard) {
               geojsonLayer.eachLayer(function (l) { geojsonLayer.resetStyle(l); });
             }
             activeWard = name;
-            layer.setStyle({ fillOpacity: 0.45, weight: 3 });
-            showInfo(name);
+            layer.setStyle({ weight: 4, opacity: 1 });
+            layer.bringToFront();
+            setLayer("selection", wardInfoHtml(name));
           });
         },
       }).addTo(map);
@@ -149,7 +174,7 @@
         if (!e.originalEvent._wardHandled && activeWard) {
           activeWard = null;
           geojsonLayer.eachLayer(function (l) { geojsonLayer.resetStyle(l); });
-          hideInfo();
+          clearLayer("selection");
         }
       });
     });
