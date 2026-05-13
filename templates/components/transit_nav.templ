@@ -2,7 +2,7 @@ package components
 
 // TransitNavProps configures the transit sub-page navigation bar.
 type TransitNavProps struct {
-	Current string // key of the active page: "map", "metrics", "routes", "method"
+	Current string // key of the active page: "map", "kiosk", "metrics", "routes", "method"
 }
 
 var transitNavItems = []struct {
@@ -11,7 +11,7 @@ var transitNavItems = []struct {
 	Label string
 }{
 	{"map", "/transit", "Live"},
-	{"terminals", "/transit/terminals", "Terminals"},
+	{"kiosk", "/transit/kiosk", "Kiosk"},
 	{"metrics", "/transit/metrics", "Metrics"},
 	{"routes", "/transit/routes", "Routes"},
 	{"method", "/transit/method", "Method"},

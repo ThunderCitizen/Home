@@ -114,7 +114,7 @@ Why the `:root` wrapper for **both** themes (not just dark): bare `.badge { ... 
 1. Pick the surface (size + interactivity contract): `@extend %badge-base; @extend %badge-info;` (or `%badge-action` for interactive pills) on the component selector. **Don't include a hue here** — hues live in the theme mixins.
 2. Add the hue in **both** mixins (same partial, mirrored): `.my-pill { @include badge-light-hue(#hex); }` in light, `@include badge-dark-hue(#hex);` in dark. Forgetting one leaves the pill themeless on that side.
 
-Existing consumers: `.badge-*` (result/significance/term), ward subtitle badges, `.motion-filter-pill--*` (active state), `.recent-meeting-status` (info), `.meeting-row-btn` (action). Full docs in `_mixins.scss`.
+Existing consumers: `.badge-*` (result/term), ward subtitle badges, `.motion-filter-pill--*` (active state), `.recent-meeting-status` (info), `.meeting-row-btn` (action). Full docs in `_mixins.scss`.
 
 ## What NOT to tokenize
 - **Route identity colors** (ROUTE_COLORS maps) — GTFS data, not theme. Also used for Sankey budget nodes.

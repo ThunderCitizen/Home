@@ -361,8 +361,26 @@ func BuildVoteMatrix(
 	return &VoteMatrixViewModel{
 		Columns:            columns,
 		Rows:               rows,
-		MobileVisibleCount: trailingMonthsCount(motions, 3),
+		MobileVisibleCount: mobileVisibleCount(motions),
 	}
+}
+
+// mobileVisibleCount picks the leading-motion count for the mobile vote matrix.
+// Caps at 6 columns so the "Show all" button stays visible without needing
+// users to scroll through a tall section to discover the cutoff exists.
+func mobileVisibleCount(motions []council.VoteMatrixMotion) int {
+	const cap = 6
+	n := trailingMonthsCount(motions, 1)
+	if n > cap {
+		return cap
+	}
+	if n == 0 && len(motions) > 0 {
+		if len(motions) < cap {
+			return len(motions)
+		}
+		return cap
+	}
+	return n
 }
 
 // trailingMonthsCount returns how many leading motions fall within `months`

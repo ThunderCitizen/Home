@@ -55,7 +55,6 @@ templ Council(vm views.CouncilViewModel) {
 		Description: "Every Thunder Bay city council meeting, searchable — motion summaries, recorded votes, and headline decisions from each session.",
 		OGImage:     "/static/og/minutes.png",
 	}) {
-		<h1 class="sr-only">Council Meeting Minutes</h1>
 		@components.YearSelector(components.YearSelectorProps{
 			Years:     []int{2022},
 			Current:   vm.Filter.TermYear,
@@ -64,8 +63,9 @@ templ Council(vm views.CouncilViewModel) {
 			Labels:    map[int]string{2022: "2022–2026"},
 			AriaLabel: "Select council term",
 		})
+		@components.PageHeader(components.PageHeaderProps{Title: "Minutes"})
 		@components.HeroStats(components.HeroStatsProps{
-			Title:        "Council Meeting Minutes",
+			Title:        "Minute Stats",
 			HeadingLevel: 2,
 		}) {
 			@components.StatGrid(components.StatGridProps{

@@ -20,22 +20,18 @@ type MeetingFilter struct {
 // MeetingSummary is a meeting row with aggregate motion/vote counts.
 
 type MeetingSummary struct {
-	ID              string
-	Date            string
-	Title           string
-	Term            string
-	MinutesURL      string
-	HasVideo        bool
-	Summary         string
-	MotionCount     int
-	RecordedVotes   int
-	CarriedCount    int
-	LostCount       int
-	HeadlineCount   int
-	NotableCount    int
-	RoutineCount    int
-	ProceduralCount int
-	MediaCount      int
+	ID            string
+	Date          string
+	Title         string
+	Term          string
+	MinutesURL    string
+	HasVideo      bool
+	Summary       string
+	MotionCount   int
+	RecordedVotes int
+	CarriedCount  int
+	LostCount     int
+	MediaCount    int
 }
 
 // ListMeetingSummaries returns meetings with motion counts, filterable and paginated.
@@ -82,10 +78,6 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.raw_text != ''),
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.result = 'CARRIED'),
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.result = 'LOST'),
-		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'headline'),
-		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'notable'),
-		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'routine'),
-		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND COALESCE(NULLIF(mo.significance, ''), mo.llm_significance) = 'procedural'),
 		       (SELECT count(*) FROM council_motions mo WHERE mo.meeting_id = m.id AND mo.media_url IS NOT NULL)
 		FROM council_meetings m
 		%s
@@ -103,7 +95,7 @@ func (s *Store) ListMeetingSummaries(ctx context.Context, f MeetingFilter) ([]Me
 		var ms MeetingSummary
 		if err := rows.Scan(&ms.ID, &ms.Date, &ms.Title, &ms.Term, &ms.MinutesURL,
 			&ms.HasVideo, &ms.Summary, &ms.MotionCount, &ms.RecordedVotes, &ms.CarriedCount, &ms.LostCount,
-			&ms.HeadlineCount, &ms.NotableCount, &ms.RoutineCount, &ms.ProceduralCount, &ms.MediaCount); err != nil {
+			&ms.MediaCount); err != nil {
 			return nil, 0, err
 		}
 		meetings = append(meetings, ms)
@@ -187,7 +179,7 @@ func (s *Store) loadMeetingMotions(ctx context.Context, md *MeetingDetail) (*Mee
 	rows, err := s.db.Query(ctx, `
 		SELECT mo.id, m.date::text, m.term, m.id, COALESCE(m.minutes_url, ''),
 		       mo.agenda_item, COALESCE(mo.llm_label, ''), COALESCE(mo.llm_summary, ''), mo.moved_by, mo.seconded_by, mo.motion_text, mo.result,
-		       mo.significance, mo.media_url,
+		       mo.media_url,
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'for'), 0),
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'against'), 0)
 		FROM council_motions mo
@@ -203,7 +195,7 @@ func (s *Store) loadMeetingMotions(ctx context.Context, md *MeetingDetail) (*Mee
 		var mr MotionRow
 		if err := rows.Scan(&mr.ID, &mr.Date, &mr.Term, &mr.MeetingID, &mr.MinutesURL,
 			&mr.AgendaItem, &mr.Label, &mr.Summary, &mr.MovedBy, &mr.SecondedBy, &mr.Text, &mr.Result,
-			&mr.Significance, &mr.MediaURL, &mr.YeaCount, &mr.NayCount); err != nil {
+			&mr.MediaURL, &mr.YeaCount, &mr.NayCount); err != nil {
 			return nil, err
 		}
 		md.Motions = append(md.Motions, mr)
@@ -224,23 +216,22 @@ type MotionFilter struct {
 // MotionRow is a motion joined with its meeting context and vote summary.
 
 type MotionRow struct {
-	ID           int64
-	Date         string
-	Term         string
-	MeetingID    string
-	MinutesURL   string
-	AgendaItem   string
-	Label        string // LLM-generated short title, fallback when AgendaItem empty
-	Summary      string
-	MovedBy      string
-	SecondedBy   string
-	Text         string
-	Result       string
-	Significance string
-	MediaURL     *string
-	YeaCount     int
-	NayCount     int
-	Votes        *VoteRecord // populated on demand
+	ID         int64
+	Date       string
+	Term       string
+	MeetingID  string
+	MinutesURL string
+	AgendaItem string
+	Label      string // LLM-generated short title, fallback when AgendaItem empty
+	Summary    string
+	MovedBy    string
+	SecondedBy string
+	Text       string
+	Result     string
+	MediaURL   *string
+	YeaCount   int
+	NayCount   int
+	Votes      *VoteRecord // populated on demand
 }
 
 // LoadVoteRecords loads vote records for a motion by ID (exported for handlers).
@@ -321,7 +312,7 @@ func (s *Store) SearchMotions(ctx context.Context, f MotionFilter) ([]MotionRow,
 	dataSQL := fmt.Sprintf(`
 		SELECT mo.id, m.date::text, m.term, m.id, COALESCE(m.minutes_url, ''),
 		       mo.agenda_item, COALESCE(mo.llm_label, ''), COALESCE(mo.llm_summary, ''), mo.moved_by, mo.seconded_by, mo.motion_text, mo.result,
-		       mo.significance, mo.media_url,
+		       mo.media_url,
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'for'), 0),
 		       COALESCE((SELECT count(*) FROM council_vote_records r WHERE r.motion_id = mo.id AND r.position = 'against'), 0)
 		FROM council_motions mo
@@ -339,7 +330,7 @@ func (s *Store) SearchMotions(ctx context.Context, f MotionFilter) ([]MotionRow,
 		var mr MotionRow
 		if err := rows.Scan(&mr.ID, &mr.Date, &mr.Term, &mr.MeetingID, &mr.MinutesURL,
 			&mr.AgendaItem, &mr.Label, &mr.Summary, &mr.MovedBy, &mr.SecondedBy, &mr.Text, &mr.Result,
-			&mr.Significance, &mr.MediaURL, &mr.YeaCount, &mr.NayCount); err != nil {
+			&mr.MediaURL, &mr.YeaCount, &mr.NayCount); err != nil {
 			return nil, 0, err
 		}
 		motions = append(motions, mr)
@@ -362,13 +353,13 @@ func (s *Store) GetMotion(ctx context.Context, id int64) (*MotionDetail, error) 
 	err := s.db.QueryRow(ctx, `
 		SELECT mo.id, m.date::text, m.term, m.id, COALESCE(m.minutes_url, ''),
 		       mo.agenda_item, COALESCE(mo.llm_summary, ''), mo.moved_by, mo.seconded_by, mo.motion_text, mo.result,
-		       mo.significance, mo.media_url, mo.raw_text
+		       mo.media_url, mo.raw_text
 		FROM council_motions mo
 		JOIN council_meetings m ON m.id = mo.meeting_id
 		WHERE mo.id = $1`, id,
 	).Scan(&md.ID, &md.Date, &md.Term, &md.MeetingID, &md.MinutesURL,
 		&md.AgendaItem, &md.Summary, &md.MovedBy, &md.SecondedBy, &md.Text, &md.Result,
-		&md.Significance, &md.MediaURL, &md.RawText)
+		&md.MediaURL, &md.RawText)
 	if err != nil {
 		return nil, err
 	}
@@ -470,14 +461,11 @@ func (s *Store) ListUnsummarized(ctx context.Context, term string, motionID int6
 }
 
 // UpdateMotionSummary writes LLM-generated summary fields for a motion.
-// Also promotes llm_significance to significance when the motion hasn't been
-// manually curated (significance is empty or 'routine').
 
 type UnsummarizedMeetingMotion struct {
-	Label        string
-	Summary      string
-	Result       string
-	Significance string
+	Label   string
+	Summary string
+	Result  string
 }
 
 // UnsummarizedMeeting is a meeting needing an LLM summary.
@@ -537,8 +525,7 @@ func (s *Store) ListUnsummarizedMeetings(ctx context.Context, term string, force
 	for i := range meetings {
 		motRows, err := s.db.Query(ctx, `
 			SELECT COALESCE(NULLIF(llm_label, ''), COALESCE(NULLIF(agenda_item, ''), LEFT(motion_text, 60))),
-			       COALESCE(llm_summary, ''), result,
-			       COALESCE(NULLIF(significance, ''), COALESCE(NULLIF(llm_significance, ''), 'routine'))
+			       COALESCE(llm_summary, ''), result
 			FROM council_motions
 			WHERE meeting_id = $1
 			ORDER BY motion_index`, meetings[i].ID)
@@ -548,7 +535,7 @@ func (s *Store) ListUnsummarizedMeetings(ctx context.Context, term string, force
 
 		for motRows.Next() {
 			var mm UnsummarizedMeetingMotion
-			if err := motRows.Scan(&mm.Label, &mm.Summary, &mm.Result, &mm.Significance); err != nil {
+			if err := motRows.Scan(&mm.Label, &mm.Summary, &mm.Result); err != nil {
 				motRows.Close()
 				return nil, err
 			}
@@ -601,7 +588,7 @@ func (s *Store) LoadMeetings(ctx context.Context, term string) ([]Meeting, error
 
 func (s *Store) loadMotions(ctx context.Context, meetingID string) ([]Motion, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT id, motion_text, moved_by, seconded_by, result, significance, raw_text,
+		SELECT id, motion_text, moved_by, seconded_by, result, raw_text,
 		       COALESCE(agenda_item, ''), COALESCE(llm_summary, ''), COALESCE(llm_label, ''),
 		       COALESCE(media_url, '')
 		FROM council_motions
@@ -619,7 +606,7 @@ func (s *Store) loadMotions(ctx context.Context, meetingID string) ([]Motion, er
 	var mots []motionWithID
 	for rows.Next() {
 		var m motionWithID
-		if err := rows.Scan(&m.id, &m.Text, &m.MovedBy, &m.SecondedBy, &m.Result, &m.Significance, &m.RawText,
+		if err := rows.Scan(&m.id, &m.Text, &m.MovedBy, &m.SecondedBy, &m.Result, &m.RawText,
 			&m.AgendaItem, &m.Summary, &m.Label, &m.MediaURL); err != nil {
 			return nil, err
 		}
@@ -702,15 +689,14 @@ func (s CouncillorVoteStats) VotesCast() int {
 // VoteMatrixMotion is a column header in the vote matrix.
 
 type VoteMatrixMotion struct {
-	ID           int64
-	MeetingID    string
-	Date         string
-	AgendaItem   string // truncated for grid display
-	Summary      string // LLM summary for modal
-	FullTitle    string // full agenda item for modal
-	Result       string
-	Significance string // headline, notable, routine, procedural
-	MediaURL     string
+	ID         int64
+	MeetingID  string
+	Date       string
+	AgendaItem string // truncated for grid display
+	Summary    string // LLM summary for modal
+	FullTitle  string // full agenda item for modal
+	Result     string
+	MediaURL   string
 }
 
 // VoteMatrixRecord is a single cell: how one councillor voted on one motion.
@@ -726,7 +712,7 @@ type VoteMatrixRecord struct {
 func (s *Store) VoteMatrix(ctx context.Context, term string) ([]VoteMatrixMotion, []VoteMatrixRecord, error) {
 	// Get all motions with recorded votes
 	mRows, err := s.db.Query(ctx, `
-		SELECT id, meeting_id, date, label, summary, full_title, result, significance, media_url
+		SELECT id, meeting_id, date, label, summary, full_title, result, media_url
 		FROM (
 			SELECT DISTINCT ON (mo.meeting_id, COALESCE(NULLIF(mo.llm_label, ''), LEFT(COALESCE(NULLIF(mo.agenda_item, ''), mo.motion_text), 60)))
 			       mo.id, m.id AS meeting_id, m.date::text AS date,
@@ -734,13 +720,11 @@ func (s *Store) VoteMatrix(ctx context.Context, term string) ([]VoteMatrixMotion
 			       COALESCE(mo.llm_summary, '') AS summary,
 			       COALESCE(NULLIF(mo.agenda_item, ''), LEFT(mo.motion_text, 200)) AS full_title,
 			       mo.result,
-			       COALESCE(mo.significance, '') AS significance,
 			       COALESCE(mo.media_url, '') AS media_url,
 			       mo.motion_index
 			FROM council_motions mo
 			JOIN council_meetings m ON m.id = mo.meeting_id
 			WHERE m.term = $1 AND mo.raw_text != ''
-			  AND mo.significance NOT IN ('procedural', 'routine')
 			ORDER BY mo.meeting_id, COALESCE(NULLIF(mo.llm_label, ''), LEFT(COALESCE(NULLIF(mo.agenda_item, ''), mo.motion_text), 60)), mo.motion_index
 		) deduped
 		ORDER BY date DESC, motion_index`, term)
@@ -752,7 +736,7 @@ func (s *Store) VoteMatrix(ctx context.Context, term string) ([]VoteMatrixMotion
 	var motions []VoteMatrixMotion
 	for mRows.Next() {
 		var m VoteMatrixMotion
-		if err := mRows.Scan(&m.ID, &m.MeetingID, &m.Date, &m.AgendaItem, &m.Summary, &m.FullTitle, &m.Result, &m.Significance, &m.MediaURL); err != nil {
+		if err := mRows.Scan(&m.ID, &m.MeetingID, &m.Date, &m.AgendaItem, &m.Summary, &m.FullTitle, &m.Result, &m.MediaURL); err != nil {
 			return nil, nil, err
 		}
 		motions = append(motions, m)
@@ -768,7 +752,6 @@ func (s *Store) VoteMatrix(ctx context.Context, term string) ([]VoteMatrixMotion
 		JOIN council_motions mo ON mo.id = vr.motion_id
 		JOIN council_meetings m ON m.id = mo.meeting_id
 		WHERE m.term = $1 AND mo.raw_text != ''
-		  AND mo.significance NOT IN ('procedural', 'routine')
 		ORDER BY vr.councillor`, term)
 	if err != nil {
 		return nil, nil, err

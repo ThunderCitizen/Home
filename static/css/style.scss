@@ -1711,8 +1711,41 @@ h3.vote-matrix-card-label {
 // WARD MAP
 // ==========================================================================
 
-.ward-map-fullscreen {
+.ward-panel {
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.ward-panel > .terminal-map-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 1rem;
+  row-gap: 0.4rem;
+
+  > .terminal-map-title { grid-column: 1; }
+  > .ward-panel-subtitle {
+    grid-column: 2;
+    font-size: var(--text-2xs);
+    color: var(--term-fg-dim);
+    letter-spacing: 0.04em;
+  }
+  > .selector-bar { grid-column: 3; justify-self: end; }
+
+  @include respond-to('md') {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "title subtitle"
+      "layers layers";
+
+    > .terminal-map-title  { grid-area: title; }
+    > .ward-panel-subtitle { grid-area: subtitle; justify-self: end; }
+    > .selector-bar        { grid-area: layers; justify-self: stretch; min-width: 0; }
+
+    > .selector-bar .selector-bar-btns { width: 100%; }
+    > .selector-bar .selector-bar-btn  { flex: 1 1 0; }
+  }
 }
 
 // Shared map component base
@@ -1756,7 +1789,7 @@ h3.vote-matrix-card-label {
   }
 }
 
-.map-header + .map-wrap {
+.ward-map-wrap {
   border-radius: 0;
 }
 
@@ -1773,59 +1806,48 @@ h3.vote-matrix-card-label {
   }
 }
 
-.map-header {
+.ward-info-overlay {
+  // .trip-planner-overlay sets transform: translateX(100%) by default;
+  // start hidden and slide in via .is-open like the trip planner.
+}
+
+.ward-info-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0.6rem 0.75rem;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem 0.75rem;
-  padding: 0.4rem 0.75rem;
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--thunder-200);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
+  flex-direction: column;
+  gap: 0.6rem;
+  color: var(--term-fg);
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+
+  .ward-info-overlay.is-open & { opacity: 1; }
 }
 
-.map-title {
-  font-size: 0.62rem;
-  font-weight: var(--weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--heading);
-}
-
-.map-subtitle {
-  font-size: 0.65rem;
-  color: var(--term-fg-dim);
-  letter-spacing: 0.02em;
-  margin-right: auto;
-}
-
-.ward-info-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1001;
-  background: var(--pico-card-background-color, #fff);
-  border-top: 1px solid var(--thunder-200, #e2e8f0);
-  color: var(--pico-color, #333);
-  padding: 0.4rem 0.75rem;
-  font-size: 0.78rem;
-  line-height: 1;
+.ward-info-head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transform: translateY(100%);
-  opacity: 0;
-  transition: transform 0.2s ease, opacity 0.15s ease;
-  pointer-events: none;
+}
 
-  &.info-bar-visible {
-    transform: translateY(0);
-    opacity: 0.8;
-    pointer-events: auto;
+.ward-info-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+  font-size: var(--text-xs);
+
+  dt {
+    color: var(--term-fg-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: var(--weight-bold);
+    font-size: var(--text-2xs);
+    align-self: center;
   }
+  dd { margin: 0; }
 }
 
 .ward-dot {
@@ -1840,13 +1862,15 @@ h3.vote-matrix-card-label {
 }
 
 .ward-name {
-  font-weight: var(--weight-semi);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  color: var(--term-fg-bright);
+  letter-spacing: 0.02em;
 }
 
 .ward-councillor {
   font-weight: var(--weight-bold);
   color: var(--accent);
-  margin-left: 0.35rem;
 }
 
 #ward-map .leaflet-interactive {
@@ -1936,7 +1960,12 @@ h3.vote-matrix-card-label {
 // ==========================================================================
 
 .page-header {
-  margin-bottom: 1.5rem;
+  margin: 1rem 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 
   h1 {
     margin-bottom: 0.5rem;
@@ -1948,6 +1977,22 @@ h3.vote-matrix-card-label {
     color: var(--thunder-600);
     margin: 0;
   }
+}
+
+.page-header-title {
+  min-width: 0;
+  flex: 1 1 auto;
+
+  h1:last-child { margin-bottom: 0; }
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  &:empty { display: none; }
 }
 
 // ==========================================================================

@@ -101,7 +101,7 @@ func (h *Handlers) Home(w http.ResponseWriter, r *http.Request) {
 	store := newCouncilStore(h.db)
 	recent, _, err := store.ListMeetingSummaries(r.Context(), council.MeetingFilter{
 		Term:  "2022-2026",
-		Limit: 2,
+		Limit: 1,
 	})
 	if err != nil {
 		log.Warn("failed to load recent meetings", "err", err)

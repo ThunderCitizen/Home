@@ -8,7 +8,6 @@ import (
 )
 
 // SaveMeetings upserts meetings and their motions into the database.
-// Preserves manually set significance values on re-scrape.
 func (s *Store) SaveMeetings(ctx context.Context, meetings []Meeting) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -116,11 +115,10 @@ func (s *Store) saveMotion(ctx context.Context, tx pgx.Tx, meetingID string, idx
 }
 
 type MotionSummaryUpdate struct {
-	ID           int64
-	Summary      string
-	Label        string
-	Significance string
-	Model        string
+	ID      int64
+	Summary string
+	Label   string
+	Model   string
 }
 
 // ListUnsummarized returns motions without LLM summaries, optionally filtered by term or ID.
@@ -128,13 +126,9 @@ type MotionSummaryUpdate struct {
 func (s *Store) UpdateMotionSummary(ctx context.Context, u MotionSummaryUpdate) error {
 	_, err := s.db.Exec(ctx, `
 		UPDATE council_motions
-		SET llm_summary = $2, llm_label = $3, llm_significance = $4, llm_model = $5,
-		    significance = CASE
-		        WHEN significance IN ('', 'routine') THEN $4
-		        ELSE significance
-		    END
+		SET llm_summary = $2, llm_label = $3, llm_model = $4
 		WHERE id = $1`,
-		u.ID, u.Summary, u.Label, u.Significance, u.Model)
+		u.ID, u.Summary, u.Label, u.Model)
 	return err
 }
 

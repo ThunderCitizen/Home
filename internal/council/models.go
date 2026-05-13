@@ -34,17 +34,16 @@ func VideoURL(meetingID string, hasVideo bool) string {
 
 // Motion represents a council motion (MOVED BY block) with optional recorded vote.
 type Motion struct {
-	AgendaItem   string      `json:"agenda_item,omitempty"` // heading before the motion (e.g. "Report Back - Temporary Shelter Village")
-	MovedBy      string      `json:"moved_by"`
-	SecondedBy   string      `json:"seconded_by"`
-	Text         string      `json:"text"`
-	Result       string      `json:"result"`
-	Significance string      `json:"significance,omitempty"` // headline, notable, routine, procedural
-	Summary      string      `json:"summary,omitempty"`      // LLM plain-language summary
-	Label        string      `json:"label,omitempty"`        // LLM short label (~60 chars)
-	MediaURL     string      `json:"media_url,omitempty"`    // press coverage URL (headline votes)
-	RawText      string      `json:"raw_text,omitempty"`     // raw PDF text for audit (recorded votes only)
-	Votes        *VoteRecord `json:"votes,omitempty"`
+	AgendaItem string      `json:"agenda_item,omitempty"` // heading before the motion (e.g. "Report Back - Temporary Shelter Village")
+	MovedBy    string      `json:"moved_by"`
+	SecondedBy string      `json:"seconded_by"`
+	Text       string      `json:"text"`
+	Result     string      `json:"result"`
+	Summary    string      `json:"summary,omitempty"`   // LLM plain-language summary
+	Label      string      `json:"label,omitempty"`     // LLM short label (~60 chars)
+	MediaURL   string      `json:"media_url,omitempty"` // press coverage URL (headline votes)
+	RawText    string      `json:"raw_text,omitempty"`  // raw PDF text for audit (recorded votes only)
+	Votes      *VoteRecord `json:"votes,omitempty"`
 
 	// Internal — used by parser to map recorded votes to motions.
 	blockStart int

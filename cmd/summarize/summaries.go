@@ -16,15 +16,13 @@ const summaryFile = "static/councillors/summaries.json"
 
 // SummaryRecord holds the LLM-generated data for one motion, keyed by meeting+agenda.
 type SummaryRecord struct {
-	MeetingID       string `json:"meeting_id"`
-	MeetingDate     string `json:"meeting_date"`
-	AgendaItem      string `json:"agenda_item"`
-	LLMSummary      string `json:"llm_summary"`
-	LLMLabel        string `json:"llm_label"`
-	LLMSignificance string `json:"llm_significance"`
-	LLMModel        string `json:"llm_model"`
-	Significance    string `json:"significance"` // manual override
-	MediaURL        string `json:"media_url"`
+	MeetingID   string `json:"meeting_id"`
+	MeetingDate string `json:"meeting_date"`
+	AgendaItem  string `json:"agenda_item"`
+	LLMSummary  string `json:"llm_summary"`
+	LLMLabel    string `json:"llm_label"`
+	LLMModel    string `json:"llm_model"`
+	MediaURL    string `json:"media_url"`
 }
 
 // MeetingSummaryRecord holds the LLM summary for a meeting.
@@ -58,11 +56,10 @@ func exportSummaries() error {
 	rows, err := pool.Query(ctx, `
 		SELECT mo.meeting_id, m.date::text, mo.agenda_item,
 		       COALESCE(mo.llm_summary, ''), COALESCE(mo.llm_label, ''),
-		       COALESCE(mo.llm_significance, ''), COALESCE(mo.llm_model, ''),
-		       mo.significance, COALESCE(mo.media_url, '')
+		       COALESCE(mo.llm_model, ''), COALESCE(mo.media_url, '')
 		FROM council_motions mo
 		JOIN council_meetings m ON m.id = mo.meeting_id
-		WHERE mo.llm_summary != '' OR mo.significance != 'routine' OR mo.media_url IS NOT NULL
+		WHERE mo.llm_summary != '' OR mo.media_url IS NOT NULL
 		ORDER BY m.date, mo.agenda_item`)
 	if err != nil {
 		return fmt.Errorf("querying motions: %w", err)
@@ -73,8 +70,7 @@ func exportSummaries() error {
 	for rows.Next() {
 		var r SummaryRecord
 		if err := rows.Scan(&r.MeetingID, &r.MeetingDate, &r.AgendaItem,
-			&r.LLMSummary, &r.LLMLabel, &r.LLMSignificance, &r.LLMModel,
-			&r.Significance, &r.MediaURL); err != nil {
+			&r.LLMSummary, &r.LLMLabel, &r.LLMModel, &r.MediaURL); err != nil {
 			return fmt.Errorf("scanning motion: %w", err)
 		}
 		motions = append(motions, r)
@@ -147,12 +143,12 @@ func importSummaries() error {
 	for _, r := range export.Motions {
 		tag, err := pool.Exec(ctx, `
 			UPDATE council_motions
-			SET llm_summary = $1, llm_label = $2, llm_significance = $3, llm_model = $4,
-			    significance = $5, media_url = NULLIF($6, '')
-			WHERE meeting_id = $7 AND agenda_item = $8
+			SET llm_summary = $1, llm_label = $2, llm_model = $3,
+			    media_url = NULLIF($4, '')
+			WHERE meeting_id = $5 AND agenda_item = $6
 			  AND llm_summary = ''`,
-			r.LLMSummary, r.LLMLabel, r.LLMSignificance, r.LLMModel,
-			r.Significance, r.MediaURL,
+			r.LLMSummary, r.LLMLabel, r.LLMModel,
+			r.MediaURL,
 			r.MeetingID, r.AgendaItem)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  warning: motion %s/%s: %v\n", r.MeetingID, r.AgendaItem, err)

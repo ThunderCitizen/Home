@@ -15,9 +15,10 @@ templ TransitRoutes(vm transit.RoutesViewModel) {
 	}) {
 		@components.TransitNav(components.TransitNavProps{Current: "routes"})
 
+		@components.PageHeader(components.PageHeaderProps{Title: "Route Directory"})
 		<section class="metrics-panel">
 			<div class="terminal-map-header metrics-panel-header">
-				<h1 class="terminal-map-title">Routes</h1>
+				<h2 class="terminal-map-title">All Routes</h2>
 				@dateRangeNav(vm.Range)
 			</div>
 			<table class="route-table" id="route-directory">

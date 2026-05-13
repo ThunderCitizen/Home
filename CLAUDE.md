@@ -32,31 +32,26 @@ go run ./cmd/perftest -r  # Record + delta vs last run (saves to perftest/)
 Both Transit and Council pages use Leaflet maps via a shared templ component in `templates/components/map.templ`.
 
 ### `LeafletMap(MapProps)`
-Renders: Leaflet CDN, `.map-wrap` container with tile data attributes, map div, children slot, page scripts. Shared behavior (scroll-zoom-on-click, zoom control positioning to bottom-left, `.map-active` focus ring) is handled by an embedded script that finds the Leaflet instance after page JS creates it.
+Renders: Leaflet CDN, `.map-wrap` container, map div, children slot, page scripts. Shared behavior (scroll-zoom-on-click, zoom control positioning to bottom-left, `.map-active` focus ring) is handled by an embedded script that finds the Leaflet instance after page JS creates it. The component renders no header — every consumer puts its own `.terminal-map-header` above the map for visual parity.
 
 ```go
 type MapProps struct {
-    ID        string          // "transit-map", "ward-map"
+    ID        string   // "transit-map", "ward-map"
     AriaLabel string
-    Title     string          // compact header title (renders .map-header bar)
-    Layers    []MapLayerGroup // layer toggle buttons in header
-    TileLight TilePreset      // TileVoyager, TileStadiaDark, TileEsriSatellite
-    TileDark  TilePreset      // 0 = same as TileLight
-    Class     string          // extra CSS class ("transit-map-wrap")
-    Scripts   []string        // JS loaded after Leaflet
+    Class     string   // extra CSS class ("transit-map-wrap", "ward-map-wrap")
+    Scripts   []string // JS loaded after Leaflet
 }
 ```
 
-- **Title + Layers** → renders a `.map-header` bar above the map (used by ward map). Transit uses its own `terminal-map-header` instead.
+- **Header is page-owned** — render `<div class="terminal-map-header">` above `@LeafletMap` and put the layer toggles inside via `@MapLayerBar(groups)`. Page-scoped grid lives in `_transit.scss` (`.route-panel > .terminal-map-header`, `.terminal-board-page > .terminal-map-header`) and `style.scss` (`.ward-panel > .terminal-map-header`).
 - **`MapLayerBar([]MapLayerGroup)`** — renders `<button data-layer="key">` toggles. Page JS reads `.active` class for initial state and wires click handlers.
-- **Tile presets** — `TileVoyager` (CartoDB street), `TileStadiaDark` (dark street), `TileEsriSatellite`. URLs/attribution rendered as `data-tile-*` attributes; page JS reads them to create `L.tileLayer`.
-- **Page JS owns `L.map()` init** — each page configures its own Leaflet options (transit disables default zoom/attribution; ward uses defaults). The shared component doesn't call `L.map()`.
+- **Page JS owns `L.map()` init** — each page configures its own Leaflet options. The shared component doesn't call `L.map()`.
 
 ### Consumer patterns
 
-**Transit** (`transit.templ` + `web/transit/transit-map.ts`): No Title/Layers in MapProps (has custom terminal header). Layer bar rendered via `MapLayerBar(transitLayerGroups())` in the page's own header. Children = info bar, status bar, trip planner overlay.
+**Transit** (`transit_live.templ` + `web/transit/transit-map.ts`): Custom `.terminal-map-header` with status / layers / features. Children of `@LeafletMap` = trip-planner overlay (slide-in side panel).
 
-**Ward** (`councillors.templ` + `static/councillors/ward-map.js`): Uses Title="Ward Map" + Layers for the Wards toggle. GeoJSON boundaries with per-ward colors, hover/click info bar, permanent labels.
+**Ward** (`councillors.templ` + `static/councillors/ward-map.js`): `.terminal-map-header` with title / subtitle / Wards layer toggle. Children = ward-info side overlay (reuses `.trip-planner-overlay` chrome) — slides in on hover/click with name + councillor, dismissed via Close.
 
 ## Color Theming
 
@@ -73,8 +68,8 @@ Full palette tables, typography stack, accessing colors from JS/SCSS, phosphor-p
 
 ## Transit Page UI
 
-- **Tab order**: Live, Terminals, Metrics, Routes, Method
-- **Terminals tab** shows real-time departures from four canonical terminals (Waterfront, City Hall, Confederation College, Lakehead University). Header has selectable terminal tabs + Kiosk mode toggle. Client polls `/api/transit/stop/{id}/predictions` every 15s (exponential backoff on error, pauses when tab hidden). Fullscreen/kiosk mode targets TV displays — locks to a fixed **3×3 grid** (`.terminal-card-grid` in `body.terminal-fullscreen`), no pagination/rotation: every realistic terminal has ≤9 active routes so all groups fit on one page. Canonical terminals hardcoded in `handler.go:canonicalTerminals` (4 stop IDs) — not data-driven, update manually if GTFS stop IDs change.
+- **Tab order**: Live, Kiosk, Metrics, Routes, Method
+- **Kiosk tab** (route `/transit/kiosk`; `/transit/terminals` 301-redirects) shows real-time departures from four canonical terminals (Waterfront, City Hall, Confederation College, Lakehead University). Header has selectable terminal tabs + Kiosk mode toggle. Client polls `/api/transit/stop/{id}/predictions` every 15s (exponential backoff on error, pauses when tab hidden). Fullscreen/kiosk mode targets TV displays — locks to a fixed **3×3 grid** (`.terminal-card-grid` in `body.terminal-fullscreen`), no pagination/rotation: every realistic terminal has ≤9 active routes so all groups fit on one page. Canonical terminals hardcoded in `handler.go:canonicalTerminals` (4 stop IDs) — not data-driven, update manually if GTFS stop IDs change.
 - **Terminal card** (`renderCard` in `static/transit/terminal-board.js`, CSS in `static/css/_transit.scss` `.terminal-card*`): extends `%card-base` for chrome (surface, border, radius, shadow, padding) and adds a 6px left-border that status variants (`-cancelled`, `-late`, `-early`, `-ontime`, `-scheduled`) recolor to encode arrival state. Layout is a two-row grid (header / body). Header is `pill + headsign + status` (3-col grid `auto minmax(0,1fr) auto` — headsign always ellipsizes, status floats right). Body is a 66/33 split: hero on the left (clock-time meta row, then big minutes value, then optional `(HH:MM sched)` line for late trips, then optional cancelled banner), Then/Later cells stacked vertically on the right with a left divider separating them from the hero. Hero is `white-space: nowrap` with both axes bounded so it never wraps or overflows. Pico's default `article > header` chrome (border-bottom, sectioning bg, negative margins) is explicitly overridden on `.terminal-card-head`.
 - **Web vs kiosk sizing for the card are independent on purpose.** Web view uses `clamp(rem, vw, rem)` tuned for arm's-length screen reading — keep it small and practical so info isn't lost behind ellipses on phones. Kiosk uses `body.terminal-fullscreen .terminal-card { container-type: size }` plus a `@container tcard` block at the bottom of `_transit.scss` that rewrites every `--tc-*-fs` token as `min(<cqi>, <cqh>)` so each glyph fills whichever axis runs out first — the values are tuned to fill, not to mirror web. Don't reintroduce a "scaled copy of the web card" coupling; web changes shouldn't ripple into kiosk and vice versa.
 - **Metrics tab** has 6 KPI cards in a 3×2 grid, a trend chart (click card to switch KPI), and a route comparison bar chart

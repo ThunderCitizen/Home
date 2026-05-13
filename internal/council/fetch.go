@@ -260,14 +260,12 @@ func loadSummariesFromFile(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	var export struct {
 		Motions []struct {
-			MeetingID       string `json:"meeting_id"`
-			AgendaItem      string `json:"agenda_item"`
-			LLMSummary      string `json:"llm_summary"`
-			LLMLabel        string `json:"llm_label"`
-			LLMSignificance string `json:"llm_significance"`
-			LLMModel        string `json:"llm_model"`
-			Significance    string `json:"significance"`
-			MediaURL        string `json:"media_url"`
+			MeetingID  string `json:"meeting_id"`
+			AgendaItem string `json:"agenda_item"`
+			LLMSummary string `json:"llm_summary"`
+			LLMLabel   string `json:"llm_label"`
+			LLMModel   string `json:"llm_model"`
+			MediaURL   string `json:"media_url"`
 		} `json:"motions"`
 		Meetings []struct {
 			MeetingID  string `json:"meeting_id"`
@@ -283,11 +281,11 @@ func loadSummariesFromFile(ctx context.Context, pool *pgxpool.Pool) error {
 	for _, r := range export.Motions {
 		tag, err := pool.Exec(ctx, `
 			UPDATE council_motions
-			SET llm_summary = $1, llm_label = $2, llm_significance = $3, llm_model = $4,
-			    significance = $5, media_url = NULLIF($6, '')
-			WHERE meeting_id = $7 AND agenda_item = $8 AND llm_summary = ''`,
-			r.LLMSummary, r.LLMLabel, r.LLMSignificance, r.LLMModel,
-			r.Significance, r.MediaURL,
+			SET llm_summary = $1, llm_label = $2, llm_model = $3,
+			    media_url = NULLIF($4, '')
+			WHERE meeting_id = $5 AND agenda_item = $6 AND llm_summary = ''`,
+			r.LLMSummary, r.LLMLabel, r.LLMModel,
+			r.MediaURL,
 			r.MeetingID, r.AgendaItem)
 		if err != nil {
 			continue

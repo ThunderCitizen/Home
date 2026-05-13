@@ -20,7 +20,9 @@
   var tiles = ThunderMapTiles();
   tiles.addTo(map);
 
-  const infoBar = document.getElementById("ward-info-bar");
+  const overlay = document.getElementById("ward-info-overlay");
+  const infoBody = document.getElementById("ward-info-body");
+  const closeBtn = document.getElementById("ward-info-close");
   let geojsonLayer = null;
   let activeWard = null;
 
@@ -31,22 +33,44 @@
     try { return JSON.parse(el.textContent || "{}"); } catch (e) { return {}; }
   })();
 
-  function showInfo(name) {
-    if (!infoBar || !name) return;
+  function renderInfo(name) {
+    if (!infoBody || !name) return;
     const color = WARD_COLORS[name] || tc.statusMuted;
     const councillor = WARD_COUNCILLORS[name];
-    const line = councillor
-      ? '<span class="ward-name">' + name + ' Ward</span>' +
-        '<span class="ward-councillor">' + councillor + '</span>'
-      : '<span class="ward-name">' + name + ' Ward</span>';
-    infoBar.innerHTML =
-      '<span class="ward-dot" style="background:' + color + '"></span>' + line;
-    infoBar.classList.add("info-bar-visible");
+    let html =
+      '<div class="ward-info-head">' +
+        '<span class="ward-dot" style="background:' + color + '"></span>' +
+        '<span class="ward-name">' + name + ' Ward</span>' +
+      '</div>';
+    if (councillor) {
+      html +=
+        '<dl class="ward-info-meta">' +
+          '<dt>Councillor</dt>' +
+          '<dd class="ward-councillor">' + councillor + '</dd>' +
+        '</dl>';
+    }
+    infoBody.innerHTML = html;
+  }
+
+  function showInfo(name) {
+    if (!overlay || !name) return;
+    renderInfo(name);
+    overlay.classList.add("is-open");
   }
 
   function hideInfo() {
-    if (!infoBar) return;
-    infoBar.classList.remove("info-bar-visible");
+    if (!overlay) return;
+    overlay.classList.remove("is-open");
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", function () {
+      if (activeWard && geojsonLayer) {
+        geojsonLayer.eachLayer(function (l) { geojsonLayer.resetStyle(l); });
+        activeWard = null;
+      }
+      hideInfo();
+    });
   }
 
   // Layer bar toggle

@@ -14,11 +14,12 @@ import (
 // so the same markup works on a 1080p TV and a laptop.
 templ TransitTerminals(vm transit.TerminalsViewModel) {
 	@templates.Layout(templates.SocialMeta{
-		Title:       "Terminals",
+		Title:       "Kiosk",
 		Description: "Live next-bus departures for every Thunder Bay Transit terminal — Waterfront, City Hall, College, and Lakehead University.",
 		OGImage:     "/static/og/transit.png",
 	}) {
-		@components.TransitNav(components.TransitNavProps{Current: "terminals"})
+		@components.TransitNav(components.TransitNavProps{Current: "kiosk"})
+		@components.PageHeader(components.PageHeaderProps{Title: "Kiosk Boards"})
 
 		@templ.JSONScript("route-meta", vm.RouteMeta)
 		<script src={ assets.URL("/static/transit/route-meta.js") }></script>

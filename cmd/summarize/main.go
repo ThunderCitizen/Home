@@ -168,11 +168,10 @@ func run(term string, motionID int64, force, dryRun, meetingsOnly bool, model, m
 				}
 
 				err := store.UpdateMotionSummary(ctx, council.MotionSummaryUpdate{
-					ID:           m.ID,
-					Summary:      r.summary.Summary,
-					Label:        r.summary.Label,
-					Significance: r.summary.Significance,
-					Model:        modelName,
+					ID:      m.ID,
+					Summary: r.summary.Summary,
+					Label:   r.summary.Label,
+					Model:   modelName,
 				})
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "  [%d/%d] motion %d: DB ERROR: %v\n", i+1, len(motions), m.ID, err)
@@ -180,7 +179,7 @@ func run(term string, motionID int64, force, dryRun, meetingsOnly bool, model, m
 					continue
 				}
 
-				fmt.Printf("  [%d/%d] motion %d: %s [%s]\n", i+1, len(motions), m.ID, r.summary.Label, r.summary.Significance)
+				fmt.Printf("  [%d/%d] motion %d: %s\n", i+1, len(motions), m.ID, r.summary.Label)
 				succeeded++
 			}
 		}

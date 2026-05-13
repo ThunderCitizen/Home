@@ -42,23 +42,19 @@ type MeetingViewModel struct {
 
 // MeetingSummaryView is a meeting row for the list page.
 type MeetingSummaryView struct {
-	Slug            string
-	ID              string
-	Date            string
-	Term            string
-	MinutesURL      string
-	VideoURL        string
-	Summary         string
-	SummaryPreview  string // first item only, for table display
-	MotionCount     int
-	RecordedVotes   int
-	CarriedCount    int
-	LostCount       int
-	HeadlineCount   int
-	NotableCount    int
-	RoutineCount    int
-	ProceduralCount int
-	MediaCount      int
+	Slug           string
+	ID             string
+	Date           string
+	Term           string
+	MinutesURL     string
+	VideoURL       string
+	Summary        string
+	SummaryPreview string // first item only, for table display
+	MotionCount    int
+	RecordedVotes  int
+	CarriedCount   int
+	LostCount      int
+	MediaCount     int
 }
 
 // MotionView is a presentation-ready motion within a meeting.
@@ -75,7 +71,6 @@ type MotionView struct {
 	IsProcedural bool     // agenda confirmation, minutes adoption, by-laws
 	Result       string
 	ResultClass  string
-	Significance string
 	MediaURL     string
 	HasVote      bool
 	VoteSummary  string
@@ -128,23 +123,19 @@ func NewCouncilViewModel(meetings []council.MeetingSummary, total int, stats [3]
 		}
 
 		views[i] = MeetingSummaryView{
-			Slug:            council.MeetingSlug(m.Title, m.Date),
-			ID:              m.ID,
-			Date:            humanDate(m.Date),
-			Term:            m.Term,
-			MinutesURL:      m.MinutesURL,
-			VideoURL:        council.VideoURL(m.ID, m.HasVideo),
-			Summary:         m.Summary,
-			SummaryPreview:  preview,
-			MotionCount:     m.MotionCount,
-			RecordedVotes:   m.RecordedVotes,
-			CarriedCount:    m.CarriedCount,
-			LostCount:       m.LostCount,
-			HeadlineCount:   m.HeadlineCount,
-			NotableCount:    m.NotableCount,
-			RoutineCount:    m.RoutineCount,
-			ProceduralCount: m.ProceduralCount,
-			MediaCount:      m.MediaCount,
+			Slug:           council.MeetingSlug(m.Title, m.Date),
+			ID:             m.ID,
+			Date:           humanDate(m.Date),
+			Term:           m.Term,
+			MinutesURL:     m.MinutesURL,
+			VideoURL:       council.VideoURL(m.ID, m.HasVideo),
+			Summary:        m.Summary,
+			SummaryPreview: preview,
+			MotionCount:    m.MotionCount,
+			RecordedVotes:  m.RecordedVotes,
+			CarriedCount:   m.CarriedCount,
+			LostCount:      m.LostCount,
+			MediaCount:     m.MediaCount,
 		}
 	}
 
@@ -385,18 +376,17 @@ func motionRowToView(m council.MotionRow) MotionView {
 		heading = m.Label
 	}
 	mv := MotionView{
-		ID:           m.ID,
-		AgendaItem:   m.AgendaItem,
-		Heading:      heading,
-		Summary:      m.Summary,
-		MovedBy:      m.MovedBy,
-		SecondedBy:   m.SecondedBy,
-		Text:         m.Text,
-		Result:       m.Result,
-		Significance: m.Significance,
-		YeaCount:     m.YeaCount,
-		NayCount:     m.NayCount,
-		HasVote:      m.YeaCount > 0 || m.NayCount > 0,
+		ID:         m.ID,
+		AgendaItem: m.AgendaItem,
+		Heading:    heading,
+		Summary:    m.Summary,
+		MovedBy:    m.MovedBy,
+		SecondedBy: m.SecondedBy,
+		Text:       m.Text,
+		Result:     m.Result,
+		YeaCount:   m.YeaCount,
+		NayCount:   m.NayCount,
+		HasVote:    m.YeaCount > 0 || m.NayCount > 0,
 	}
 
 	if m.MediaURL != nil {

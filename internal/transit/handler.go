@@ -68,7 +68,10 @@ func (h *Handler) PageRoutes() chi.Router {
 	r.Get("/method", h.transitMethodPage)
 	r.Get("/report", h.transitReport)
 	r.Get("/route/{id}", h.routePage)
-	r.Get("/terminals", h.transitTerminalsPage)
+	r.Get("/kiosk", h.transitTerminalsPage)
+	r.Get("/terminals", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/transit/kiosk", http.StatusMovedPermanently)
+	})
 	r.Get("/audit/deltas", h.auditIndex)
 	r.Get("/audit/deltas/{id}", h.auditRoute)
 	return r

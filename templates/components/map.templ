@@ -11,13 +11,10 @@ func mapWrapClass(props MapProps) string {
 
 // MapProps configures a shared Leaflet map container.
 type MapProps struct {
-	ID        string          // HTML id for the map div
-	AriaLabel string          // screen reader description
-	Title     string          // compact header title (e.g. "Ward Map")
-	Subtitle  string          // optional muted caption next to title
-	Layers    []MapLayerGroup // layer bar toggle groups in the header
-	Class     string          // extra CSS class on wrapper div
-	Scripts   []string        // JS files loaded after Leaflet
+	ID        string   // HTML id for the map div
+	AriaLabel string   // screen reader description
+	Class     string   // extra CSS class on wrapper div
+	Scripts   []string // JS files loaded after Leaflet
 }
 
 // MapLayerGroup is a labeled set of layer toggle buttons.
@@ -35,24 +32,10 @@ type MapLayer struct {
 }
 
 // LeafletMap renders a Leaflet map container with CDN links, Protomaps vector tiles,
-// and a children slot for page-specific overlays.
-func hasHeader(props MapProps) bool {
-	return props.Title != "" || props.Subtitle != "" || len(props.Layers) > 0
-}
-
+// and a children slot for page-specific overlays. Pages render their own
+// header (e.g. .terminal-map-header) above the component.
 templ LeafletMap(props MapProps) {
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"/>
-	if hasHeader(props) {
-		<div class="map-header">
-			if props.Title != "" {
-				<span class="map-title">{ props.Title }</span>
-			}
-			if props.Subtitle != "" {
-				<span class="map-subtitle">{ props.Subtitle }</span>
-			}
-			@MapLayerBar(props.Layers)
-		</div>
-	}
 	<div
 		class={ mapWrapClass(props) }
 	>

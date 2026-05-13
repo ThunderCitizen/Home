@@ -81,7 +81,7 @@
 //
 // SIZE SYSTEM — two semantic sizes layered on top of %badge-base:
 //   • %badge-info   → 0.55rem, tight padding. Use for static labels (status,
-//                     tags, counts, result/significance badges). Class names
+//                     tags, counts, result badges). Class names
 //                     read as nouns: `-status`, `-badge`, `-tag`, `-label`.
 //   • %badge-action → 0.72rem, larger padding. Use ONLY on interactive pills
 //                     (a / button). Class names read as actions: `-btn`,

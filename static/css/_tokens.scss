@@ -5,6 +5,8 @@
 @use "mixins" as *;
 
 :root {
+  color-scheme: light;
+
   // Grey scale — Solarized light shifted into "Fractured Stone" (ash/cool).
   // Page / card / strip surfaces all live in stone-family with clear 3-tier
   // hierarchy. Muted text darkened so citations stay AA on deeper surfaces.

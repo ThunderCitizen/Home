@@ -71,7 +71,7 @@ templ Budget(vm views.BudgetViewModel) {
 // BudgetPartial renders the content inside #budget-content.
 // Used by HTMX on year switch and by the full page on initial load.
 templ BudgetPartial(vm views.BudgetViewModel) {
-	<h1 class="sr-only">{ fmt.Sprintf("%d Budget", vm.Year) }</h1>
+	@components.PageHeader(components.PageHeaderProps{Title: fmt.Sprintf("%d Budget", vm.Year)})
 			if !vm.HasData {
 				<article class="budget-empty-state" data-section="empty">
 					<header>
@@ -81,7 +81,7 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 				</article>
 			} else {
 			@components.HeroStats(components.HeroStatsProps{
-				Title:        fmt.Sprintf("%d Operating Budget · %s", vm.Year, vm.TopLine.TotalRevenue),
+				Title:        "Summary",
 				Footer:       budgetHeroFooter(),
 				HeadingLevel: 2,
 			}) {

@@ -131,11 +131,11 @@ func (CouncilMotionsPlugin) Name() string { return "council_motions" }
 func (CouncilMotionsPlugin) Extract(ctx context.Context, pool *pgxpool.Pool, outDir string) ([]Dataset, error) {
 	const file = "council_motions.tsv"
 	cols := []string{"meeting_id", "motion_index", "motion_text", "moved_by", "seconded_by",
-		"result", "raw_text", "agenda_item", "significance", "media_url",
-		"llm_summary", "llm_label", "llm_significance", "llm_model", "source"}
+		"result", "raw_text", "agenda_item", "media_url",
+		"llm_summary", "llm_label", "llm_model", "source"}
 	query := `SELECT m.meeting_id, m.motion_index, m.motion_text, m.moved_by,
-	          m.seconded_by, m.result, m.raw_text, m.agenda_item, m.significance,
-	          m.media_url, m.llm_summary, m.llm_label, m.llm_significance, m.llm_model, m.source
+	          m.seconded_by, m.result, m.raw_text, m.agenda_item,
+	          m.media_url, m.llm_summary, m.llm_label, m.llm_model, m.source
 	          FROM council_motions m
 	          JOIN council_meetings cm ON cm.id = m.meeting_id
 	          WHERE cm.term = '2022-2026'

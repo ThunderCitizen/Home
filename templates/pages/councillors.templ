@@ -87,7 +87,6 @@ templ Councillors(vm views.CouncillorsViewModel) {
 		Description: "Thunder Bay's 13 city councillors — profiles, voting records, and an interactive ward map.",
 		OGImage:     "/static/og/councillors.png",
 	}) {
-		<h1 class="sr-only">Councillors</h1>
 		<div id="councillor-content">
 			@CouncillorsPartial(vm)
 		</div>
@@ -103,6 +102,7 @@ templ Councillors(vm views.CouncillorsViewModel) {
 templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	<div class="councillor-sticky-area">
 		@components.YearSelector(vm.TermSelector)
+		@components.PageHeader(components.PageHeaderProps{Title: "Councillors"})
 		@components.TermPanel(components.TermPanelProps{Title: "Council Structure", Footer: compensationSource(vm.Source), HeadingLevel: 2}) {
 			<p class="compensation-lead">Thunder Bay's 13-member council: 1 mayor, 5 at-large, and 7 ward representatives.</p>
 			@components.TermMetricGrid(components.TermMetricGridProps{Cols: 3}) {
@@ -141,19 +141,28 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	}
 	</div>
 
-	<article class="ward-map-fullscreen">
+	<section class="ward-panel" aria-label="Ward map">
+		<div class="terminal-map-header">
+			<span class="terminal-map-title">Ward Map</span>
+			<span class="ward-panel-subtitle">7 wards · 1 mayor · 5 at-large</span>
+			@components.MapLayerBar(wardLayerGroups())
+		</div>
 		@components.LeafletMap(components.MapProps{
 			ID:        "ward-map",
 			AriaLabel: "Map of Thunder Bay ward boundaries",
-			Title:     "Ward Map",
-			Subtitle:  "Council: 1 mayor · 5 at-large · 7 ward",
-			Layers:    wardLayerGroups(),
+			Class:     "ward-map-wrap",
 			Scripts:   []string{"/static/councillors/ward-map.js"},
 		}) {
-			<div id="ward-info-bar" class="ward-info-bar"></div>
+			<aside id="ward-info-overlay" class="trip-planner-overlay ward-info-overlay" aria-live="polite">
+				<button type="button" id="ward-info-close" class="trip-planner-tab" aria-label="Close ward details">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+					Close
+				</button>
+				<div id="ward-info-body" class="ward-info-body"></div>
+			</aside>
 			@templ.JSONScript("ward-councillors", wardCouncillorMap(vm.WardCouncillors))
 		}
-	</article>
+	</section>
 }
 
 templ wardCouncillorItem(c views.CouncillorView) {

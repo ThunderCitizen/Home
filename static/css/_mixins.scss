@@ -171,6 +171,8 @@ $badge-hues: (
 }
 
 @mixin dark-theme {
+    color-scheme: dark;
+
     // Grey scale — green phosphor
     --thunder-900: #86efac;  // brightest green — headings (12.8:1)
     --thunder-800: #4ade80;  // bright green — strong text (10.3:1)
@@ -274,6 +276,8 @@ $badge-hues: (
 // pure #FFF/#000 — #E8E8E8 on #0A0A0A avoids halation while staying Lc≥90.
 // ============================================================================
 @mixin kiosk-theme {
+    color-scheme: dark;
+
     // Page hierarchy — pure terminal black with one subtle lift.
     --thunder-900: #ffd980;
     --thunder-800: #ffb000;

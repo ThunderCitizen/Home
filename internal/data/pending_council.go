@@ -24,6 +24,21 @@ type PendingMeeting struct {
 // Remove entries once the fetcher ingests the PostMinutes PDF for each.
 var PendingCouncilMeetings = []PendingMeeting{
 	{
+		Date:      "Tuesday, May 5",
+		Status:    "Pending minutes",
+		AgendaURL: "https://pub-thunderbay.escribemeetings.com/Meeting.aspx?Id=887c56e8-b190-43de-98b1-4e62a04420fd&Agenda=Agenda&lang=English",
+		Summary:   "2026 final tax policy and rates, an election sign by-law amendment, and a NOHFC funding bid for the marina fuel system.",
+		KeyItems: []string{
+			"2026 Tax Policy — final tax ratios/rates (Report 116-2026), installments due Aug 5 and Oct 7",
+			"Election Sign By-law amendment (By-law 100-2026)",
+			"$700K NOHFC funding application for Prince Arthur's Landing marina fuel system replacement",
+			"$36K from the Auditorium Capital Reserve Fund for essential repairs",
+			"City Manager workplan update from John Collin",
+			"Annual Safety Review Report 2025 — corporate injury stats and claim costs",
+		},
+		MinutesETA: "Expected after the May 19 council meeting",
+	},
+	{
 		Date:      "Tuesday, April 21",
 		Status:    "Pending minutes",
 		AgendaURL: "https://pub-thunderbay.escribemeetings.com/Meeting.aspx?Id=3c773247-1c29-4757-a367-0fe53fcce424&Agenda=Agenda&lang=English",

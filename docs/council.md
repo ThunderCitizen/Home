@@ -43,17 +43,16 @@ go run ./cmd/summarize -dump
 
 Exports all LLM summaries to `static/councillors/summaries.json`. **Always run this after summarizing.** This file is the insurance policy — if the DB is ever rebuilt, summaries are restored automatically by the next `./bin/fetcher votes` run.
 
-### Step 4: Tag headline votes (if any)
+### Step 4: Tag media coverage (if any)
 
-If any motions had significant media coverage, tag them in the DB:
+If any motions had significant media coverage, attach the URL in the DB:
 
 ```sql
-UPDATE council_motions SET significance = 'headline',
-  media_url = 'https://www.tbnewswatch.com/...'
+UPDATE council_motions SET media_url = 'https://www.tbnewswatch.com/...'
 WHERE id = <motion_id>;
 ```
 
-Find the motion ID on `/minutes/{meeting_id}` or query the DB. Then re-run `go run ./cmd/summarize -dump` to capture the updated significance.
+Find the motion ID on `/minutes/{meeting_id}` or query the DB. Then re-run `go run ./cmd/summarize -dump` to capture the updated `media_url`.
 
 ### Step 5: Republish the muni bundle
 
@@ -90,7 +89,7 @@ go run ./cmd/summarize -reformat            # re-paragraph existing meeting summ
 ```
 
 Requires `ANTHROPIC_API_KEY` (except `-dump`, `-load`, `-dry-run`). Two-pass design:
-1. **Motion pass** — Haiku classifies each motion (summary, label, significance). Override with `-model`.
+1. **Motion pass** — Haiku writes a plain-language summary + short label for each motion. Override with `-model`.
 2. **Meeting pass** — Haiku synthesizes all motions per meeting into a 2-4 sentence summary. Override with `-meeting-model`.
 
 Rate-limited to 45 RPM (1 worker). Cost: ~$0.87 for 1,540 motions, ~$0.83 for 183 meetings (full re-run with `-force`).
@@ -119,23 +118,8 @@ internal/council/
 ## Database Tables
 
 - `council_meetings` — meeting metadata, LLM summary (`llm_summary`, `llm_model`), source PDF path
-- `council_motions` — every MOVED BY block with full text, agenda heading, LLM summary/label/significance, full-text search (tsvector + trigram)
+- `council_motions` — every MOVED BY block with full text, agenda heading, LLM summary/label, full-text search (tsvector + trigram)
 - `council_vote_records` — per-councillor for/against/absent for recorded votes. PK is `(motion_id, councillor)`; inserts use `ON CONFLICT DO NOTHING` to handle edge cases from consent agenda blocks
-
-## Significance Tiers
-
-Low cardinality column on `council_motions`:
-- `headline` — major policy decisions affecting many residents (budget approvals, facility decisions, shelter village)
-- `notable` — contentious (close margin, defeated, tied), substantive policy change, significant spending
-- `routine` — standard business, committee minutes adoptions, board appointments
-- `procedural` — agenda confirmations, adjournments, "continue past 11pm"
-
-Classification is done via a hybrid approach (see [docs/summarize-motions.md](summarize-motions.md)):
-1. SQL heuristics classify ~95% of motions as procedural/routine by text patterns
-2. Motions with recorded votes are classified by Claude Code sub-agents based on vote context
-3. `llm_significance` stores the LLM suggestion when using `cmd/summarize`; the authoritative `significance` column is promoted automatically
-
-The vote matrix on the councillors page only shows `headline` and `notable` motions — procedural/routine items with recorded votes are filtered out.
 
 ## Vote Parsing
 
@@ -165,16 +149,15 @@ Councillor names are normalized to canonical form via `knownNames` map in `parse
 
 ### Motion summaries
 
-Each motion is sent to Claude with its text, agenda item, result, and vote count. The model returns JSON with three fields:
+Each motion is sent to Claude with its text, agenda item, result, and vote count. The model returns JSON with two fields:
 - `summary` — 1-2 sentence plain-language summary
 - `label` — short label under 60 chars for grid display
-- `significance` — classification: headline, notable, routine, procedural
 
 **System prompt**: "You summarize Thunder Bay City Council motions for a civic transparency website. Your audience is residents who want to understand what their council decided without reading legalese."
 
 ### Meeting summaries
 
-After motions are summarized, each meeting's motions (with their labels, summaries, results, and significance) are sent to Claude for a 2-4 sentence meeting-level summary. The prompt instructs the model to lead with the most consequential decisions, name specific topics/amounts/locations, and note any defeated or contentious motions. Formulaic openings like "Council met on [date]" are explicitly prohibited.
+After motions are summarized, each meeting's motions (with their labels, summaries, and results) are sent to Claude for a 2-4 sentence meeting-level summary. The prompt instructs the model to lead with the most consequential decisions, name specific topics/amounts/locations, and note any defeated or contentious motions. Formulaic openings like "Council met on [date]" are explicitly prohibited.
 
 **System prompt**: Emphasizes plain text, no bullet points, concrete substance over formula. Procedural-only meetings get a single sentence.
 
@@ -187,7 +170,7 @@ The minutes page displays a disclaimer stating that summaries are AI-generated b
 - `/councillors` — council members by term with client-side switching; vote stats (dissent rate, for/against), notable votes table, vote matrix with sticky photo headers and animated detail modal, interactive ward map with Esri satellite tiles and ward descriptions
 - `/minutes` — meeting list with term selector, filter chips (All / Recorded Votes / Defeated), HTMX pagination
 - `/minutes/{id}` — meeting detail with all motions; procedural items collapsed, substantive motions with summary, clause breakdown, vote details
-- `/motions` — full-text search across all motions with term, significance, and result filters
+- `/motions` — full-text search across all motions with term and result filters
 
 ## Storage Layout
 
@@ -200,14 +183,13 @@ static/councillors/
     summaries.json            # LLM summaries flat file (1556 motions + 185 meetings)
 ```
 
-**`summaries.json`** is keyed by `(meeting_id, agenda_item)` for motions and `meeting_id` for meetings. Contains `llm_summary`, `llm_label`, `llm_significance`, `llm_model`, manual `significance` overrides, and `media_url`. Auto-loaded on DB seed; also loadable manually via `go run ./cmd/summarize -load`.
+**`summaries.json`** is keyed by `(meeting_id, agenda_item)` for motions and `meeting_id` for meetings. Contains `llm_summary`, `llm_label`, `llm_model`, and `media_url`. Auto-loaded on DB seed; also loadable manually via `go run ./cmd/summarize -load`.
 
 ## Meeting List UI
 
 Each meeting row on `/minutes` displays:
 - AI-generated meeting summary (prose, with paragraph breaks)
 - Date and motion count
-- Significance badges: headline (blue), notable (amber) — counts of motions at each tier
 - Recorded vote count badge
 - Defeated motion count badge
 - "See Minutes" link (internal meeting detail page)

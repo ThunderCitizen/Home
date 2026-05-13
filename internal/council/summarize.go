@@ -28,9 +28,8 @@ func NewSummarizer(apiKey string, model string) *Summarizer {
 
 // SummaryResult holds the parsed LLM response.
 type SummaryResult struct {
-	Summary      string `json:"summary"`
-	Label        string `json:"label"`
-	Significance string `json:"significance"`
+	Summary string `json:"summary"`
+	Label   string `json:"label"`
 }
 
 const systemPrompt = `You summarize Thunder Bay City Council motions for a civic transparency website. Your audience is residents who want to understand what their council decided without reading legalese.
@@ -55,15 +54,8 @@ func BuildPrompt(m UnsummarizedMotion) string {
 Respond in JSON:
 {
   "summary": "1-2 sentence plain-language summary. What does this motion actually do? No legalese.",
-  "label": "Short label under 60 characters for a grid display. Be specific (e.g. 'Shelter village site at Miles St' not 'Motion re: report').",
-  "significance": "one of: headline, notable, routine, procedural"
-}
-
-Significance guide:
-- headline: major policy decision, likely covered by media, affects many residents
-- notable: contentious (close vote margin), substantive policy change, or significant spending
-- routine: standard business, clear majority, committee minutes adoption
-- procedural: meeting logistics (adjournment, continue past 11pm, agenda adoption)`)
+  "label": "Short label under 60 characters for a grid display. Be specific (e.g. 'Shelter village site at Miles St' not 'Motion re: report')."
+}`)
 
 	return b.String()
 }
@@ -112,14 +104,6 @@ func (s *Summarizer) Summarize(ctx context.Context, m UnsummarizedMotion) (*Summ
 		return nil, fmt.Errorf("parse response: %w (raw: %s)", err, text)
 	}
 
-	// Validate significance
-	switch result.Significance {
-	case "headline", "notable", "routine", "procedural":
-		// valid
-	default:
-		result.Significance = "routine"
-	}
-
 	// Truncate label if too long
 	if len(result.Label) > 60 {
 		result.Label = result.Label[:57] + "..."
@@ -145,11 +129,7 @@ func BuildMeetingPrompt(m UnsummarizedMeeting) string {
 	b.WriteString("Motions:\n")
 
 	for _, mot := range m.Motions {
-		sig := ""
-		if mot.Significance == "headline" || mot.Significance == "notable" {
-			sig = " [" + mot.Significance + "]"
-		}
-		fmt.Fprintf(&b, "- %s (%s)%s", mot.Label, mot.Result, sig)
+		fmt.Fprintf(&b, "- %s (%s)", mot.Label, mot.Result)
 		if mot.Summary != "" {
 			fmt.Fprintf(&b, " — %s", mot.Summary)
 		}

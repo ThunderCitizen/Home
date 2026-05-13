@@ -13,7 +13,7 @@ templ CouncilMeeting(vm views.MeetingViewModel) {
 		Description: fmt.Sprintf("%s — Thunder Bay City Council meeting. %d motions with full text, vote breakdowns, and media coverage.", vm.Date, vm.SubstantiveCount),
 		OGImage:     "/static/og/minutes.png",
 	}) {
-		<h1 class="sr-only">Council Meeting — { vm.Date }</h1>
+		@components.PageHeader(components.PageHeaderProps{Title: "Council Meeting"})
 		@components.HeroStats(components.HeroStatsProps{
 			Title:        vm.Date,
 			HeadingLevel: 2,

@@ -6,13 +6,20 @@ type PageHeaderProps struct {
 	Lead  string
 }
 
-// PageHeader renders a standard page header with title and lead text
+// PageHeader renders a standard page header with title and lead text.
+// Children are rendered in a right-aligned .page-header-actions slot
+// (date range nav, tabs, toggles, etc.).
 templ PageHeader(props PageHeaderProps) {
 	<header class="page-header">
-		<h1>{ props.Title }</h1>
-		if props.Lead != "" {
-			<p class="lead">{ props.Lead }</p>
-		}
+		<div class="page-header-title">
+			<h1>{ props.Title }</h1>
+			if props.Lead != "" {
+				<p class="lead">{ props.Lead }</p>
+			}
+		</div>
+		<div class="page-header-actions">
+			{ children... }
+		</div>
 	</header>
 }
 

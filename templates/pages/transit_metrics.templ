@@ -77,9 +77,10 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 	}) {
 		@components.TransitNav(components.TransitNavProps{Current: "metrics"})
 
+		@components.PageHeader(components.PageHeaderProps{Title: "Performance Metrics"})
 		<section class="metrics-panel" aria-label="System performance metrics">
 			<div class="terminal-map-header metrics-panel-header">
-				<h1 class="terminal-map-title">System Metrics</h1>
+				<h2 class="terminal-map-title">System Metrics</h2>
 				@dateRangeNav(vm.Range)
 			</div>
 			<div class="metrics-disclaimer">
