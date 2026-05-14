@@ -97,6 +97,13 @@ func NewLiveViewModel(alerts []ActiveAlert, cancelledTrips map[string][]Cancelle
 
 	// Build stop-level alert map for map markers. Route-level alerts
 	// without specific stops are surfaced in the top-of-page banner.
+	//
+	// Some upstream publishers model agency-wide notices (e.g. "today is a
+	// holiday, Sunday schedule applies") by attaching the alert to every
+	// stop_id as an informed_entity. Stamping 700+ map markers with the
+	// same notice is noise — treat any alert that names this many stops as
+	// system-wide and route it to the banner instead.
+	const systemWideStopThreshold = 50
 	stopAlerts := make(map[string][]StopAlert)
 	var routeAlerts []ActiveAlert
 	for _, a := range alerts {
@@ -107,7 +114,11 @@ func NewLiveViewModel(alerts []ActiveAlert, cancelledTrips map[string][]Cancelle
 		if a.Description != nil {
 			sa.Description = *a.Description
 		}
-		if len(a.AffectedStops) > 0 {
+		systemWide := len(a.AffectedStops) >= systemWideStopThreshold
+		// Skip alerts with no human-readable content — they'd render as a
+		// bare ⚠ on the marker with nothing to read.
+		hasContent := sa.Header != "" || sa.Description != ""
+		if len(a.AffectedStops) > 0 && !systemWide && hasContent {
 			seen := map[string]bool{}
 			for _, stopID := range a.AffectedStops {
 				if !seen[stopID] {
@@ -116,7 +127,7 @@ func NewLiveViewModel(alerts []ActiveAlert, cancelledTrips map[string][]Cancelle
 				}
 			}
 		}
-		if len(a.AffectedRoutes) > 0 && len(a.AffectedStops) == 0 {
+		if systemWide || (len(a.AffectedRoutes) > 0 && len(a.AffectedStops) == 0) {
 			routeAlerts = append(routeAlerts, a)
 		}
 	}

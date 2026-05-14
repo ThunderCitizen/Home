@@ -308,13 +308,18 @@ func (r *Repo) VehicleDistanceToStop(ctx context.Context, vehicleID, stopID stri
 
 // --- Alerts ---
 
-// CurrentAlerts returns alerts from the most recent feed poll.
+// CurrentAlerts returns alerts from the most recent feed poll that are
+// active right now per their GTFS-RT active_period. A missing
+// active_start / active_end means "unbounded on that side" — an alert
+// with neither bound is treated as always active.
 func (r *Repo) CurrentAlerts(ctx context.Context) ([]ActiveAlert, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT alert_id, cause, effect, header, description,
 		       severity_level, affected_routes, affected_stops
 		FROM transit.alert
 		WHERE feed_timestamp = (SELECT MAX(feed_timestamp) FROM transit.alert)
+		  AND (active_start IS NULL OR active_start <= NOW())
+		  AND (active_end   IS NULL OR active_end   >  NOW())
 		ORDER BY alert_id`)
 	if err != nil {
 		return nil, err

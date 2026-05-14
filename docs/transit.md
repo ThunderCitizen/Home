@@ -277,6 +277,34 @@ Database access layer. Plain SQL via `pgx/v5` — no ORM. Methods for stops,
 routes, alerts, cancellations, snapshots, percentiles, feed state, and
 timetable loading.
 
+### Service Alerts
+
+Alerts come from `alerts.pb` and are stored append-only in `transit.alert`
+keyed by `(alert_id, feed_timestamp)`. The live page reads only the most
+recent feed snapshot.
+
+- **Active-period filter** — `Repo.CurrentAlerts` filters by `active_start`
+  / `active_end` against `NOW()`. Either bound being NULL means "unbounded
+  on that side" per GTFS-RT spec; an alert with neither is always active.
+  Without this, future-dated alerts (e.g. a Victoria Day notice published
+  three days early) render today.
+- **System-wide threshold** — `view_models.NewLiveViewModel` treats any
+  alert with `len(AffectedStops) >= 50` as system-wide and routes it to
+  the top banner instead of stamping every stop marker. Some upstream
+  publishers model agency-wide notices by attaching them to every stop_id
+  as an `informed_entity`; legitimate per-stop alerts (construction, stop
+  closures) stay well under this threshold.
+- **Empty-content filter** — stop-level entries with no header and no
+  description are dropped. They render as a bare ⚠ on the marker with
+  nothing to read.
+- **Banner placement** — `templates/pages/transit_live.templ` puts the
+  banner above `.terminal-map-header` so the header-to-map visual seam
+  isn't broken.
+- **Linkified copy** — `segmentAlertText` in the same file rewrites
+  recognised first-party URLs (currently just `thunderbay.ca/transit` →
+  `/transit`) into anchors. We do not autolink arbitrary URLs from the
+  upstream feed.
+
 ### Static GTFS Loader (`gtfs_loader.go`)
 
 Loads CSV files from `static/transit/gtfs/` into `transit.route`, `transit.stop`, `gtfs.trips`, `gtfs.stop_times`, `gtfs.calendar_dates`, `gtfs.transfers` tables at startup. Truncates and reloads each time.

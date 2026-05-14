@@ -30,6 +30,48 @@ func routeCancelSplit(trips map[string][]transit.CancelledTrip, routeID string) 
 	return
 }
 
+// cleanAlertText normalizes upstream alert description text for the
+// compact banner: collapses CRLF / multiple whitespace runs into single
+// spaces so trip-list-style descriptions don't blow out the row height.
+func cleanAlertText(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return strings.Join(strings.Fields(s), " ")
+}
+
+// alertSegment is one piece of an alert description, optionally a link.
+// Links are only emitted for recognised first-party URLs so we never
+// inject markup from arbitrary upstream feed text.
+type alertSegment struct {
+	Text string
+	Href string // empty for plain text
+}
+
+// alertLinks maps the bare URL substrings we recognise in upstream alert
+// descriptions to safe destinations on our own site. Anything not in this
+// table renders as plain text — we don't try to autolink arbitrary URLs
+// from the feed.
+var alertLinks = []struct {
+	Needle string
+	Href   string
+}{
+	{"thunderbay.ca/transit", "/transit"},
+}
+
+func segmentAlertText(s string) []alertSegment {
+	s = cleanAlertText(s)
+	for _, l := range alertLinks {
+		if i := strings.Index(s, l.Needle); i >= 0 {
+			return []alertSegment{
+				{Text: s[:i]},
+				{Text: l.Needle, Href: l.Href},
+				{Text: s[i+len(l.Needle):]},
+			}
+		}
+	}
+	return []alertSegment{{Text: s}}
+}
+
 func hasRoute(ids []string, id string) bool {
 	for _, x := range ids {
 		if x == id {
@@ -67,6 +109,34 @@ templ TransitLive(vm transit.LiveViewModel) {
 
 		<h1 class="sr-only">Live Transit</h1>
 		<section class="route-panel" aria-label="Live transit map and routes">
+			if len(vm.Alerts) > 0 {
+				<section aria-label="Service alerts" class="transit-alerts">
+					for _, a := range vm.Alerts {
+						if a.Header != nil || a.Description != nil {
+							<article class="transit-alert">
+								<span class="transit-alert-icon" aria-hidden="true">⚠</span>
+								<span class="transit-alert-body">
+									if a.Header != nil {
+										<strong>{ *a.Header }</strong>
+									}
+									if a.Description != nil {
+										for _, seg := range segmentAlertText(*a.Description) {
+											if seg.Href != "" {
+												<a href={ templ.SafeURL(seg.Href) }>{ seg.Text }</a>
+											} else {
+												{ seg.Text }
+											}
+										}
+									}
+								</span>
+								if len(a.AffectedRoutes) > 0 {
+									<span class="transit-alert-routes">{ strings.Join(a.AffectedRoutes, ", ") }</span>
+								}
+							</article>
+						}
+					}
+				</section>
+			}
 			<div class="terminal-map-header" id="map-info-host">
 				<span class="transit-status-cell">
 					<span id="transit-status" class="transit-status transit-status-off" role="status" aria-live="polite">Live</span>
@@ -214,29 +284,6 @@ templ TransitLive(vm transit.LiveViewModel) {
 			</div>
 		</section>
 		@terminalTabKeyboard()
-
-		if len(vm.Alerts) > 0 {
-			<section aria-label="Service alerts" class="transit-alerts">
-				<h2 class="transit-alerts-title">Service Notices</h2>
-				for _, a := range vm.Alerts {
-					if a.Header != nil || a.Description != nil {
-						<article class="transit-alert">
-							if a.Header != nil {
-								<strong>{ *a.Header }</strong>
-							}
-							if len(a.AffectedRoutes) > 0 {
-								<span class="transit-alert-routes">
-									{ "Routes: " + strings.Join(a.AffectedRoutes, ", ") }
-								</span>
-							}
-							if a.Description != nil {
-								<p>{ *a.Description }</p>
-							}
-						</article>
-					}
-				}
-			</section>
-		}
 
 		<div id="cancelled-routes-data" data-routes={ strings.Join(vm.CancelledRoutes, ",") } hidden></div>
 		<div id="no-service-routes-data" data-routes={ strings.Join(vm.NoServiceRoutes, ",") } hidden></div>

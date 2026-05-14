@@ -28,40 +28,53 @@
 // ==========================================================================
 
 .transit-alerts {
-  margin-bottom: 1.5rem;
-}
-
-.transit-alerts-title {
-  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
 }
 
 .transit-alert {
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
-  border-left: 4px solid var(--status-warn);
-  background: color-mix(in srgb, var(--status-warn) 10%, var(--thunder-50));
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 8%, transparent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--thunder-700);
 
   strong {
-    display: block;
-    margin-bottom: 0.25rem;
     color: var(--status-warn);
-  }
-
-  p {
-    margin: 0.25rem 0 0;
-    font-size: var(--text-base);
-    color: var(--thunder-700);
-    line-height: 1.5;
+    margin-right: var(--space-1);
+    font-weight: var(--weight-semi);
   }
 }
 
+.transit-alert-icon {
+  color: var(--status-warn);
+  font-size: var(--text-base);
+  line-height: 1;
+  align-self: center;
+}
+
+.transit-alert-body {
+  min-width: 0;
+}
+
 .transit-alert-routes {
-  display: inline-block;
-  font-size: var(--text-sm);
+  font-size: var(--text-2xs);
   font-weight: var(--weight-semi);
-  color: var(--thunder-600);
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--status-warn);
+  padding: 2px var(--space-1);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 40%, transparent);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
 // --- Route table ---
