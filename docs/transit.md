@@ -124,24 +124,36 @@ Two cache structs:
    double-checked-locking lazy-load pattern: readers grab an `RLock`,
    on miss upgrade to `Lock`, re-check, call the loader, store the result.
 
-**Strategy: lazy-load on cold read, cache forever.** No background
-warmers, no periodic refresh. The first caller after boot pays the
-compute cost; every subsequent caller hits memory. Being slow on the
-first request is a fine trade for not having to reason about a warming
-schedule.
+**Strategy: lazy-load on cold read, cache forever.** Hits to the cache
+are served from memory; cold reads pay the compute cost once. Two slots
+that observe data which shifts during the day get a TTL **and** a
+background warmer (`live_warmer.go`) that calls `Refresh` faster than
+the TTL would expire, so user-facing requests never run the loader on
+the hot path.
 
 `RepoCache` slots:
 
-| Cache | Type | Key | TTL |
-|---|---|---|---|
-| `routeMeta` | `CacheSlot[[]RouteMetaAPI]` | — | ∞ |
-| `allStops` | `CacheSlot[[]Stop]` | — | ∞ |
-| `stopAnalytics` | `CacheSlot[[]StopAnalyticsRow]` | — | ∞ |
-| `stats` | `CacheMap[string, *StatsReport]` | `"day" \| "percentiles" \| "week"` | ∞ |
-| `live` | `CacheSlot[*liveData]` | — | **30 s** |
+| Cache | Type | Key | TTL | Warmer |
+|---|---|---|---|---|
+| `routeMeta` | `CacheSlot[[]RouteMetaAPI]` | — | ∞ | — |
+| `allStops` | `CacheSlot[[]Stop]` | — | ∞ | — |
+| `stopAnalytics` | `CacheSlot[[]StopAnalyticsRow]` | — | ∞ | — |
+| `stats` | `CacheMap[string, *StatsReport]` | `"day" \| "percentiles" \| "week"` | ∞ | — |
+| `cancelDetails` | `CacheMap[string, []CancelDetail]` | `"YYYY-MM-DD..YYYY-MM-DD"` | ∞ | refreshes ranges ending today every 20 s |
+| `live` | `CacheSlot[*liveData]` | — | **30 s** | refreshes every 20 s |
 
-Only `live` has a TTL. Everything else caches until either the process
-restarts or the cache key changes.
+The `live` loader (`repo_cache.go`) does one combined pass over today's
+schedule joined to current-poll cancellation status, producing both the
+route-keyed `CancelledTrips` map and the schedule-walked
+`CancelIncidents` list from a single scan of `transit.cancellation` —
+previously these were two separate queries.
+
+`LiveWarmer` (`live_warmer.go`) starts from `Handler.StartLiveWarmer` and
+ticks every 20 s. On boot it pre-warms the default
+(`today−6 .. today`) cancel-detail range so the first
+`/transit/metrics` request after a restart is hot. Each tick refreshes
+`live`, then every cancel-detail key whose to-side is today. Historical
+ranges never re-load.
 
 KPIs have no separate endpoint or cache — they're rendered straight into
 the metrics page via `KPIFromChunks(vm.Chunks, metric, band)` in

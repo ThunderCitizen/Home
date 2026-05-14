@@ -38,6 +38,17 @@ func (w *LiveWarmer) Start(ctx context.Context) {
 }
 
 func (w *LiveWarmer) run(ctx context.Context) {
+	// Pre-warm the default /transit/metrics window (last 7 days) so the
+	// first hit after boot is hot. parseDateRange's default is the same
+	// window, keyed off Today() — re-derive it here.
+	today := Today()
+	from := today.AddDate(0, 0, -6)
+	warmCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	if err := w.svc.WarmCancelDetails(warmCtx, from, today); err != nil {
+		liveWarmerLog.Warn("default range pre-warm failed", "err", err)
+	}
+	cancel()
+
 	w.refresh(ctx)
 
 	ticker := time.NewTicker(w.interval)
@@ -61,5 +72,11 @@ func (w *LiveWarmer) refresh(ctx context.Context) {
 		// refresh; Get will only re-run the loader if the value also ages
 		// past the TTL before another tick succeeds.
 		liveWarmerLog.Warn("refresh failed", "err", err)
+	}
+	// Refresh any cancel-detail range that ends today so /transit/metrics
+	// stays current. Ranges that don't include today are immutable and
+	// don't need re-loading.
+	if err := w.svc.RefreshTodayCancelDetails(tickCtx); err != nil {
+		liveWarmerLog.Warn("cancel-details refresh failed", "err", err)
 	}
 }

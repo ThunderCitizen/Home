@@ -3,6 +3,7 @@ package transit
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -44,6 +45,12 @@ type RepoCache struct {
 	// percentile chart on the metrics tab).
 	stats *CacheMap[string, *StatsReport]
 
+	// Per-range cancel details for /transit/metrics. Key is the range
+	// string "YYYY-MM-DD..YYYY-MM-DD". Caches forever per range; the
+	// live warmer re-refreshes entries whose to-side is today so the
+	// most-common (last-7-days) range stays current.
+	cancelDetails *CacheMap[string, []CancelDetail]
+
 	// Live slot — 30s TTL. The only slot in RepoCache with an expiry;
 	// the next Get after expiry re-loads from the DB. Everything else
 	// caches forever.
@@ -76,6 +83,14 @@ func NewRepoCache(reporter *Reporter) *RepoCache {
 			return reporter.repo.StopAnalytics(ctx, 7)
 		}),
 
+		cancelDetails: NewCacheMap("cancel-details", func(ctx context.Context, key string) ([]CancelDetail, error) {
+			from, to, err := parseRangeKey(key)
+			if err != nil {
+				return nil, err
+			}
+			return LoadCancelDetails(ctx, db, from, to)
+		}),
+
 		stats: NewCacheMap("stats", func(ctx context.Context, variant string) (*StatsReport, error) {
 			switch variant {
 			case "day":
@@ -89,30 +104,40 @@ func NewRepoCache(reporter *Reporter) *RepoCache {
 		}),
 
 		live: NewCacheSlotTTL("live-data", liveTTL, func(ctx context.Context) (*liveData, error) {
-			// All three loaders are independent at the DB layer. Run them
-			// concurrently so wall-clock collapses to the slowest single
-			// query instead of the sum.
+			// Three reads in parallel: alerts (small table), fleet size
+			// (small), the combined cancellation+incident pass over
+			// today's schedule, and no-service routes. The combined pass
+			// replaces what used to be two separate scans of
+			// transit.cancellation (Dashboard's CancelledTripDetails and
+			// CancelIncidents' schedule walk).
 			var (
-				dashboard *DashboardReport
+				alerts    []ActiveAlert
+				fleetSize int
+				details   map[string][]CancelledTrip
 				incidents []CancelIncident
 				noSvc     []string
 			)
 			today := ServiceDate()
 			g, gctx := errgroup.WithContext(ctx)
 			g.Go(func() error {
-				v, err := reporter.Dashboard(gctx)
-				if err != nil {
-					return err
+				v, err := reporter.repo.CurrentAlerts(gctx)
+				if err == nil {
+					alerts = v
 				}
-				dashboard = v
 				return nil
 			})
 			g.Go(func() error {
-				v, err := reporter.CancelIncidents(gctx)
+				v, _ := reporter.repo.FleetSize(gctx)
+				fleetSize = v
+				return nil
+			})
+			g.Go(func() error {
+				d, i, err := LoadLiveCancellations(gctx, db, today)
 				if err != nil {
-					return fmt.Errorf("incidents: %w", err)
+					return fmt.Errorf("cancellations: %w", err)
 				}
-				incidents = v
+				details = d
+				incidents = i
 				return nil
 			})
 			g.Go(func() error {
@@ -126,17 +151,50 @@ func NewRepoCache(reporter *Reporter) *RepoCache {
 			if err := g.Wait(); err != nil {
 				return nil, err
 			}
-			// CancelIncidents' schedule-walk can return empty when trip IDs
-			// don't line up with static GTFS. Fall back to the cancellation
-			// details Dashboard already loaded — avoids a duplicate query.
-			if len(incidents) == 0 && dashboard != nil {
-				incidents = IncidentsFromDetails(dashboard.CancelledTrips)
+			if details == nil {
+				details = make(map[string][]CancelledTrip)
+			}
+			// Fallback for the (rare) case where the schedule-walk found
+			// no streaks but the details map has trips — surface them as
+			// single-trip incidents so the live panel isn't blank when
+			// CancelledTrips isn't.
+			if len(incidents) == 0 && len(details) > 0 {
+				incidents = IncidentsFromDetails(details)
 			}
 			return &liveData{
-				dashboard: dashboard,
+				dashboard: &DashboardReport{
+					Alerts:         alerts,
+					CancelledTrips: details,
+					FleetSize:      fleetSize,
+				},
 				incidents: incidents,
 				noService: noSvc,
 			}, nil
 		}),
 	}
+}
+
+// rangeKey produces the canonical cache key for a [from, to] date range.
+// from and to should already be calendar dates (no time component).
+func rangeKey(from, to time.Time) string {
+	return from.Format("2006-01-02") + ".." + to.Format("2006-01-02")
+}
+
+// parseRangeKey is rangeKey's inverse. Returns the [from, to] dates the
+// key encodes, or an error if it doesn't parse.
+func parseRangeKey(key string) (time.Time, time.Time, error) {
+	const sep = ".."
+	i := strings.Index(key, sep)
+	if i < 0 {
+		return time.Time{}, time.Time{}, fmt.Errorf("bad range key %q", key)
+	}
+	from, err := time.ParseInLocation("2006-01-02", key[:i], TZ)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("bad from in %q: %w", key, err)
+	}
+	to, err := time.ParseInLocation("2006-01-02", key[i+len(sep):], TZ)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("bad to in %q: %w", key, err)
+	}
+	return from, to, nil
 }

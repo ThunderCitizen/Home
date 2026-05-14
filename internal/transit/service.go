@@ -2,6 +2,7 @@ package transit
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -134,6 +135,37 @@ func (s *Service) Live() (*liveData, error) {
 // loader cost on the hot path.
 func (s *Service) RefreshLive(ctx context.Context) error {
 	return s.cache.live.Refresh(ctx)
+}
+
+// CancelDetails returns the per-trip cancel log for [from, to]. Cached
+// per range; the background warmer refreshes any cached range whose
+// to-side is today so the default 7-day window stays current.
+func (s *Service) CancelDetails(ctx context.Context, from, to time.Time) ([]CancelDetail, error) {
+	return s.cache.cancelDetails.Get(ctx, rangeKey(from, to))
+}
+
+// RefreshTodayCancelDetails reloads every cancel-detail cache entry whose
+// to-side is today. Called from the warmer. New ranges that have never
+// been requested are not pre-warmed here — only ones a user has hit.
+func (s *Service) RefreshTodayCancelDetails(ctx context.Context) error {
+	todayISO := ServiceDate().Format("2006-01-02")
+	for _, key := range s.cache.cancelDetails.Keys() {
+		if !strings.HasSuffix(key, ".."+todayISO) {
+			continue
+		}
+		if err := s.cache.cancelDetails.Refresh(ctx, key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// WarmCancelDetails loads the given range into the cache if not already
+// present. Lets the boot-time warmer pre-populate the default 7-day
+// window so the first /transit/metrics request after a restart is warm.
+func (s *Service) WarmCancelDetails(ctx context.Context, from, to time.Time) error {
+	_, err := s.cache.cancelDetails.Get(ctx, rangeKey(from, to))
+	return err
 }
 
 // AllStops returns all stops (lazy-loaded on first call).

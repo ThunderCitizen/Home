@@ -46,6 +46,7 @@ templ TransitRoutes(vm transit.RoutesViewModel) {
 		</section>
 		@templ.JSONScript("transit-chunks", vm.Chunks)
 		<script src={ assets.URL("/static/transit/chunks.js") }></script>
+		<script src={ assets.URL("/static/transit/date-range-picker.js") }></script>
 		<script>
 		(function(){
 			var table = document.getElementById('route-directory');

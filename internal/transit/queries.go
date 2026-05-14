@@ -487,6 +487,195 @@ func scanCancelledTrip(rows pgx.Rows, nowMin int) (CancelledTrip, error) {
 	return ct, nil
 }
 
+// LoadLiveCancellations runs a single query that produces both the
+// route-keyed cancelled-trip map (Dashboard.CancelledTrips) and the
+// schedule-walked incident list (live cancel-incidents panel). The two
+// outputs used to be loaded by two separate SQLs that each re-scanned
+// transit.cancellation; this collapses them into one read of today's
+// schedule joined to current-poll cancellation status plus a first-seen
+// aggregate.
+//
+// Semantics: "cancelled" here means present in the latest GTFS-RT poll —
+// matches what CancelIncidents has always used and what users expect on a
+// live dashboard. Historical views (a specific past date) still go through
+// CancelledTripDetails / CancelIncidents, which preserve their existing
+// per-trip semantics.
+func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time) (map[string][]CancelledTrip, []CancelIncident, error) {
+	svcDate := date.Format("20060102")
+	nowT := Now()
+	nowMin := nowT.Hour()*60 + nowT.Minute()
+	if nowT.Hour() < ServiceDayCutoffHour {
+		nowMin += 24 * 60
+	}
+
+	rows, err := db.Query(ctx, `
+		WITH today_trips AS (
+			SELECT tc.trip_id, tc.route_id, tc.headsign, tc.block_id,
+			       tc.scheduled_first_dep_time AS start_time,
+			       tc.scheduled_last_arr_time  AS end_time
+			FROM transit.trip_catalog tc
+			JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
+			WHERE sc.date = $1
+		),
+		currently_cancelled AS (
+			SELECT DISTINCT trip_id
+			FROM transit.cancellation
+			WHERE feed_timestamp = (SELECT MAX(feed_timestamp) FROM transit.cancellation)
+		),
+		first_seen AS (
+			SELECT trip_id,
+			       MIN(feed_timestamp) AS first_feed,
+			       COUNT(*)            AS snapshot_count
+			FROM transit.cancellation
+			WHERE start_date = $2
+			GROUP BY trip_id
+		)
+		SELECT tt.route_id, tt.trip_id, tt.start_time, tt.end_time, tt.headsign, tt.block_id,
+		       (cc.trip_id IS NOT NULL) AS is_cancelled,
+		       TO_CHAR(fs.first_feed AT TIME ZONE 'America/Thunder_Bay', 'HH24:MI') AS seen_time,
+		       EXTRACT(HOUR FROM (fs.first_feed AT TIME ZONE 'America/Thunder_Bay')::time)::int * 60 +
+		           EXTRACT(MINUTE FROM (fs.first_feed AT TIME ZONE 'America/Thunder_Bay')::time)::int AS seen_min,
+		       COALESCE(fs.snapshot_count, 0) AS snapshot_count
+		FROM today_trips tt
+		LEFT JOIN currently_cancelled cc ON cc.trip_id = tt.trip_id
+		LEFT JOIN first_seen fs ON fs.trip_id = tt.trip_id
+		ORDER BY tt.route_id, tt.start_time
+	`, date, svcDate)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	type tripRow struct {
+		routeID, tripID, startTime, endTime, headsign, blockID string
+		cancelled                                              bool
+		seenMin                                                *int
+		seenTime                                               *string
+		snapshotCount                                          int
+	}
+	type dirKey struct{ route, headsign string }
+
+	dirTrips := map[dirKey][]tripRow{}
+	var dirOrder []dirKey
+
+	for rows.Next() {
+		var tr tripRow
+		if err := rows.Scan(
+			&tr.routeID, &tr.tripID, &tr.startTime, &tr.endTime, &tr.headsign, &tr.blockID,
+			&tr.cancelled, &tr.seenTime, &tr.seenMin, &tr.snapshotCount,
+		); err != nil {
+			return nil, nil, err
+		}
+		tr.startTime = trimTime(tr.startTime)
+		tr.endTime = trimTime(tr.endTime)
+		dk := dirKey{tr.routeID, tr.headsign}
+		if _, ok := dirTrips[dk]; !ok {
+			dirOrder = append(dirOrder, dk)
+		}
+		dirTrips[dk] = append(dirTrips[dk], tr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	buildTrip := func(tr tripRow) CancelledTrip {
+		ct := CancelledTrip{
+			TripID:        tr.tripID,
+			RouteID:       tr.routeID,
+			StartTime:     tr.startTime,
+			EndTime:       tr.endTime,
+			Headsign:      tr.headsign,
+			SnapshotCount: tr.snapshotCount,
+		}
+		if tr.seenTime != nil {
+			ct.FirstSeen = *tr.seenTime
+		}
+		var h, m int
+		if n, _ := fmt.Sscanf(tr.startTime, "%d:%d", &h, &m); n == 2 {
+			schedMin := h*60 + m
+			ct.Upcoming = schedMin > nowMin
+			if tr.seenMin != nil {
+				ct.LeadMin = schedMin - *tr.seenMin
+				ct.LeadLabel = leadLabel(ct.LeadMin)
+			}
+		}
+		return ct
+	}
+
+	details := map[string][]CancelledTrip{}
+	type incidentBuild struct {
+		incident CancelIncident
+		blockIDs map[string]bool
+	}
+	var builds []incidentBuild
+
+	for _, dk := range dirOrder {
+		tt := dirTrips[dk]
+		var run []CancelledTrip
+		runBlocks := map[string]bool{}
+		for _, tr := range tt {
+			if tr.cancelled {
+				ct := buildTrip(tr)
+				details[tr.routeID] = append(details[tr.routeID], ct)
+				run = append(run, ct)
+				if tr.blockID != "" {
+					runBlocks[tr.blockID] = true
+				}
+			} else if len(run) > 0 {
+				builds = append(builds, incidentBuild{
+					incident: CancelIncident{RouteID: dk.route, Trips: run},
+					blockIDs: runBlocks,
+				})
+				run = nil
+				runBlocks = map[string]bool{}
+			}
+		}
+		if len(run) > 0 {
+			builds = append(builds, incidentBuild{
+				incident: CancelIncident{RouteID: dk.route, Trips: run},
+				blockIDs: runBlocks,
+			})
+		}
+	}
+
+	// Block enrichment: single-block incidents get a BlockID; pairs of
+	// incidents on the same block cross-reference one another's routes.
+	blockToIncidents := map[string][]int{}
+	for i := range builds {
+		if len(builds[i].blockIDs) == 1 {
+			for bid := range builds[i].blockIDs {
+				builds[i].incident.BlockID = bid
+				blockToIncidents[bid] = append(blockToIncidents[bid], i)
+			}
+		}
+	}
+	for _, idxs := range blockToIncidents {
+		if len(idxs) < 2 {
+			continue
+		}
+		routeSet := map[string]bool{}
+		for _, idx := range idxs {
+			routeSet[builds[idx].incident.RouteID] = true
+		}
+		for _, idx := range idxs {
+			var others []string
+			for r := range routeSet {
+				if r != builds[idx].incident.RouteID {
+					others = append(others, r)
+				}
+			}
+			sort.Strings(others)
+			builds[idx].incident.BlockRoutes = others
+		}
+	}
+
+	incidents := make([]CancelIncident, len(builds))
+	for i := range builds {
+		incidents[i] = builds[i].incident
+	}
+	return details, incidents, nil
+}
+
 func leadLabel(min int) string {
 	if min < 0 {
 		abs := -min

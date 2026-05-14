@@ -67,7 +67,7 @@ func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 			return nil
 		})
 		g.Go(func() error {
-			if cancels, err := LoadCancelDetails(ctx, h.svc.db, from, to); err == nil {
+			if cancels, err := h.svc.CancelDetails(ctx, from, to); err == nil {
 				vm.CancelledTrips = cancels
 			}
 			return nil

@@ -74,21 +74,43 @@ func totalCancelledFromChunks(chunks []chunk.ChunkView) string {
 	return fmt.Sprintf("%d", n)
 }
 
-// dateRangeNav renders the from/to date inputs. Default = trailing
-// 7 days from today; users can pick any window up to 1 year wide.
-// Submits as GET so the page URL stays shareable.
+// dateRangeNav renders a single-popover range picker. The trigger button
+// shows the current window; clicking it opens a calendar with both
+// endpoints selectable on one grid. Picking the second endpoint
+// auto-navigates to the new ?from=&to= URL — no Apply button. JS hydrates
+// .drp-nav via /static/transit/date-range-picker.js.
 templ dateRangeNav(dr transit.DateRange) {
-	<form class="drb-nav" method="get" data-from={ dr.From } data-to={ dr.To }>
-		<label class="drb-field">
-			<span class="drb-field-label">From</span>
-			<input type="date" name="from" value={ dr.From } min={ dr.MinDate } max={ dr.MaxDate } class="drb-input"/>
-		</label>
-		<label class="drb-field">
-			<span class="drb-field-label">To</span>
-			<input type="date" name="to" value={ dr.To } min={ dr.MinDate } max={ dr.MaxDate } class="drb-input"/>
-		</label>
-		<button type="submit" class="drb-apply">Apply</button>
-	</form>
+	<div
+		class="drp-nav"
+		data-from={ dr.From }
+		data-to={ dr.To }
+		data-min={ dr.MinDate }
+		data-max={ dr.MaxDate }
+	>
+		<button type="button" class="drp-trigger" aria-haspopup="dialog" aria-expanded="false">
+			<span class="drp-trigger-label" data-drp-label>{ dr.From } – { dr.To }</span>
+			<svg class="drp-trigger-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+		</button>
+		<div class="drp-popover" role="dialog" aria-label="Choose date range" hidden>
+			<div class="drp-cal-head">
+				<button type="button" class="drp-nav-btn" data-drp-cal="prev" aria-label="Previous month">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+				</button>
+				<span class="drp-cal-title" data-drp-title></span>
+				<button type="button" class="drp-nav-btn" data-drp-cal="next" aria-label="Next month">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+				</button>
+			</div>
+			<div class="drp-cal-dow" aria-hidden="true">
+				<span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+			</div>
+			<div class="drp-cal-grid" role="grid" data-drp-grid></div>
+			<div class="drp-footer">
+				<span class="drp-status" data-drp-status>Pick a start date</span>
+				<button type="button" class="drp-reset" data-drp-reset>Reset</button>
+			</div>
+		</div>
+	</div>
 }
 
 func routeCardStyle(color string) templ.Attributes {

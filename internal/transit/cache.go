@@ -174,6 +174,19 @@ func (m *CacheMap[K, V]) Peek(key K) (V, bool) {
 	return m.entries[key], true
 }
 
+// Keys returns the currently-loaded keys. Order is undefined. Used by
+// warmers that need to refresh every entry whose key matches some
+// criterion (e.g. "every range that ends today").
+func (m *CacheMap[K, V]) Keys() []K {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]K, 0, len(m.loaded))
+	for k := range m.loaded {
+		out = append(out, k)
+	}
+	return out
+}
+
 // Refresh unconditionally reloads the value for key. Other keys are left
 // alone. Kept for tests and ad-hoc refreshes.
 func (m *CacheMap[K, V]) Refresh(ctx context.Context, key K) error {
