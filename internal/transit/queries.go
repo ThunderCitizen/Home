@@ -508,6 +508,13 @@ func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time
 		nowMin += 24 * 60
 	}
 
+	// "Cancelled today" = any trip whose start_date is today AND was
+	// reported cancelled at some point — not just present in the
+	// latest poll. The previous-poll-only approach hollowed out the
+	// panel as the day progressed (already-departed cancellations drop
+	// out of the live feed) and broke restart recovery (an empty
+	// in-memory state until the next poll). Keying on persisted
+	// start_date keeps the day's history intact across restarts.
 	rows, err := db.Query(ctx, `
 		WITH today_trips AS (
 			SELECT tc.trip_id, tc.route_id, tc.headsign, tc.block_id,
@@ -517,10 +524,10 @@ func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time
 			JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
 			WHERE sc.date = $1
 		),
-		currently_cancelled AS (
+		cancelled_today AS (
 			SELECT DISTINCT trip_id
 			FROM transit.cancellation
-			WHERE feed_timestamp = (SELECT MAX(feed_timestamp) FROM transit.cancellation)
+			WHERE start_date = $2
 		),
 		first_seen AS (
 			SELECT trip_id,
@@ -531,13 +538,13 @@ func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time
 			GROUP BY trip_id
 		)
 		SELECT tt.route_id, tt.trip_id, tt.start_time, tt.end_time, tt.headsign, tt.block_id,
-		       (cc.trip_id IS NOT NULL) AS is_cancelled,
+		       (ct.trip_id IS NOT NULL) AS is_cancelled,
 		       TO_CHAR(fs.first_feed AT TIME ZONE 'America/Thunder_Bay', 'HH24:MI') AS seen_time,
 		       EXTRACT(HOUR FROM (fs.first_feed AT TIME ZONE 'America/Thunder_Bay')::time)::int * 60 +
 		           EXTRACT(MINUTE FROM (fs.first_feed AT TIME ZONE 'America/Thunder_Bay')::time)::int AS seen_min,
 		       COALESCE(fs.snapshot_count, 0) AS snapshot_count
 		FROM today_trips tt
-		LEFT JOIN currently_cancelled cc ON cc.trip_id = tt.trip_id
+		LEFT JOIN cancelled_today ct ON ct.trip_id = tt.trip_id
 		LEFT JOIN first_seen fs ON fs.trip_id = tt.trip_id
 		ORDER BY tt.route_id, tt.start_time
 	`, date, svcDate)
