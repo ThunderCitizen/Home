@@ -279,6 +279,15 @@
       sorted.sort(function (a, b) { return sortAsc ? cmp(a, b) : cmp(b, a); });
 
       var groupByDate = currentSort === 'date';
+      var thead = '<tr>';
+      thead += '<th data-sort="date" class="cl-th-date">Date</th>';
+      thead += '<th data-sort="route" class="cl-th-route">Route</th>';
+      thead += '<th data-sort="time" class="cl-th-time">Scheduled</th>';
+      thead += '<th data-sort="headsign" class="cl-th-headsign">Headsign</th>';
+      thead += '<th data-sort="reported" class="cl-th-reported">Observed At</th>';
+      thead += '<th data-sort="notice" class="cl-th-notice">Notice</th>';
+      thead += '</tr>';
+
       var tbody = '';
       var lastDate = '';
       for (var r = 0; r < sorted.length; r++) {
@@ -307,28 +316,73 @@
 
       var table = container.querySelector('.cl-table');
       if (table) {
+        table.querySelector('thead').innerHTML = thead;
         table.querySelector('tbody').innerHTML = tbody;
-        // Update sort indicators
         var ths = table.querySelectorAll('th[data-sort]');
         for (var h = 0; h < ths.length; h++) {
           var key = ths[h].getAttribute('data-sort');
           ths[h].classList.toggle('cl-sort-active', key === currentSort);
           ths[h].classList.toggle('cl-sort-desc', key === currentSort && !sortAsc);
         }
+        wireSorts(table);
+      }
+
+      // Mirror card list (mobile). CSS swaps table↔cards at md breakpoint.
+      var cardList = container.querySelector('.cl-card-list');
+      if (cardList) {
+        var cards = '';
+        var lastCardDate = '';
+        for (var cr = 0; cr < sorted.length; cr++) {
+          var crow = sorted[cr];
+          if (groupByDate && crow.date !== lastCardDate) {
+            cards += '<div class="cl-card-divider">' + crow.dayLabel + '</div>';
+            lastCardDate = crow.date;
+          }
+          var noticeCls = crow.notice ? (crow.noticeBad ? ' cl-card-bad' : ' cl-card-ok') : '';
+          cards += '<article class="cl-card' + noticeCls + '">';
+          cards += '<header class="cl-card-head">';
+          cards += '<span class="cl-card-route" style="background:' + crow.color + '">' + crow.name + '</span>';
+          cards += '<div class="cl-card-title">';
+          if (crow.headsign) {
+            cards += '<span class="cl-card-headsign">' + crow.headsign + '</span>';
+          }
+          cards += '</div>';
+          cards += '</header>';
+          cards += '<dl class="cl-card-fields">';
+          cards += '<div class="cl-field"><dd>' + crow.timeRange + '</dd><dt>Scheduled</dt></div>';
+          cards += '<span class="cl-field-sep"></span>';
+          cards += '<div class="cl-field"><dd>' + (crow.reported || '<span class="cl-card-empty">—</span>') + '</dd><dt>Observed</dt></div>';
+          if (crow.notice) {
+            cards += '<span class="cl-field-sep"></span>';
+            cards += '<div class="cl-field ' + (crow.noticeBad ? 'cl-field-bad' : 'cl-field-ok') + '"><dd>' + crow.notice + '</dd><dt>Notice</dt></div>';
+          }
+          if (!groupByDate) {
+            cards += '<span class="cl-field-sep"></span>';
+            cards += '<div class="cl-field"><dd>' + crow.dayLabel + '</dd><dt>Date</dt></div>';
+          }
+          cards += '</dl>';
+          cards += '</article>';
+        }
+        cardList.innerHTML = cards;
       }
     }
 
-    // Initial render with headers
-    var html = '<table class="cl-table">';
-    html += '<thead><tr>';
-    html += '<th data-sort="date" class="cl-th-date cl-sort-active cl-sort-desc">Date</th>';
-    html += '<th data-sort="route" class="cl-th-route">Route</th>';
-    html += '<th data-sort="time" class="cl-th-time">Scheduled</th>';
-    html += '<th data-sort="headsign" class="cl-th-headsign">Headsign</th>';
-    html += '<th data-sort="reported" class="cl-th-reported">Observed At</th>';
-    html += '<th data-sort="notice" class="cl-th-notice">Notice</th>';
-    html += '</tr></thead>';
-    html += '<tbody></tbody></table>';
+    function wireSorts(table) {
+      var ths = table.querySelectorAll('th[data-sort]');
+      for (var h = 0; h < ths.length; h++) {
+        ths[h].addEventListener('click', function (e) {
+          var key = e.currentTarget.getAttribute('data-sort');
+          if (currentSort === key) {
+            sortAsc = !sortAsc;
+          } else {
+            currentSort = key;
+            sortAsc = true;
+          }
+          renderTable();
+        });
+      }
+    }
+
     var totalScheduled = 0;
     if (window.transitChunks) {
       var allChunks = window.transitChunks.loadChunks();
@@ -342,23 +396,10 @@
       summary += ' trips';
     }
     summary += ' across ' + dates.length + ' day' + (dates.length !== 1 ? 's' : '');
-    html += '<div class="cl-summary">' + summary + '</div>';
+    var html = '<div class="cl-summary">' + summary + '</div>';
+    html += '<table class="cl-table"><thead></thead><tbody></tbody></table>';
+    html += '<div class="cl-card-list" role="list"></div>';
     container.innerHTML = html;
-
-    // Wire sort clicks
-    var ths = container.querySelectorAll('th[data-sort]');
-    for (var h = 0; h < ths.length; h++) {
-      ths[h].addEventListener('click', function (e) {
-        var key = e.currentTarget.getAttribute('data-sort');
-        if (currentSort === key) {
-          sortAsc = !sortAsc;
-        } else {
-          currentSort = key;
-          sortAsc = true;
-        }
-        renderTable();
-      });
-    }
 
     renderTable();
     cancelLogBuilt = true;

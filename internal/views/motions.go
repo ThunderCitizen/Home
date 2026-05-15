@@ -82,9 +82,10 @@ type MotionView struct {
 
 // CouncilStatsView holds aggregate stats.
 type CouncilStatsView struct {
-	TotalMeetings string
-	TotalMotions  string
-	RecordedVotes string
+	TotalMeetings     string
+	TotalMotions      string
+	RecordedVotes     string
+	LatestMeetingDate string // pre-formatted date of newest meeting (for source footer)
 }
 
 // CouncilFilterView holds current filter state.
@@ -145,12 +146,18 @@ func NewCouncilViewModel(meetings []council.MeetingSummary, total int, stats [3]
 		totalPages = 1
 	}
 
+	latestDate := ""
+	if len(views) > 0 {
+		latestDate = views[0].Date
+	}
+
 	return CouncilViewModel{
 		Meetings: views,
 		Stats: CouncilStatsView{
-			TotalMeetings: fmt.Sprintf("%d", stats[0]),
-			TotalMotions:  fmt.Sprintf("%d", stats[1]),
-			RecordedVotes: fmt.Sprintf("%d", stats[2]),
+			TotalMeetings:     fmt.Sprintf("%d", stats[0]),
+			TotalMotions:      fmt.Sprintf("%d", stats[1]),
+			RecordedVotes:     fmt.Sprintf("%d", stats[2]),
+			LatestMeetingDate: latestDate,
 		},
 		Filter: CouncilFilterView{
 			Query:         filter.Query,

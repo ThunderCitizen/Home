@@ -1192,10 +1192,6 @@ details.accordion-item {
     margin: 0;
   }
 
-  .vote-dissent-rate {
-    color: var(--thunder-500);
-  }
-
 }
 
 // ==========================================================================
@@ -1947,8 +1943,18 @@ h3.vote-matrix-card-label {
   }
 }
 
-.compensation-source {
+.source-footer {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.source-footer-asof {
+  font-size: var(--text-2xs);
+  color: var(--pico-muted-color);
+  font-variant-numeric: tabular-nums;
 }
 
 .section-subheader {
@@ -2159,167 +2165,27 @@ h3.vote-matrix-card-label {
 
 
 // ==========================================================================
-// PAGESPEED INSPECTION PASS CERTIFICATE (/about)
+// DATA FRESHNESS REPORT (/about)
 // ==========================================================================
-// Mini terminal-screen hero framing a food-inspection-style PASS decal.
-// Mirrors .home-hero (phosphor green on dark surface, scanlines) so the
-// cert lands like a certificate posted inside the restaurant window.
 
-.pagespeed-hero {
-  // Mirrors .home-hero — --hero-fg flips between Solarized blue (light) and
-  // phosphor green (dark) so the cert picks up the active CRT palette.
-  --hero-glow: 0 0 12px color-mix(in srgb, var(--hero-fg) 40%, transparent);
-  --hero-screen-glow: inset 0 0 60px color-mix(in srgb, var(--hero-fg) 5%, transparent);
-  --term-scanline: rgba(255, 255, 255, 0.03);
+.freshness-table {
+  font-variant-numeric: tabular-nums;
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 1.5rem 1.5rem 1.75rem;
-  margin: 2rem -1.5rem 0;
-  background:
-    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.25) 100%),
-    var(--surface-dark);
-  border-top: 2px solid var(--term-border);
-  border-radius: var(--radius-md);
-  overflow: clip;
-  position: relative;
-  @extend %term-scanlines;
-  box-shadow: var(--hero-screen-glow);
-  color: var(--hero-fg);
-
-  h2 {
-    font-size: 1.4rem;
-    font-weight: var(--weight-heavy);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin: 0 0 0.5rem;
-    background:
-      linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)
-        no-repeat -50% 0 / 50% 100%,
-      var(--hero-fg);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(var(--hero-glow));
-    animation: hero-sweep 5s ease-in-out infinite;
-  }
-
-  .lead {
-    font-family: var(--font-prose);
-    font-size: 1rem;
-    color: inherit;
-    opacity: 0.85;
-    margin: 0 0 1.5rem;
-
-    a {
-      color: inherit;
-      text-decoration: underline;
-      text-decoration-color: color-mix(in srgb, var(--hero-fg) 50%, transparent);
-      text-underline-offset: 0.15em;
-
-      &:hover {
-        text-decoration-color: currentColor;
-      }
-    }
+  td small {
+    color: var(--pico-muted-color);
   }
 }
 
-.pagespeed-cert {
-  display: block;
-  max-width: 420px;
-  width: 100%;
-  padding: var(--space-4);
-  background: #047857;
-  color: #fdf6e3;
-  border: 3px solid #fdf6e3;
-  outline: 2px solid #047857;
-  outline-offset: 2px;
-  text-align: center;
-  text-decoration: none;
-  font-family: var(--font-mono);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-
-  // Pico styles `a *` children with primary color — force cream on every
-  // descendant so the stamp/scores don't pick up theme accent as link color.
-  *, dt, dd {
-    color: inherit;
-  }
-
-  &:hover,
-  &:focus-visible {
-    transform: translateY(-2px) rotate(-0.5deg);
-    box-shadow: 0 8px 20px rgba(4, 120, 87, 0.35);
-  }
-
-  &:focus-visible {
-    outline-color: var(--accent);
-  }
+.freshness-note-row td {
+  border-top: none;
+  padding-top: 0;
+  padding-bottom: var(--space-3);
+  color: var(--pico-muted-color);
+  font-style: italic;
 }
 
-.pagespeed-cert-eyebrow {
-  font-size: 0.6rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  opacity: 0.85;
-  margin-bottom: var(--space-2);
-}
-
-.pagespeed-cert-stamp {
-  font-size: 3.5rem;
-  font-weight: 900;
-  letter-spacing: 0.15em;
-  line-height: 1;
-  margin: var(--space-2) 0 var(--space-3);
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.18);
-}
-
-.pagespeed-cert-scores {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2);
-  margin: 0 0 var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px dashed rgba(253, 246, 227, 0.5);
-
-  > div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.15rem;
-  }
-
-  dt {
-    font-size: 0.55rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    opacity: 0.85;
-    line-height: 1.1;
-  }
-
-  dd {
-    font-size: 1.3rem;
-    font-weight: var(--weight-heavy);
-    margin: 0;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.pagespeed-cert-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.65rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  opacity: 0.9;
-  padding-top: var(--space-2);
-  border-top: 1px dashed rgba(253, 246, 227, 0.5);
-}
-
-.pagespeed-cert-link {
-  font-weight: var(--weight-bold);
+.freshness-footer {
+  margin-top: var(--space-2);
+  color: var(--pico-muted-color);
 }
 

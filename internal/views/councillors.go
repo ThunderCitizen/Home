@@ -17,7 +17,6 @@ type CouncillorVoteStatsView struct {
 	ForCount     string // "45"
 	AgainstCount string // "8"
 	AbsentCount  string // "5"
-	DissentRate  string // "12%"
 }
 
 // CouncillorView is a view-ready councillor with presentation data
@@ -239,7 +238,6 @@ func buildVoteStatsView(
 		ForCount:     itoa(cs.ForCount),
 		AgainstCount: itoa(cs.AgainstCount),
 		AbsentCount:  itoa(cs.AbsentCount),
-		DissentRate:  formatPercent(cs.DissentCount, cs.VotesCast()),
 	}
 }
 

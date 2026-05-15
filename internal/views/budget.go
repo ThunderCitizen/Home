@@ -77,6 +77,8 @@ type BudgetTopLine struct {
 	TotalRevenue string
 	PropertyTax  string
 	TaxPct       string
+	Grants       string
+	GrantsPct    string
 	OtherSources string
 	OtherPct     string
 	Operating    string
@@ -184,6 +186,8 @@ func NewBudgetViewModel(year int, ctx context.Context, ledger *budget.Ledger) (B
 		TotalRevenue: totalLabel,
 		PropertyTax:  taxLevyLabel,
 		TaxPct:       pctOfTotalLabel(summary.PropertyTax, summary.TotalExpenditure),
+		Grants:       dollarsToMillionsLabel(summary.Grants),
+		GrantsPct:    pctOfTotalLabel(summary.Grants, summary.TotalExpenditure),
 		OtherSources: dollarsToMillionsLabel(summary.OtherRevenue),
 		OtherPct:     pctOfTotalLabel(summary.OtherRevenue, summary.TotalExpenditure),
 		Operating:    totalLabel,

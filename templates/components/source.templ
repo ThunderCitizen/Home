@@ -37,3 +37,15 @@ templ SourceLink(ref models.SourceRef) {
 		</svg>
 	</a>
 }
+
+// SourceFooter renders the standard "Source: <link>  as of <date>" footer used
+// under panels that cite a data source. AsOf is omitted when empty.
+templ SourceFooter(ref models.SourceRef) {
+	<p class="source-footer">
+		<span class="source-footer-label">Source: </span>
+		@SourceLink(ref)
+		if ref.AsOf != "" {
+			<span class="source-footer-asof">as of { ref.AsOf }</span>
+		}
+	</p>
+}

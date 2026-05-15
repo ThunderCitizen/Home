@@ -68,18 +68,22 @@ func splitMobileColumns(cols []views.VoteMatrixColumn, n int) ([]views.VoteMatri
 	return cols[:n], cols[n:]
 }
 
-templ panelSource(ref models.SourceRef) {
-	<p class="compensation-source">
-		<span>Source: </span>
-		@components.SourceLink(ref)
-	</p>
-}
-
 // escribeRef is the canonical citation for council recorded votes — the city
 // publishes all motion records on its eScribe meeting portal.
 var escribeRef = models.SourceRef{
 	URL:   "https://pub-thunderbay.escribemeetings.com",
 	Label: "Thunder Bay eScribe",
+}
+
+// escribeRefAsOf returns a SourceRef for the eScribe portal stamped with the
+// date of the most recent motion (full date precision — vote data is meaningful
+// at day granularity).
+func escribeRefAsOf(vm *views.VoteMatrixViewModel) models.SourceRef {
+	ref := escribeRef
+	if vm != nil && len(vm.Columns) > 0 {
+		ref.AsOf = vm.Columns[0].Date
+	}
+	return ref
 }
 
 templ accordionToggle() {
@@ -119,7 +123,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 			}
 		}
 
-	@components.TermPanel(components.TermPanelProps{Title: "Members", HeaderAction: accordionToggle(), Footer: panelSource(vm.Source), HeadingLevel: 2}) {
+	@components.TermPanel(components.TermPanelProps{Title: "Members", HeaderAction: accordionToggle(), Footer: components.SourceFooter(vm.Source), HeadingLevel: 2}) {
 		<h3 class="section-subheader">Mayor</h3>
 		<div data-section="mayor">
 			@councillorItem(vm.Mayor)
@@ -142,7 +146,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	}
 
 	if vm.VoteMatrix != nil && len(vm.VoteMatrix.Columns) > 0 {
-		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes", Footer: panelSource(escribeRef), HeadingLevel: 2}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes", Footer: components.SourceFooter(escribeRefAsOf(vm.VoteMatrix)), HeadingLevel: 2}) {
 			@voteMatrix(vm.VoteMatrix)
 		}
 	}
@@ -208,7 +212,7 @@ templ councillorVoteStats(c views.CouncillorView) {
 	if c.VoteStats != nil {
 		<div class="councillor-votes">
 			<p class="vote-summary">
-				{ c.VoteStats.ForCount } for · { c.VoteStats.AgainstCount } against across recorded votes · <span class="vote-dissent-rate">{ c.VoteStats.DissentRate } dissent</span>
+				{ c.VoteStats.ForCount } for · { c.VoteStats.AgainstCount } against across recorded votes
 			</p>
 		</div>
 	}

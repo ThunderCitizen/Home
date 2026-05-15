@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/jackc/pgx/v5"
@@ -55,6 +56,7 @@ type councilStore interface {
 	GetMeetingBySlug(ctx context.Context, slug string) (*council.MeetingDetail, error)
 	LoadVoteRecords(ctx context.Context, motionID int64) (*council.VoteRecord, error)
 	MeetingIDsByDates(ctx context.Context, dates []string) (map[string]string, error)
+	LastScrapedAt(ctx context.Context) (time.Time, error)
 }
 
 var newCouncilStore = func(db *pgxpool.Pool) councilStore {
@@ -162,7 +164,11 @@ func (h *Handlers) Councillors(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) About(w http.ResponseWriter, r *http.Request) {
-	pages.About().Render(r.Context(), w)
+	store := newCouncilStore(h.db)
+	lastMinutesCheck, _ := store.LastScrapedAt(r.Context())
+	lastBundleCheck, _ := muni.LastCheckedAt(r.Context(), h.db)
+	vm := views.NewAboutViewModel(time.Now().UTC(), h.recorder.Snapshot(), lastMinutesCheck, lastBundleCheck)
+	pages.About(vm).Render(r.Context(), w)
 }
 
 // NotFound renders the themed 404 page with a 404 status. Used for HTML

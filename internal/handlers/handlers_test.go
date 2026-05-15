@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -57,6 +58,9 @@ func (s stubCouncilStore) LoadVoteRecords(ctx context.Context, motionID int64) (
 }
 func (s stubCouncilStore) MeetingIDsByDates(ctx context.Context, dates []string) (map[string]string, error) {
 	return nil, nil
+}
+func (s stubCouncilStore) LastScrapedAt(ctx context.Context) (time.Time, error) {
+	return time.Time{}, nil
 }
 
 func assertUnavailable(t *testing.T, rr *httptest.ResponseRecorder) {

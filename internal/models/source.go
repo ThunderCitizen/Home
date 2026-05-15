@@ -28,6 +28,7 @@ type SourceRef struct {
 	URL   string `json:"url"`             // full URL with fragment
 	Label string `json:"label,omitempty"` // display text (empty → auto from Kind)
 	Note  string `json:"note,omitempty"`  // human location label shown next to link
+	AsOf  string `json:"as_of,omitempty"` // pre-formatted freshness stamp ("May 2026", "May 12, 2026")
 }
 
 // Kind auto-detects the source type from the URL.

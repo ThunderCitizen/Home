@@ -204,7 +204,7 @@ templ transitMethodology() {
 
 					if (!bk.dashed) {
 						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 60) + '" text-anchor="middle" fill="var(--pico-color)" style="font-size:9px;font-weight:600">OTP · Cancel</text>';
-						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 74) + '" text-anchor="middle" fill="var(--pico-color)" style="font-size:9px;font-weight:600">Notice · Cv</text>';
+						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 74) + '" text-anchor="middle" fill="var(--pico-color)" style="font-size:9px;font-weight:600">Notice · CV</text>';
 						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 92) + '" text-anchor="middle" fill="var(--pico-muted-color)" style="font-size:8px;font-style:italic">sealed at window close</text>';
 					} else {
 						// "Drain" dots passing through to nothing
@@ -252,30 +252,30 @@ templ transitMethodology() {
 		<article>
 			<header class="methods-header"><h3>Headway CV</h3><span class="methods-tag methods-tag-regularity">Regularity</span></header>
 			<p>
-				Cv is the <em>coefficient of variation</em> of headways &mdash;
+				CV is the <em>coefficient of variation</em> of headways &mdash;
 				the standard deviation of gaps between buses, divided by the average gap.
-				If buses arrive at perfectly even intervals, Cv is zero &mdash; regardless
+				If buses arrive at perfectly even intervals, CV is zero &mdash; regardless
 				of whether those intervals match the published schedule. In practice,
 				buses bunch up or leave big gaps &mdash; the higher the number, the more
 				unpredictable your wait becomes.
 			</p>
 			<p>
 				Think of it like darts. The bullseye is the average gap between buses.
-				Each actual arrival is a throw. Low Cv means the darts cluster
+				Each actual arrival is a throw. Low CV means the darts cluster
 				around the bullseye &mdash; gaps between buses stay consistent. High
-				Cv means darts scattered across the board &mdash; gaps are all
+				CV means darts scattered across the board &mdash; gaps are all
 				over the place.
 			</p>
-			<div class="cv-dartboards" id="cv-dartboards" aria-label="Dartboard analogy for headway Cv"></div>
+			<div class="cv-dartboards" id="cv-dartboards" aria-label="Dartboard analogy for headway CV"></div>
 			<script>
 			(function() {
 				var el = document.getElementById('cv-dartboards');
 				if (!el) return;
 
 				var boards = [
-					{ cv: 0.10, label: 'Cv = 0.10', quality: 'Excellent', color: '#16a34a' },
-					{ cv: 0.30, label: 'Cv = 0.30', quality: 'Fair', color: '#f97316' },
-					{ cv: 0.50, label: 'Cv = 0.50', quality: 'Poor', color: '#ef4444' }
+					{ cv: 0.10, label: 'CV = 0.10', quality: 'Excellent', color: '#16a34a' },
+					{ cv: 0.30, label: 'CV = 0.30', quality: 'Fair', color: '#f97316' },
+					{ cv: 0.50, label: 'CV = 0.50', quality: 'Poor', color: '#ef4444' }
 				];
 
 				var R = 55; // board radius
@@ -333,20 +333,11 @@ templ transitMethodology() {
 				el.innerHTML = svg;
 			})();
 			</script>
-			<aside class="methods-rubric">
-				<strong>TC interpretive rubric.</strong> We treat
-				<strong>Cv &lt; 0.3</strong> as service riders perceive as regular and
-				<strong>Cv &gt; 0.5</strong> as gaps that feel random. The
-				0.10 / 0.30 / 0.50 dartboard bands above are TC editorial
-				calibration. A Cv near zero isn&rsquo;t the goal either &mdash; that
-				would be like standing too close to the dartboard, where hitting the
-				bullseye says nothing about your aim. Some variance is inevitable.
-			</aside>
 			<p>
-				Cv only judges <em>regularity</em>, not whether the bus is on time. A
-				route that runs every 20 minutes when the schedule promised every 10
-				still has Cv = 0 if those gaps are perfectly even. To see whether the
-				service matches its promise, look at EWT below.
+				CV only judges <em>regularity</em>, not whether the bus is on time. A
+				route that runs every 20 minutes when the schedule says every 10
+				still has CV = 0 if those gaps are perfectly even. To see whether the
+				service matches the schedule, look at EWT below.
 			</p>
 		</article>
 
@@ -355,12 +346,11 @@ templ transitMethodology() {
 			<p>
 				Excess Wait Time, as defined by
 				<a href="https://content.tfl.gov.uk/bus-performance-data-methodology.pdf" target="_blank" rel="noopener">Transport for London</a>,
-				is the operational metric we lean on most.
-				Transit managers publish a schedule
-				&mdash; that schedule is a promise. EWT measures how many extra minutes
-				you actually wait beyond that promise because buses aren&rsquo;t arriving
-				at regular intervals. It&rsquo;s the gap between what was committed to
-				and what was delivered.
+				is the operational metric we lean on most. The published schedule
+				sets an expected average wait. EWT measures how many extra minutes
+				you actually wait beyond that, because buses aren&rsquo;t arriving at
+				regular intervals &mdash; the gap between the schedule and what
+				actually happens.
 			</p>
 			<p>
 				If a route runs every 15 minutes, you'd expect to wait 7.5 minutes on
@@ -370,12 +360,11 @@ templ transitMethodology() {
 			</p>
 			<p>
 				<strong>Why does EWT matter more than average delay?</strong> Because
-				it counts people, not just buses. A long gap doesn't just mean one
-				late bus &mdash; it means every person who showed up during that gap
-				is standing at the stop, waiting. The longer the gap, the more people
-				accumulate, and the longer each of them waits. EWT weights gaps by the
-				number of riders they actually affect, making it a social metric: it
-				measures total human time wasted, not just vehicle timing.
+				it counts riders, not just buses. A long gap doesn&rsquo;t just mean one
+				late bus &mdash; it means every rider who arrived during that gap is
+				waiting at the stop. The longer the gap, the more riders accumulate,
+				and the longer each waits. EWT weights gaps by the number of riders
+				they affect, so it measures rider wait time rather than vehicle timing.
 			</p>
 			<p>
 				The two timelines below have the same average headway (15 min), but
@@ -451,9 +440,10 @@ templ transitMethodology() {
 			})();
 			</script>
 			<p>
-				Bigger gaps hurt more because more riders show up during them. EWT captures
-				that &mdash; it weights each gap by how many people it affects, then subtracts
-				the wait you&rsquo;d expect if buses ran on time.
+				Bigger gaps affect more riders, because more riders arrive during them.
+				EWT captures that &mdash; it weights each gap by how many riders it
+				affects, then subtracts the wait you&rsquo;d expect if buses ran on
+				schedule.
 			</p>
 
 		</article>

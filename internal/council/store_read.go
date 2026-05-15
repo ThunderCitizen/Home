@@ -2,11 +2,25 @@ package council
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
+
+// LastScrapedAt returns the most recent scraped_at across all council meetings.
+// Used by the about page to show when we last successfully pulled from eScribe.
+// Returns zero time if no meetings have ever been scraped.
+func (s *Store) LastScrapedAt(ctx context.Context) (time.Time, error) {
+	var t time.Time
+	err := s.db.QueryRow(ctx, `SELECT MAX(scraped_at) FROM council_meetings`).Scan(&t)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return time.Time{}, nil
+	}
+	return t, err
+}
 
 // MeetingFilter specifies filter criteria for the meeting list.
 type MeetingFilter struct {
@@ -671,7 +685,6 @@ type CouncillorVoteStats struct {
 	ForCount     int
 	AgainstCount int
 	AbsentCount  int
-	DissentCount int // voted against motions that CARRIED
 }
 
 // TotalRecorded returns the total number of recorded votes this councillor appeared in.
@@ -777,8 +790,7 @@ func (s *Store) CouncillorVoteStatsAll(ctx context.Context, term string) (map[st
 			vr.councillor,
 			COUNT(*) FILTER (WHERE vr.position = 'for') AS vote_for,
 			COUNT(*) FILTER (WHERE vr.position = 'against') AS vote_against,
-			COUNT(*) FILTER (WHERE vr.position = 'absent') AS vote_absent,
-			COUNT(*) FILTER (WHERE vr.position = 'against' AND mo.result = 'CARRIED') AS dissent
+			COUNT(*) FILTER (WHERE vr.position = 'absent') AS vote_absent
 		FROM council_vote_records vr
 		JOIN council_motions mo ON mo.id = vr.motion_id
 		JOIN council_meetings m ON m.id = mo.meeting_id
@@ -793,7 +805,7 @@ func (s *Store) CouncillorVoteStatsAll(ctx context.Context, term string) (map[st
 	for rows.Next() {
 		var name string
 		var cs CouncillorVoteStats
-		if err := rows.Scan(&name, &cs.ForCount, &cs.AgainstCount, &cs.AbsentCount, &cs.DissentCount); err != nil {
+		if err := rows.Scan(&name, &cs.ForCount, &cs.AgainstCount, &cs.AbsentCount); err != nil {
 			return nil, err
 		}
 		stats[name] = cs

@@ -1,11 +1,12 @@
 package pages
 
 import (
+	"thundercitizen/internal/views"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
 
-templ About() {
+templ About(vm views.AboutViewModel) {
 	@templates.Layout(templates.SocialMeta{
 		Title:       "About",
 		Description: "Thunder Citizen is an independent project collecting Thunder Bay's transit, council, and budget data from public sources.",
@@ -92,24 +93,41 @@ templ About() {
 			<p>Privacy questions or requests: <a href="mailto:privacy@thundercitizen.ca">privacy@thundercitizen.ca</a></p>
 		}
 
-		<section class="pagespeed-hero">
-			<h2>Page Inspection</h2>
-			<p class="lead"><a href="https://en.wikipedia.org/wiki/Computer_accessibility" target="_blank" rel="noopener">a11y</a> for the People! (of Thunder Bay)</p>
-			<a class="pagespeed-cert" href="https://pagespeed.web.dev/analysis/https-thundercitizen-ca-about/219r0qbjxn?form_factor=mobile" target="_blank" rel="noopener" aria-label="View PageSpeed Insights report for thundercitizen.ca">
-				<div class="pagespeed-cert-eyebrow">Google PageSpeed Insights · Mobile</div>
-				<div class="pagespeed-cert-stamp">PASS</div>
-				<dl class="pagespeed-cert-scores">
-					<div><dt>Performance</dt><dd>98</dd></div>
-					<div><dt>Accessibility</dt><dd>100</dd></div>
-					<div><dt>Best Practices</dt><dd>100</dd></div>
-					<div><dt>SEO</dt><dd>100</dd></div>
-				</dl>
-				<div class="pagespeed-cert-footer">
-					<span>Audited April 19, 2026</span>
-					<span class="pagespeed-cert-link">View report &rarr;</span>
-				</div>
-			</a>
-		</section>
+		@components.Card(components.CardProps{Title: "Data freshness"}) {
+			<p>How recently each data source was last checked. Refreshes every time this page loads.</p>
+			<table class="freshness-table">
+				<thead>
+					<tr>
+						<th scope="col">Source</th>
+						<th scope="col">Feed</th>
+						<th scope="col">Expected</th>
+						<th scope="col">Last update</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, row := range vm.Freshness.Rows {
+						<tr>
+							<td><strong>{ row.Source }</strong></td>
+							<td>
+								if row.DetailURL != "" {
+									<a href={ templ.SafeURL(row.DetailURL) } target="_blank" rel="noopener">{ row.Detail }</a>
+								} else {
+									{ row.Detail }
+								}
+							</td>
+							<td>{ row.Expected }</td>
+							<td><span title={ row.When }>{ row.Age }</span></td>
+						</tr>
+						if row.Note != "" {
+							<tr class="freshness-note-row">
+								<td colspan="4"><small>{ row.Note }</small></td>
+							</tr>
+						}
+					}
+				</tbody>
+			</table>
+			<p class="freshness-footer"><small>Report generated { vm.Freshness.GeneratedAt }</small></p>
+		}
 
 		<p class="about-health-link">
 			<a href="/health">System Health</a>

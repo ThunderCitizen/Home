@@ -56,9 +56,8 @@
 
 .transit-alert-icon {
   color: var(--status-warn);
-  font-size: var(--text-base);
-  line-height: 1;
   align-self: center;
+  flex-shrink: 0;
 }
 
 .transit-alert-body {
@@ -66,15 +65,26 @@
 }
 
 .transit-alert-routes {
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-semi);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--status-warn);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-self: center;
+}
+
+.transit-alert-route-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
   padding: 2px var(--space-1);
-  border: 1px solid color-mix(in srgb, var(--status-warn) 40%, transparent);
   border-radius: var(--radius-sm);
+  background: var(--status-muted);
+  color: var(--text-on-dark, #fff);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.03em;
   white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
 }
 
 // --- Route table ---
@@ -3768,18 +3778,17 @@ body.locate-errored {
   vertical-align: top;
 }
 
+// First row of each date group: bolded label + separator border above the row.
 .cl-td-date-first {
   font-weight: var(--weight-bold);
   color: var(--thunder-700);
-  border-top: 1px solid var(--term-border);
 }
 
-// Apply border-top to all cells in a row that starts a new date
 tr:has(> .cl-td-date-first) td {
   border-top: 1px solid var(--term-border);
 }
 
-// Remove top border on the very first date group
+// First row in the body shouldn't get a top border (the thead already separates).
 tbody tr:first-child td { border-top: none; }
 
 .cl-td-route {
@@ -3795,7 +3804,9 @@ tbody tr:first-child td { border-top: none; }
 
 .cl-td-headsign {
   color: var(--thunder-400);
-  max-width: 20rem;
+  // Flex to absorb table slack; max-width:0 lets ellipsis kick in only on actual overflow.
+  width: 100%;
+  max-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3820,7 +3831,149 @@ tbody tr:first-child td { border-top: none; }
 .cl-summary {
   font-size: var(--text-xs);
   color: var(--thunder-400);
-  margin-top: 0.5rem;
+  margin-bottom: var(--space-3);
+  font-weight: var(--weight-medium);
+}
+
+// Mobile card mirror of the cancel-log table. Default hidden; CSS swaps at md.
+// See docs/responsive-patterns.md "Table ↔ card swap".
+.cl-card-list { display: none; }
+
+@include respond-to('md') {
+  .cl-table { display: none; }
+  .cl-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+.cl-card {
+  @extend %card-base;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  position: relative;
+  border-left: 4px solid var(--status-muted);
+  overflow: hidden;
+
+  &.cl-card-bad  { border-left-color: var(--status-error); }
+  &.cl-card-ok   { border-left-color: var(--status-ok); }
+}
+
+.cl-card-divider {
+  font-weight: var(--weight-bold);
+  color: var(--thunder-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: var(--text-2xs);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--term-border);
+
+  &:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+.cl-card-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  // Strip Pico's default article > header chrome but keep a subtle tint.
+  margin: 0;
+  background: var(--term-bg-deep);
+  border-bottom: 1px solid var(--term-border);
+  border-radius: 0;
+}
+
+.cl-card-route {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-xs);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+}
+
+.cl-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cl-card-headsign {
+  color: var(--heading);
+  font-weight: var(--weight-semi);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-card-notice {
+  font-weight: var(--weight-semi);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cl-card-fields {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  border-top: 1px solid var(--term-border);
+}
+
+.cl-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-1);
+  min-width: 0;
+  text-align: center;
+
+  dt {
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--thunder-400);
+    font-weight: var(--weight-bold);
+  }
+
+  dd {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semi);
+    color: var(--heading);
+  }
+
+  &.cl-field-bad dd { color: var(--status-error); }
+  &.cl-field-ok  dd { color: var(--status-ok); }
+}
+
+.cl-field-sep {
+  width: 1px;
+  background: var(--term-border);
+  align-self: stretch;
+}
+
+.cl-card-empty {
+  color: var(--thunder-400);
   font-weight: var(--weight-medium);
 }
 

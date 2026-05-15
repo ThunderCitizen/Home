@@ -12,11 +12,15 @@ import (
 var budgetSourceRef = models.SourceRef{
 	URL:   "https://www.thunderbay.ca/en/city-hall/resources/Budget/Original-2026-Budget---Operating-Budget-Final.pdf",
 	Label: "City of Thunder Bay, 2026 Operating Budget",
+	AsOf:  "2026 fiscal year",
 }
 
 func budgetHeroItems(vm views.BudgetViewModel) []components.StatItem {
 	items := []components.StatItem{
 		{Value: vm.TopLine.PropertyTax, Label: "Property Tax", Note: vm.TopLine.TaxPct},
+	}
+	if vm.TopLine.Grants != "" {
+		items = append(items, components.StatItem{Value: vm.TopLine.Grants, Label: "Grants", Note: vm.TopLine.GrantsPct})
 	}
 	if vm.TopLine.OtherSources != "" {
 		items = append(items, components.StatItem{Value: vm.TopLine.OtherSources, Label: "Other Sources", Note: vm.TopLine.OtherPct})
@@ -29,6 +33,9 @@ func budgetHeroItems(vm views.BudgetViewModel) []components.StatItem {
 
 func budgetHeroCols(vm views.BudgetViewModel) int {
 	n := 1
+	if vm.TopLine.Grants != "" {
+		n++
+	}
 	if vm.TopLine.OtherSources != "" {
 		n++
 	}
@@ -82,7 +89,7 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 			@components.HeroStats(components.HeroStatsProps{
 				Title:        "Summary",
 				Lead:         "Ontario law requires municipalities to balance operating budgets, meaning total revenue must equal total operating expenditure.",
-				Footer:       panelSource(budgetSourceRef),
+				Footer:       components.SourceFooter(budgetSourceRef),
 				HeadingLevel: 2,
 			}) {
 				@components.StatGrid(components.StatGridProps{

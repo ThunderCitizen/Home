@@ -62,7 +62,7 @@ func NewHomeViewModel(recentMeetings []council.MeetingSummary) HomeViewModel {
 			{
 				Title:  "Council",
 				Href:   "/councillors",
-				Desc:   "Browse voting records, key quotes, and decision-making patterns.",
+				Desc:   "Thunder Bay's 13 city councillors, their voting records, and ward boundaries.",
 				Footer: "Profiles · Voting records",
 			},
 			{

@@ -256,7 +256,8 @@ func (l *Ledger) GrandTotal(ctx context.Context, year int) (float64, error) {
 type OperatingSummary struct {
 	TotalExpenditure float64 // gross operating budget
 	PropertyTax      float64 // property_tax + tbaytel revenue
-	OtherRevenue     float64 // all non-tax revenue (grants, fees, etc.)
+	Grants           float64 // provincial + federal grants
+	OtherRevenue     float64 // remaining non-tax, non-grant revenue (fees, recoveries, etc.)
 }
 
 // OperatingSummaryForYear computes the operating budget totals from ledger entries.
@@ -267,10 +268,11 @@ func (l *Ledger) OperatingSummaryForYear(ctx context.Context, year int) (*Operat
 		SELECT
 			COALESCE(SUM(amount), 0),
 			COALESCE(SUM(amount) FILTER (WHERE credit_code IN ('revenue.property_tax', 'revenue.tbaytel')), 0),
-			COALESCE(SUM(amount) FILTER (WHERE credit_code NOT IN ('revenue.property_tax', 'revenue.tbaytel')), 0)
+			COALESCE(SUM(amount) FILTER (WHERE credit_code IN ('revenue.provincial_grants', 'revenue.federal_grants')), 0),
+			COALESCE(SUM(amount) FILTER (WHERE credit_code NOT IN ('revenue.property_tax', 'revenue.tbaytel', 'revenue.provincial_grants', 'revenue.federal_grants')), 0)
 		FROM budget_ledger
 		WHERE fiscal_year = $1 AND credit_code LIKE 'revenue.%' AND budget_type = 'operating'`,
-		year).Scan(&s.TotalExpenditure, &s.PropertyTax, &s.OtherRevenue)
+		year).Scan(&s.TotalExpenditure, &s.PropertyTax, &s.Grants, &s.OtherRevenue)
 	if err != nil {
 		return nil, err
 	}

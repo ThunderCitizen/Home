@@ -4,10 +4,21 @@ import (
 	"fmt"
 	"html"
 	"strings"
+	"thundercitizen/internal/models"
 	"thundercitizen/internal/views"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
+
+// escribeRefAsOfMeeting stamps the eScribe SourceRef with the latest meeting
+// date so the Minutes Stats footer reads "Source: ... as of <date>".
+func escribeRefAsOfMeeting(latest string) models.SourceRef {
+	ref := escribeRef
+	if latest != "" {
+		ref.AsOf = latest
+	}
+	return ref
+}
 
 // aiSummaryBannerTail assembles the link-bearing tail of the AI summary
 // banner sentence as a single HTML fragment so the period sits flush
@@ -66,7 +77,7 @@ templ Council(vm views.CouncilViewModel) {
 		@components.PageHeader(components.PageHeaderProps{Title: "Minutes"})
 		@components.HeroStats(components.HeroStatsProps{
 			Title:        "Minute Stats",
-			Footer:       panelSource(escribeRef),
+			Footer:       components.SourceFooter(escribeRefAsOfMeeting(vm.Stats.LatestMeetingDate)),
 			HeadingLevel: 2,
 		}) {
 			@components.StatGrid(components.StatGridProps{

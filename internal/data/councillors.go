@@ -204,7 +204,7 @@ var CouncilByTerm = map[int]CouncilTerm{
 			TermLength:         "4 years",
 			CurrentTerm:        "2022–2026",
 			NextElection:       "October 2026",
-			Source:             models.SourceRef{URL: "https://www.thunderbay.ca/en/city-hall/mayor-and-council-profiles.aspx"},
+			Source:             models.SourceRef{URL: "https://www.thunderbay.ca/en/city-hall/mayor-and-council-profiles.aspx", AsOf: "May 2026"},
 		},
 	},
 	2018: {
@@ -246,7 +246,7 @@ var CouncilByTerm = map[int]CouncilTerm{
 			TermLength:         "4 years",
 			CurrentTerm:        "2018–2022",
 			NextElection:       "October 2022",
-			Source:             models.SourceRef{URL: "https://www.cbc.ca/news/canada/thunder-bay/thunder-bay-city-council-increase-1.4629150"},
+			Source:             models.SourceRef{URL: "https://www.cbc.ca/news/canada/thunder-bay/thunder-bay-city-council-increase-1.4629150", AsOf: "Apr 2018"},
 		},
 	},
 	2014: {
@@ -289,7 +289,7 @@ var CouncilByTerm = map[int]CouncilTerm{
 			TermLength:         "4 years",
 			CurrentTerm:        "2014–2018",
 			NextElection:       "October 2018",
-			Source:             models.SourceRef{URL: "https://www.tbnewswatch.com/local-news/council-salaries-made-public-875795"},
+			Source:             models.SourceRef{URL: "https://www.tbnewswatch.com/local-news/council-salaries-made-public-875795", AsOf: "Mar 2018"},
 		},
 	},
 	2010: {
@@ -334,6 +334,7 @@ var CouncilByTerm = map[int]CouncilTerm{
 			Source: models.SourceRef{
 				URL:  "https://www.tbnewswatch.com/local-news/salaries-slide-390625#:~:text=Councillor%20base%20salaries%20in%202011%20were%20%2428%2C763%20apiece%2C%20plus%20taxable%20benefits%20that%20averaged%20%245%2C665%20per%20person.%20The%20mayor%E2%80%99s%20base%20salary%20was%20%2483%2C921.",
 				Note: "2011 figures",
+				AsOf: "2011",
 			},
 		},
 	},
