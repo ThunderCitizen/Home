@@ -83,13 +83,6 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 				<h2 class="terminal-map-title">System Metrics</h2>
 				@dateRangeNav(vm.Range)
 			</div>
-			<p class="metrics-intro">
-				Thunder Bay Transit publishes no ongoing public record of how
-				well service runs. This page rebuilds one from the live GTFS
-				feed &mdash; so riders and taxpayers can see whether service is
-				improving or slipping, measured the same way every single day
-				rather than judged by anecdote.
-			</p>
 			<div class="metrics-disclaimer">
 				<strong>Disclaimer:</strong> These are unofficial statistics derived from observing the GTFS feed. Questions or feedback: <a href="mailto:data@thundercitizen.ca">data@thundercitizen.ca</a>.
 			</div>
@@ -134,12 +127,6 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 				<div id="cancel-log"></div>
 			</div>
 
-			<p class="metrics-closing">
-				Baseball stats can&rsquo;t tell you who wins tonight. Transit
-				metrics are the same &mdash; they can&rsquo;t say whether every
-				rider got where they needed to be. What they can do is show
-				whether the system is trending in the right direction over time.
-			</p>
 		</section>
 
 		@templ.JSONScript("route-meta", vm.RouteMeta)
