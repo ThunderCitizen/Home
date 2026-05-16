@@ -21,6 +21,12 @@ type Config struct {
 	PatchesURL  string
 	MuniURL     string
 	BaseURL     string
+
+	// Server-side GoatCounter analytics. Empty URL or token ⇒ disabled
+	// (the dev/local default — no analytics, no behavior change).
+	AnalyticsURL   string
+	AnalyticsToken string
+	AnalyticsSite  string
 }
 
 func Load() *Config {
@@ -31,6 +37,10 @@ func Load() *Config {
 		PatchesURL:  Secret("PATCHES_URL", DataBaseURL+"/patches.zip"),
 		MuniURL:     Secret("MUNI_URL", DataBaseURL+"/index.json"),
 		BaseURL:     strings.TrimRight(Secret("BASE_URL", "http://localhost:8080"), "/"),
+
+		AnalyticsURL:   strings.TrimRight(Secret("GOATCOUNTER_URL", ""), "/"),
+		AnalyticsToken: Secret("GOATCOUNTER_TOKEN", ""),
+		AnalyticsSite:  Secret("GOATCOUNTER_SITE", "analytics.local"),
 	}
 }
 

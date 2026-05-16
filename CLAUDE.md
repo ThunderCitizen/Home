@@ -120,6 +120,10 @@ Grid/breakpoints, role-pill + badge slots, ward-color sync, vote-summary nowrap,
 
 Recipes, gotchas, examples → [docs/responsive-patterns.md](docs/responsive-patterns.md).
 
+## Analytics
+
+Server-side only — `internal/analytics` middleware (`Track`) reports GET pageviews for HTML routes (skips `/api/*`, `/static/*`, `/health`, `/version`, non-2xx) to a self-hosted GoatCounter over the internal Docker network. No client JS, no pixel, no cookies. Visitor IP + UA are passed so GoatCounter computes its own daily-salted session hash (uniques); we don't store them. **No bot pre-filter on purpose** — GoatCounter classifies bots itself and keeps them excluded-but-auditable; filtering here would only discard that evidence. Disabled (pass-through) unless `GOATCOUNTER_URL`/`GOATCOUNTER_TOKEN` are set, so dev is unaffected. The GoatCounter container is **not** in the Caddyfile and has no public port — dashboard is SSH-tunnel only (see DEPLOY.md "Analytics"). `/about`'s "no analytics pixels / no tracking cookies" claim stays accurate — server-side only, no pixel, no client script, no cookie.
+
 ## Docs
 
 - [docs/architecture.md](docs/architecture.md) - Stack, request flow, data provenance

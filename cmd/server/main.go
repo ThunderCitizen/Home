@@ -20,6 +20,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"thundercitizen/internal/analytics"
 	"thundercitizen/internal/assets"
 	"thundercitizen/internal/cache"
 	"thundercitizen/internal/config"
@@ -177,6 +178,14 @@ func main() {
 	// normalized buckets (/minutes/{id}, not /minutes/2026-03-17).
 	r.Use(metrics.Middleware)
 	r.Use(middleware.RequestLogger)
+	// Analytics: server-side pageview reporting to self-hosted GoatCounter.
+	// Disabled (pass-through) unless GOATCOUNTER_URL/TOKEN are set, so dev
+	// is unaffected. Placed after RequestLogger so it sees the same request
+	// and final status.
+	analyticsClient := analytics.New(cfg.AnalyticsURL, cfg.AnalyticsToken, cfg.AnalyticsSite)
+	analyticsCtx, analyticsCancel := context.WithCancel(context.Background())
+	go analyticsClient.Run(analyticsCtx)
+	r.Use(analytics.Track(analyticsClient))
 	// Social stashes the canonical BaseURL + request path on the context
 	// so layout.templ can emit absolute og:url / og:image without every
 	// view model threading the request through.
@@ -298,6 +307,9 @@ func main() {
 		log.Error("shutdown failed", "err", err)
 		os.Exit(1)
 	}
+	// Stop accepting requests first, then drain and flush queued pageviews.
+	analyticsCancel()
+	analyticsClient.Wait()
 	log.Info("stopped")
 }
 

@@ -306,6 +306,14 @@ services:
       - |
         DB_PASS=$$(cat /run/secrets/postgres_password)
         export DATABASE_URL="postgres://$$POSTGRES_USER:$$DB_PASS@db:5432/$$POSTGRES_DB?sslmode=disable"
+        # Server-side analytics. The token file is optional — if the
+        # operator hasn't created it yet the app still boots with
+        # analytics disabled (empty token ⇒ no-op middleware).
+        if [ -f /run/secrets/goatcounter_token ]; then
+          export GOATCOUNTER_URL="http://goatcounter:8080"
+          export GOATCOUNTER_SITE="analytics.local"
+          export GOATCOUNTER_TOKEN="$$(cat /run/secrets/goatcounter_token)"
+        fi
         exec /usr/local/bin/server
     depends_on:
       init:
@@ -343,9 +351,30 @@ services:
       app:
         condition: service_healthy
 
+  # Self-hosted GoatCounter. Fed only over the internal compose network by
+  # the app's analytics middleware (no client JS, no public /count). It is
+  # deliberately NOT in the Caddyfile and has NO public port — the dashboard
+  # binds to host loopback only and is reached via an SSH tunnel. See the
+  # "Analytics" section in DEPLOY.md.
+  goatcounter:
+    image: arp242/goatcounter:2.7
+    restart: unless-stopped
+    logging: *default-logging
+    # Image entrypoint is `goatcounter`; default listen is :8080 plain HTTP
+    # (no TLS — Caddy/internet never front this). -automigrate runs pending
+    # DB migrations on every boot (idempotent). SQLite lives at the image's
+    # pre-declared, pre-chowned data dir, so the named volume inherits the
+    # right ownership automatically — do NOT change this mount path.
+    command: ["serve", "-automigrate"]
+    volumes:
+      - goatcounter_data:/home/goatcounter/goatcounter-data
+    ports:
+      - "127.0.0.1:8081:8080"   # loopback ONLY — SSH-tunnel access, never public
+
 volumes:
   # No explicit `name:` — compose auto-prefixes with the project name
   # `thundercitizen-prod`, yielding `thundercitizen-prod_postgres_data`, etc.
   postgres_data:
   caddy_data:
   caddy_config:
+  goatcounter_data:
