@@ -792,7 +792,7 @@ function busInfoHtml(v: LocalVehicle): string {
   else status = "In transit";
   if (v.nearStop) status += " \u2022 " + v.nearStop;
   let motion = "";
-  if (v.speed > 0) motion = bearingArrow(v.bearing) + " " + Math.round(v.speed * 3.6) + " km/h";
+  if (v.speed > 0) motion = bearingArrow(v.bearing) + " " + Math.round(v.speed * 3.6) + " km/h";
   else if (v.bearing) motion = bearingArrow(v.bearing);
   // OTP window: 1m early to 5m late — inside that, say nothing.
   let delay = "";
@@ -2642,7 +2642,7 @@ function busStatusText(v: LocalVehicle): string {
   else if (v.status === 'INCOMING_AT') s = 'Approaching';
   else s = 'In transit';
   if (v.nearStop) s += ' \u2022 ' + v.nearStop;
-  if (v.speed > 0) s += ' \u2022 ' + Math.round(v.speed * 3.6) + ' km/h ' + bearingArrow(v.bearing);
+  if (v.speed > 0) s += ' \u2022 ' + Math.round(v.speed * 3.6) + '\u00a0km/h\u00a0' + bearingArrow(v.bearing);
   return s;
 }
 

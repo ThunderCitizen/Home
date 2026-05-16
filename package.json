@@ -17,7 +17,7 @@
     "css": "sass --style=compressed --quiet-deps --load-path=node_modules static/css/style.scss static/css/style.css",
     "css:watch": "sass --watch --quiet-deps --load-path=node_modules static/css/style.scss static/css/style.css",
     "gen:ts": "go run scripts/gen-ts-types.go",
-    "build:js": "npx tsc --noEmit && esbuild web/transit/transit-map.ts --bundle --format=iife --minify --sourcemap --outfile=static/transit/transit-map.js --alias:leaflet=./web/leaflet-shim.cjs",
+    "build:js": "npx tsc --noEmit && esbuild web/transit/transit-map.ts --bundle --format=iife --minify --outfile=static/transit/transit-map.js --alias:leaflet=./web/leaflet-shim.cjs",
     "build:js:watch": "esbuild web/transit/transit-map.ts --bundle --format=iife --sourcemap --outfile=static/transit/transit-map.js --alias:leaflet=./web/leaflet-shim.cjs --watch",
     "lint:js": "eslint static/",
     "lint:ts": "eslint web/",

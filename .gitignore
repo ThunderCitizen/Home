@@ -43,3 +43,5 @@ backups/
 
 # Caddy access logs (bind-mounted by docker-compose.prod.yml, rotated daily, max age 7 days)
 caddy-logs/
+
+static/transit/transit-map.js.map
