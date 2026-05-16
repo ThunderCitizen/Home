@@ -72,24 +72,7 @@ func splitMobileColumns(cols []views.VoteMatrixColumn, n int) ([]views.VoteMatri
 // publishes all motion records on its eScribe meeting portal.
 var escribeRef = models.SourceRef{
 	URL:   "https://pub-thunderbay.escribemeetings.com",
-	Label: "Thunder Bay eScribe",
-}
-
-// escribeRefAsOf returns a SourceRef for the eScribe portal stamped with the
-// date of the most recent motion (full date precision — vote data is meaningful
-// at day granularity).
-func escribeRefAsOf(vm *views.VoteMatrixViewModel) models.SourceRef {
-	ref := escribeRef
-	if vm != nil && len(vm.Columns) > 0 {
-		ref.AsOf = vm.Columns[0].Date
-	}
-	return ref
-}
-
-templ accordionToggle() {
-	<div class="selector-bar-group">
-		<button type="button" class="selector-bar-btn" id="toggle-all-councillors">Open all</button>
-	</div>
+	Label: "Thunder Bay eScribe minutes",
 }
 
 templ Councillors(vm views.CouncillorsViewModel) {
@@ -104,7 +87,6 @@ templ Councillors(vm views.CouncillorsViewModel) {
 
 		@voteMatrixDetailScript()
 		@voteMatrixPhotoSync()
-		@components.AccordionAnimateScript()
 	}
 }
 
@@ -113,7 +95,7 @@ templ Councillors(vm views.CouncillorsViewModel) {
 templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	<div class="councillor-sticky-area">
 		@components.YearSelector(vm.TermSelector)
-		@components.PageHeader(components.PageHeaderProps{Title: "Councillors"})
+		@components.PageHeader(components.PageHeaderProps{Title: "2022–2026 Council"})
 		@components.TermPanel(components.TermPanelProps{Title: "Council Structure", HeadingLevel: 2}) {
 			<p class="compensation-lead">Thunder Bay's 13-member council: 1 mayor, 5 at-large, and 7 ward representatives.</p>
 			@components.TermMetricGrid(components.TermMetricGridProps{Cols: 3}) {
@@ -123,30 +105,21 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 			}
 		}
 
-	@components.TermPanel(components.TermPanelProps{Title: "Members", HeaderAction: accordionToggle(), Footer: components.SourceFooter(vm.Source), HeadingLevel: 2}) {
-		<h3 class="section-subheader">Mayor</h3>
-		<div data-section="mayor">
-			@councillorItem(vm.Mayor)
-		</div>
-
-		<h3 class="section-subheader">At-Large <small>Elected citywide</small></h3>
-		<div data-section="atLarge">
+	@components.TermPanel(components.TermPanelProps{Title: "Members", Footer: components.SourceFooter(vm.Source), HeadingLevel: 2}) {
+		<div class="councillor-grid">
+			@councillorCard(vm.Mayor, "mayor")
 			for _, c := range vm.AtLargeCouncillors {
-				@councillorItem(c)
+				@councillorCard(c, "atlarge")
 			}
-		</div>
-
-		<h3 class="section-subheader">Ward <small>Elected by geographic area</small></h3>
-		<div data-section="ward">
 			for _, c := range vm.WardCouncillors {
-				@wardCouncillorItem(c)
+				@councillorCard(c, "ward")
 			}
 		</div>
 
 	}
 
 	if vm.VoteMatrix != nil && len(vm.VoteMatrix.Columns) > 0 {
-		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes", Footer: components.SourceFooter(escribeRefAsOf(vm.VoteMatrix)), HeadingLevel: 2}) {
+		@components.TermPanel(components.TermPanelProps{Title: "Recorded Votes", Footer: components.SourceFooter(escribeRef), HeadingLevel: 2}) {
 			@voteMatrix(vm.VoteMatrix)
 		}
 	}
@@ -171,48 +144,85 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 	</section>
 }
 
-templ wardCouncillorItem(c views.CouncillorView) {
-	@components.AccordionItem(components.AccordionItemProps{
-		ID:        c.ID,
-		Title:     c.Name,
-		Avatar:    c.Initials,
-		Photo:     c.Photo,
-		Subtitle:  c.Position,
-		Note:      c.Term,
-		NoteClass: c.TermClass,
-		Badge:      c.Status,
-		BadgeClass: statusBadgeClass(c.Status),
-		BadgeURL:   c.StatusURL,
-		WardName:   c.Position,
-	}) {
-		<p class="councillor-bio">{ c.Summary }</p>
-		@councillorVoteStats(c)
+// councillorCardAvatar renders the photo or initials fallback at card size.
+templ councillorCardAvatar(c views.CouncillorView) {
+	if c.Photo != "" {
+		<img class="councillor-card-photo" src={ c.Photo } alt={ c.Name }/>
+	} else {
+		<span class="councillor-card-avatar" aria-hidden="true">{ c.Initials }</span>
 	}
 }
 
-templ councillorItem(c views.CouncillorView) {
-	@components.AccordionItem(components.AccordionItemProps{
-		ID:         c.ID,
-		Title:      c.Name,
-		Avatar:     c.Initials,
-		Photo:      c.Photo,
-		Subtitle:   c.Position,
-		Note:       c.Term,
-		NoteClass:  c.TermClass,
-		Badge:      c.Status,
-		BadgeClass: statusBadgeClass(c.Status),
-		BadgeURL:   c.StatusURL,
-	}) {
-		<p class="councillor-bio">{ c.Summary }</p>
-		@councillorVoteStats(c)
+// councillorCardStatus renders the optional status badge, as a source link
+// when a URL is available.
+templ councillorCardStatus(c views.CouncillorView) {
+	if c.Status != "" {
+		if c.StatusURL != "" {
+			<a
+				href={ templ.SafeURL(c.StatusURL) }
+				class={ "badge", statusBadgeClass(c.Status) }
+				target="_blank"
+				rel="noopener"
+				title="Source"
+			>{ c.Status }</a>
+		} else {
+			<span class={ "badge", statusBadgeClass(c.Status) }>{ c.Status }</span>
+		}
 	}
+}
+
+templ councillorCard(c views.CouncillorView, kind string) {
+	<article
+		class="councillor-card"
+		id={ c.ID }
+		if kind == "ward" {
+			data-ward={ c.Position }
+		}
+	>
+		<div class="councillor-card-head">
+			@councillorCardAvatar(c)
+			<div class="councillor-card-id">
+				<div class="councillor-card-rolerow">
+					switch kind {
+						case "mayor":
+							<span class="badge badge-mayor councillor-card-role">Mayor</span>
+						case "atlarge":
+							<span class="badge badge-atlarge councillor-card-role">At-Large</span>
+						default:
+							<span class="badge councillor-ward-badge councillor-card-role">{ c.Position }</span>
+					}
+					if c.Term != "" {
+						<span class={ "badge", c.TermClass }>{ c.Term }</span>
+					}
+				</div>
+				<strong class="councillor-card-name">{ c.Name }</strong>
+			</div>
+		</div>
+		<p class="councillor-bio">{ c.Summary }</p>
+		{{ hasTitle := kind == "atlarge" && c.Position != "" }}
+		if hasTitle || c.Status != "" || c.VoteStats != nil {
+			<div class="councillor-card-foot">
+				if hasTitle || c.Status != "" {
+					<div class="councillor-card-badges">
+						if hasTitle {
+							<span class="badge">{ c.Position }</span>
+						}
+						@councillorCardStatus(c)
+					</div>
+				}
+				@councillorVoteStats(c)
+			</div>
+		}
+	</article>
 }
 
 templ councillorVoteStats(c views.CouncillorView) {
 	if c.VoteStats != nil {
 		<div class="councillor-votes">
 			<p class="vote-summary">
-				{ c.VoteStats.ForCount } for · { c.VoteStats.AgainstCount } against across recorded votes
+				<span class="vote-summary-stat">{ c.VoteStats.ForCount } for</span> ·
+				<span class="vote-summary-stat">{ c.VoteStats.AgainstCount } against</span> ·
+				<span class="vote-summary-stat">{ c.VoteStats.AbsentCount } absent</span>
 			</p>
 		</div>
 	}
@@ -460,11 +470,14 @@ templ voteMatrixDetailScript() {
 templ voteMatrixPhotoSync() {
 	<script>
 	(function() {
-		function sync() {
+		var scrollWired = false;
+
+		// Copy column widths from a data row onto the sticky header rows.
+		// Idempotent — safe to call on every resize.
+		function syncWidths() {
 			var w = document.querySelector('.vote-matrix-wrapper');
 			var s = document.querySelector('.vote-matrix-sticky-scroll');
 			if (!w || !s) return;
-			// Sync column widths from a data row
 			var dataRows = w.querySelectorAll('tbody tr.vote-matrix-row');
 			var dr = dataRows.length > 0 ? dataRows[0] : null;
 			if (dr) {
@@ -473,12 +486,19 @@ templ voteMatrixPhotoSync() {
 						pr.children[i].style.width = dr.children[i].offsetWidth + 'px';
 				});
 			}
-			// Hide thead in table (kept for column sizing)
 			var thead = w.querySelector('.vote-matrix-sizing-head');
 			if (thead) thead.style.visibility = 'collapse';
-			// Sync horizontal scroll — rAF-throttled, passive for iOS scroll perf.
+		}
+
+		// Wire the horizontal-scroll mirror exactly once (listener would
+		// otherwise stack on every sync/resize call).
+		function wireScroll() {
+			if (scrollWired) return;
+			var w = document.querySelector('.vote-matrix-wrapper');
+			var s = document.querySelector('.vote-matrix-sticky-scroll');
+			if (!w || !s) return;
+			scrollWired = true;
 			var ticking = false;
-			w.onscroll = null;
 			w.addEventListener('scroll', function() {
 				if (ticking) return;
 				ticking = true;
@@ -488,8 +508,25 @@ templ voteMatrixPhotoSync() {
 				});
 			}, { passive: true });
 		}
+
+		function sync() {
+			syncWidths();
+			wireScroll();
+		}
+
 		sync();
-		document.body.addEventListener('htmx:afterSwap', sync);
+		document.body.addEventListener('htmx:afterSwap', function() {
+			scrollWired = false; // wrapper element is replaced by the swap
+			sync();
+		});
+
+		// Re-measure on resize — the data table reflows fluidly but the
+		// sticky header's px widths are frozen until we recopy them.
+		var rt;
+		window.addEventListener('resize', function() {
+			clearTimeout(rt);
+			rt = setTimeout(syncWidths, 80);
+		}, { passive: true });
 	})();
 	</script>
 }

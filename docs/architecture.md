@@ -87,7 +87,7 @@ Reusable templ components using semantic HTML with Pico CSS:
 | `Card`, `LinkedCard` | `<article>` | Content cards |
 | `StatGrid` | CSS Grid | Statistics display |
 | `PageHeader`, `Hero` | `<header>` | Page headers |
-| `AccordionItem` | `<details>/<summary>` | Collapsible sections (animated open/close) |
+| `Aside` | `<details>/<summary>` | Collapsible tip/note (native) |
 | `InitialsAvatar` | `<span>` | Avatar with initials |
 | `YearSelector` | `<article>/<nav>` | Year navigation (reusable) |
 | `TabSelector` | `<nav>` | Tab switching (transit page) |
@@ -177,7 +177,7 @@ The earlier `documents` + `facts` + `fact_citations` citation graph was removed 
 - **Source attribution** — Muni bundle datasets carry SHA-256 fingerprints + signer in `data_patch_log`; every apply is timestamped
 - **Progressive enhancement** — Pages work without JS; Leaflet/D3/HTMX enhance when available
 - **Client-side switching** — Budget years and council terms switch via embedded JSON without page reloads
-- **Animated interactions** — Accordion open/close, modal entrance/exit, ward map hover states
+- **Animated interactions** — Vote-matrix detail expand/collapse, modal entrance/exit, ward map hover states
 
 ## Generated Files (do not edit)
 

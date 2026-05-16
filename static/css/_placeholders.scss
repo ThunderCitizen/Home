@@ -19,6 +19,30 @@
   --term-scanline: rgba(0, 0, 0, 0.02);
 }
 
+// Segmented control shell — the bordered, padded pill that wraps a row of
+// related tab/button children (Info tabs, Layers/Features/Terminals selectors,
+// kiosk action group). Children sit flush with no gap; 1px vertical dividers
+// separate adjacent siblings so a 2/3/4-button strip reads as discrete cells
+// instead of one merged block. Children are responsible for their own
+// padding, hover/active states, and (if needed) radius — the shell owns
+// the outer chrome only.
+%segmented-shell {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 3px;
+  border: 1px solid var(--term-border);
+  border-radius: var(--radius-sm);
+  background: var(--term-bg);
+
+  // Divider is an inset box-shadow, not a border: children commonly reset
+  // `border: 0` to kill the default button outline, and an equal-specificity
+  // `border-left` would lose to it on source order. box-shadow sidesteps that.
+  > * + * {
+    box-shadow: inset 1px 0 0 0 var(--term-border);
+  }
+}
+
 // Reusable scanline overlay — extend on any positioned element
 %term-scanlines {
   &::after {

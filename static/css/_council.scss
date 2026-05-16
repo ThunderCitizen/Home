@@ -5,59 +5,13 @@
 @use "mixins" as *;
 @use "placeholders" as *;
 
-// Councillor biography paragraph inside accordion items — prose font for
+// Councillor biography paragraph inside the member card — prose font for
 // long-form readability (the body default is monospace).
 .councillor-bio {
   font-family: var(--font-prose);
   font-size: var(--text-base);
   line-height: 1.55;
   color: var(--thunder-700);
-}
-
-.councillor-profile-header {
-  margin-bottom: 1rem;
-}
-
-.councillor-profile-identity {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-
-  h1 { margin: 0; }
-  .lead { margin: 0.25rem 0 0; }
-}
-
-.councillor-profile-photo {
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.councillor-avatar-lg {
-  width: 96px;
-  height: 96px;
-  font-size: var(--text-2xl);
-  flex-shrink: 0;
-}
-
-.councillor-votes-table {
-  font-size: var(--text-base);
-
-  .vote-date {
-    white-space: nowrap;
-    font-weight: var(--weight-semi);
-  }
-
-  .vote-agenda {
-    font-size: var(--text-base);
-    display: block;
-  }
-
-  .vote-summary {
-    font-size: var(--text-sm);
-    color: var(--thunder-500);
-    margin: 0.15rem 0 0;
-    line-height: 1.3;
-  }
 }
 
 .recent-meetings {
@@ -957,15 +911,17 @@
   .badge-term-6 { @include badge-light-hue(#d4a574); } // warm brown
   .badge-term-7 { @include badge-light-hue(#e5e7eb); } // white phosphor
   .badge-term-8 { @include badge-light-hue(#e5e7eb); }
+  .badge-mayor  { @include badge-light-hue(#d4a574); } // gold
+  .badge-atlarge { @include badge-light-hue(#2dd4bf); } // teal — non-geographic
 
-  // Ward subtitle badges
-  [data-ward="Current River"] .accordion-subtitle { @include badge-light-hue(#60a5fa); }
-  [data-ward="McIntyre"]      .accordion-subtitle { @include badge-light-hue(#4ade80); }
-  [data-ward="McKellar"]      .accordion-subtitle { @include badge-light-hue(#fbbf24); }
-  [data-ward="Westfort"]      .accordion-subtitle { @include badge-light-hue(#f87171); }
-  [data-ward="Neebing"]       .accordion-subtitle { @include badge-light-hue(#c084fc); }
-  [data-ward="Northwood"]     .accordion-subtitle { @include badge-light-hue(#22d3ee); }
-  [data-ward="Red River"]     .accordion-subtitle { @include badge-light-hue(#f472b6); }
+  // Ward role pills — colors match WARD_COLORS in ward-map.js
+  [data-ward="Current River"] .councillor-ward-badge { @include badge-light-hue(#60a5fa); }
+  [data-ward="McIntyre"]      .councillor-ward-badge { @include badge-light-hue(#4ade80); }
+  [data-ward="McKellar"]      .councillor-ward-badge { @include badge-light-hue(#fbbf24); }
+  [data-ward="Westfort"]      .councillor-ward-badge { @include badge-light-hue(#f87171); }
+  [data-ward="Neebing"]       .councillor-ward-badge { @include badge-light-hue(#c084fc); }
+  [data-ward="Northwood"]     .councillor-ward-badge { @include badge-light-hue(#22d3ee); }
+  [data-ward="Red River"]     .councillor-ward-badge { @include badge-light-hue(#f472b6); }
 }
 
 @mixin badge-dark-overrides-council {
@@ -982,13 +938,15 @@
   .badge-term-6   { @include badge-dark-hue(#d4a574); }
   .badge-term-7   { @include badge-dark-hue(#e5e7eb); }
   .badge-term-8   { @include badge-dark-hue(#e5e7eb); }
-  [data-ward="Current River"] .accordion-subtitle { @include badge-dark-hue(#60a5fa); }
-  [data-ward="McIntyre"]      .accordion-subtitle { @include badge-dark-hue(#4ade80); }
-  [data-ward="McKellar"]      .accordion-subtitle { @include badge-dark-hue(#fbbf24); }
-  [data-ward="Westfort"]      .accordion-subtitle { @include badge-dark-hue(#f87171); }
-  [data-ward="Neebing"]       .accordion-subtitle { @include badge-dark-hue(#c084fc); }
-  [data-ward="Northwood"]     .accordion-subtitle { @include badge-dark-hue(#22d3ee); }
-  [data-ward="Red River"]     .accordion-subtitle { @include badge-dark-hue(#f472b6); }
+  .badge-mayor    { @include badge-dark-hue(#fbbf24); } // gold
+  .badge-atlarge  { @include badge-dark-hue(#2dd4bf); } // teal — non-geographic
+  [data-ward="Current River"] .councillor-ward-badge { @include badge-dark-hue(#60a5fa); }
+  [data-ward="McIntyre"]      .councillor-ward-badge { @include badge-dark-hue(#4ade80); }
+  [data-ward="McKellar"]      .councillor-ward-badge { @include badge-dark-hue(#fbbf24); }
+  [data-ward="Westfort"]      .councillor-ward-badge { @include badge-dark-hue(#f87171); }
+  [data-ward="Neebing"]       .councillor-ward-badge { @include badge-dark-hue(#c084fc); }
+  [data-ward="Northwood"]     .councillor-ward-badge { @include badge-dark-hue(#22d3ee); }
+  [data-ward="Red River"]     .councillor-ward-badge { @include badge-dark-hue(#f472b6); }
   // Motion filter pills (active state only; inactive uses neutral --thunder-* vars)
   .motion-filter-pill--all:has(input:checked)        { @include badge-dark-hue(#4ade80); }
   .motion-filter-pill--carried:has(input:checked)    { @include badge-dark-hue(#4ade80); }

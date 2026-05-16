@@ -311,8 +311,7 @@ article > header {
 // High contrast mode
 @media (forced-colors: active) {
   .budget-bar-fill,
-  .budget-swatch,
-  .councillor-avatar {
+  .budget-swatch {
     forced-color-adjust: none;
   }
 }
@@ -1076,107 +1075,111 @@ a.card-link {
 }
 
 // ==========================================================================
-// ACCORDION (using native <details>/<summary>)
+// COUNCILLOR CARDS
 // ==========================================================================
 
+.councillor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
 
-details.accordion-item {
-  border: 1px solid var(--pico-muted-border-color);
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  background: var(--pico-card-background-color);
+  @include respond-to('lg') {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @include respond-to('sm') {
-    border: none;
-    border-radius: 0;
-    margin-bottom: 0;
-    margin-left: calc(-1 * var(--space-3));
-    margin-right: calc(-1 * var(--space-3));
-    background: transparent;
-    border-bottom: 1px solid var(--pico-muted-border-color);
-
-    &:last-child {
-      border-bottom: none;
-    }
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
   }
+}
 
-  summary {
-    padding: 0.75rem 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: var(--weight-medium);
+.councillor-card {
+  @extend %card-accent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
 
-    &:hover {
-      background: inherit;
-    }
+.councillor-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
 
-    &::-webkit-details-marker {
-      display: none;
-    }
+.councillor-card-photo,
+.councillor-card-avatar {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
-    &::after {
-      @include theme-chevron(1rem);
-      margin-left: 0.5rem;
-    }
+.councillor-card-photo {
+  object-fit: cover;
+}
 
-    strong {
-      min-width: 0;
-    }
+.councillor-card-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--thunder-700);
+  color: white;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semi);
+}
 
-    .accordion-right {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
+.councillor-card-id {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-width: 0;
+}
 
-    @include respond-to('sm') {
-      padding: 0.75rem;
-      flex-wrap: wrap;
+.councillor-card-rolerow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+}
 
-      strong {
-        flex: 1 1 0;
-      }
+.councillor-card-name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semi);
+  line-height: 1.2;
+}
 
-      &::after {
-        margin-left: auto;
-      }
+.councillor-card-role {
+  max-width: 100%;
+}
 
-      .accordion-right {
-        flex-basis: 100%;
-        margin-left: 0;
-        padding-left: 2.5rem;
-      }
-    }
-  }
+.councillor-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
 
-  &[open] > summary::after {
-    transform: rotate(0);
-  }
+.councillor-card .councillor-bio {
+  margin: 0;
+  font-size: var(--text-sm);
+}
 
-  .accordion-content {
-    display: grid;
-    grid-template-rows: 1fr;
-    opacity: 1;
-    transition: grid-template-rows 0.2s ease, opacity 0.2s ease;
-    border-top: 1px solid var(--pico-muted-border-color);
-    padding: 0.75rem 1rem 1rem;
+.councillor-card-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: auto;
+}
 
-    @include respond-to('sm') {
-      padding: 0.75rem;
-    }
+.councillor-card-foot .councillor-votes {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--thunder-200);
+}
 
-    > * {
-      overflow: hidden;
-    }
-  }
-
-  &.accordion-closing .accordion-content {
-    grid-template-rows: 0fr;
-    opacity: 0;
-  }
+.councillor-card .councillor-votes {
+  margin: 0;
 }
 
 // ==========================================================================
@@ -1190,6 +1193,10 @@ details.accordion-item {
     font-size: 0.82rem;
     color: var(--thunder-500);
     margin: 0;
+  }
+
+  .vote-summary-stat {
+    white-space: nowrap;
   }
 
 }
@@ -1616,32 +1623,6 @@ h3.vote-matrix-card-label {
 }
 
 // ==========================================================================
-// COUNCILLOR AVATAR
-// ==========================================================================
-
-.councillor-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--thunder-700);
-  color: white;
-  font-size: 0.75rem;
-  font-weight: var(--weight-semi);
-  flex-shrink: 0;
-}
-
-.councillor-photo {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-// ==========================================================================
 // BADGES/LABELS
 // ==========================================================================
 
@@ -1957,24 +1938,6 @@ h3.vote-matrix-card-label {
   font-variant-numeric: tabular-nums;
 }
 
-.section-subheader {
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 1px solid var(--thunder-200);
-
-  &:first-child {
-    margin-top: 0;
-  }
-
-  small {
-    font-weight: var(--weight-normal);
-    font-size: 0.85rem;
-    color: var(--thunder-500);
-    margin-left: 0.5rem;
-  }
-
-}
 
 // ==========================================================================
 // MOTIONS PAGE

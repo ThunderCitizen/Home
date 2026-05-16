@@ -4,10 +4,6 @@ type ThemePickerProps struct {
 	LabelID string // aria-labelledby target
 	Label   string // visible label text; defaults to "Theme" if empty
 	Class   string // extra class on .theme-picker-wrap
-	// Kiosk: render the kiosk (amber-on-black, distance-legible) option as a
-	// fourth radio. Used on /transit/terminals where signage-grade legibility
-	// matters more than design-system uniformity.
-	Kiosk bool
 }
 
 func (p ThemePickerProps) label() string {
@@ -42,17 +38,6 @@ templ ThemePicker(props ThemePickerProps) {
 					<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
 				</svg>
 			</button>
-			if props.Kiosk {
-				<button class="theme-pick" role="radio" data-theme-pick="kiosk" aria-label="High-contrast kiosk theme — amber on black for distance legibility" title="Kiosk (high contrast)">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
-						<rect x="3" y="3" width="18" height="14" rx="1"></rect>
-						<line x1="3" y1="9" x2="21" y2="9"></line>
-						<line x1="3" y1="13" x2="21" y2="13"></line>
-						<line x1="9" y1="21" x2="15" y2="21"></line>
-						<line x1="12" y1="17" x2="12" y2="21"></line>
-					</svg>
-				</button>
-			}
 		</div>
 		<span class="theme-picker-current" aria-live="polite">system</span>
 	</div>

@@ -114,24 +114,33 @@ func LoadStaging(ctx context.Context, tx pgx.Tx, fsys fs.FS, ds Dataset, staging
 	return header, nil
 }
 
-// CastExpressions builds NULLIF/cast expressions for each TSV column,
-// based on the target table's actual column types. Use these in an
-// INSERT...SELECT to convert text columns from staging into typed values.
-func CastExpressions(ctx context.Context, tx pgx.Tx, table string, header []string) ([]string, error) {
+// CastExpressions builds NULLIF/cast expressions for the subset of TSV
+// columns that actually exist in the target table, based on the table's
+// real column types. TSV columns absent from the table are silently
+// dropped (tolerant reader): this decouples bundle vintage from schema so
+// a column removed from the schema doesn't break Apply for older signed
+// bundles that still carry it (and vice versa). Returns the kept columns
+// in header order alongside their aligned cast expressions.
+func CastExpressions(ctx context.Context, tx pgx.Tx, table string, header []string) ([]string, []string, error) {
 	info, err := getColumnInfo(ctx, tx, table, header)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	exprs := make([]string, len(header))
-	for i, col := range header {
-		ci := info[col]
+	cols := make([]string, 0, len(header))
+	exprs := make([]string, 0, len(header))
+	for _, col := range header {
+		ci, ok := info[col]
+		if !ok {
+			continue // column not in target table — ignore it
+		}
+		cols = append(cols, col)
 		if ci.nullable {
-			exprs[i] = fmt.Sprintf(`NULLIF(s."%s", '')::%s`, col, ci.castType)
+			exprs = append(exprs, fmt.Sprintf(`NULLIF(s."%s", '')::%s`, col, ci.castType))
 		} else {
-			exprs[i] = fmt.Sprintf(`s."%s"::%s`, col, ci.castType)
+			exprs = append(exprs, fmt.Sprintf(`s."%s"::%s`, col, ci.castType))
 		}
 	}
-	return exprs, nil
+	return cols, exprs, nil
 }
 
 // UpsertFromStaging generates INSERT INTO table FROM staging with
@@ -140,11 +149,11 @@ func CastExpressions(ctx context.Context, tx pgx.Tx, table string, header []stri
 // ON CONFLICT DO NOTHING (e.g. when the caller has already resolved
 // deduplication via a custom JOIN-based insert).
 func UpsertFromStaging(ctx context.Context, tx pgx.Tx, table, stagingTable string, header, conflictKeys []string) error {
-	casts, err := CastExpressions(ctx, tx, table, header)
+	cols, casts, err := CastExpressions(ctx, tx, table, header)
 	if err != nil {
 		return err
 	}
-	colList := quotedCols(header)
+	colList := quotedCols(cols)
 
 	conflict := "ON CONFLICT DO NOTHING"
 	if len(conflictKeys) > 0 {
@@ -153,7 +162,7 @@ func UpsertFromStaging(ctx context.Context, tx pgx.Tx, table, stagingTable strin
 			keySet[k] = true
 		}
 		var setClauses []string
-		for _, c := range header {
+		for _, c := range cols {
 			if keySet[c] {
 				continue
 			}

@@ -86,7 +86,7 @@ These aren't required for AA but serve our civic transparency mission:
 
 Leaflet maps support keyboard zoom but individual markers aren't keyboard-focusable. Mitigation:
 
-- Ward map: `aria-label` directs users to the councillor list below, which has all the same information in accessible accordions
+- Ward map: `aria-label` directs users to the councillor list below, which has all the same information in a static card grid (no expand/collapse — bio and stats are always visible)
 - Transit map: `aria-label` describes what the map shows. Live stats below provide the key data (bus count, route count) without needing the map
 
 **Future**: Add a text-based route/vehicle list view as an alternative to the map.

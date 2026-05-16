@@ -639,15 +639,21 @@ function connectVehicleStream(): void {
   sseSource.onmessage = function (e: MessageEvent) {
     try {
       const data = JSON.parse(e.data) as SSEPayload;
-      if ("sleep" in data) {
-        updateStatus("quiet", "Service ended");
-        updateRouteGrid([]);
-        setStatValue("terminal-bus-count", "0");
-        return;
+      switch (data.status) {
+        case "sleep":
+          updateStatus("quiet", "Service ended");
+          updateRouteGrid([]);
+          setStatValue("terminal-bus-count", "0");
+          return;
+        case "stale":
+          updateStatus("warn", "Feed stale");
+          return;
+        case "live":
+          handleVehicleData(data as VehiclePayload);
+          lastLiveAt = Date.now();
+          updateStatus("live");
+          return;
       }
-      handleVehicleData(data);
-      lastLiveAt = Date.now();
-      updateStatus("live");
     } catch (err) {
       console.warn("SSE parse error:", err);
     }
@@ -680,7 +686,10 @@ function connectVehicleStream(): void {
   sseSource.onopen = function () {
     isDead = false;
     reconnectDelay = 3000;
-    updateStatus("live");
+    // Don't force "Live" here — the server sends its current state (either
+    // the latest payload or a stale marker) on connect, and onmessage will
+    // pick the right status. Forcing "Live" first causes a flicker that
+    // can clobber a stale marker arriving microseconds later.
   };
 }
 
@@ -688,10 +697,13 @@ function fetchVehiclesFallback(): void {
   fetch(VEHICLE_JSON_URL)
     .then(function (resp) {
       if (!resp.ok) throw new Error("HTTP " + resp.status);
-      return resp.json() as Promise<VehiclePayload>;
+      return resp.json() as Promise<SSEPayload>;
     })
     .then(function (data) {
-      handleVehicleData(data);
+      if (data.status === "stale") { updateStatus("warn", "Feed stale"); return; }
+      if (data.status === "sleep") { updateStatus("quiet", "Service ended"); return; }
+      handleVehicleData(data as VehiclePayload);
+      updateStatus("live");
     })
     .catch(function (err) {
       console.warn("Transit feed error:", err);
@@ -2716,7 +2728,6 @@ function updateBusesPanel(): void {
 
 function buildCancelRow(rid: string, t: CancelledTrip): HTMLElement {
   const color = ROUTE_COLORS[rid] || TC.statusMuted;
-  const name = ROUTE_NAMES[rid] || '';
   const timeRange = (t.start_time || '') + (t.end_time ? ' \u2013 ' + t.end_time : '');
 
   const wrap = document.createElement('div');
@@ -2733,45 +2744,51 @@ function buildCancelRow(rid: string, t: CancelledTrip): HTMLElement {
   const detail = document.createElement('span');
   detail.className = 'stat-modal-detail';
 
+  // The badge already carries the route identity, so the route name is
+  // redundant and produces "Eastend to Eastend" when name == headsign.
+  // Show just the destination (headsign) here.
   const top = document.createElement('span');
   top.className = 'stat-modal-bus-top';
-  if (name) {
-    const nameEl = document.createElement('span');
-    nameEl.className = 'info-name';
-    nameEl.textContent = name;
-    top.appendChild(nameEl);
-  }
   if (t.headsign) {
     const headsignEl = document.createElement('span');
     headsignEl.className = 'cancel-headsign';
-    headsignEl.textContent = ' to ' + t.headsign;
+    headsignEl.textContent = t.headsign;
     top.appendChild(headsignEl);
   }
 
   const sub = document.createElement('span');
   sub.className = 'stat-modal-sub';
   if (timeRange) {
+    const schedGroup = document.createElement('span');
+    schedGroup.className = 'cancel-sched-group';
+
+    const schedLabel = document.createElement('span');
+    schedLabel.className = 'cancel-info-label';
+    schedLabel.textContent = 'Scheduled';
+    schedGroup.appendChild(schedLabel);
+
     const timeEl = document.createElement('span');
     timeEl.className = 'cancel-time-range';
     timeEl.textContent = timeRange;
-    sub.appendChild(timeEl);
+    schedGroup.appendChild(timeEl);
+
+    sub.appendChild(schedGroup);
   }
   if (t.first_seen) {
-    if (timeRange) {
-      const sep = document.createElement('span');
-      sep.className = 'cancel-info-sep';
-      sep.textContent = '\u00B7';
-      sub.appendChild(sep);
-    }
+    // Keep "Reported HH:MM — N min before" as one unbreakable unit so the
+    // label never strands on its own line away from its timestamp.
+    const reported = document.createElement('span');
+    reported.className = 'cancel-reported-group';
+
     const label = document.createElement('span');
     label.className = 'cancel-info-label';
-    label.textContent = 'First reported';
-    sub.appendChild(label);
+    label.textContent = 'Reported';
+    reported.appendChild(label);
 
     const time = document.createElement('span');
     time.className = 'cancel-info-time';
     time.textContent = t.first_seen;
-    sub.appendChild(time);
+    reported.appendChild(time);
 
     if (t.lead_min != null) {
       const m = Math.abs(t.lead_min);
@@ -2788,13 +2805,15 @@ function buildCancelRow(rid: string, t: CancelledTrip): HTMLElement {
       const sep = document.createElement('span');
       sep.className = 'cancel-info-sep';
       sep.textContent = '\u2014';
-      sub.appendChild(sep);
+      reported.appendChild(sep);
 
       const notice = document.createElement('span');
       notice.className = 'cancel-info-notice';
       notice.textContent = rel;
-      sub.appendChild(notice);
+      reported.appendChild(notice);
     }
+
+    sub.appendChild(reported);
   }
 
   detail.appendChild(top);

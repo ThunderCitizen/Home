@@ -95,11 +95,23 @@ Full palette tables, typography stack, accessing colors from JS/SCSS, phosphor-p
 - **Skeleton loading** — route grid shows pulsing pill shapes, live stats show skeleton text blocks (`.skeleton` / `.skeleton-text` / `.skeleton-pill` classes with `skeleton-pulse` animation)
 - **Map container** uses shared `LeafletMap` with `Class: "transit-map-wrap"` for terminal theming. Transit's custom `terminal-map-header` sits above it with title, layer bar, and Features controls.
 - **Zoom buttons** — shared component positions them bottom-left. Pico CSS overrides ensure `+` has rounded top, `-` has rounded bottom
-- **Selector bars (segmented control)** — `.selector-bar-btns` wrapper draws the single rounded outer border + inner padding/gap; child `.selector-bar-btn`s are borderless tiles that rest inside with breathing room. Same shell wraps Layers, Features, Info tabs, and the Terminals tabs. Don't put borders on the btns themselves and don't add `gap`/`margin` between them — let the wrapper own the rhythm. Adjacent shells line up vertically by giving each `.selector-bar-label` the same `min-width` + `text-align: end`.
+- **Selector bars (segmented control)** — `%segmented-shell` (in `_placeholders.scss`) is the **single source of truth** for any tab/button strip: outer 1px `--term-border` + radius, inner `padding: 3px`, `gap: 0`, and a `> * + *` rule that paints 1px dividers between flush siblings via **inset `box-shadow`** (not `border` — children routinely reset `border: 0` to kill the default button outline and an equal-specificity `border-left` loses on source order). `.selector-bar-btns` and `.terminal-tab-group` both `@extend` it; any new strip control must do the same — don't reinvent the chrome and don't redefine the dividers locally (visual consistency across the whole app depends on this). Don't reintroduce `gap`/`margin` — the placeholder's adjacent-sibling rule needs flush children. When the strip switches to `display: grid` for a 2-col wrap (mobile Terminals), keep `gap: 0` and re-paint the dividers per axis with box-shadow: `:nth-child(2n)` gets a left edge, `:nth-child(n+3)` a top edge, the bottom-right cell both. Adjacent shells line up vertically by giving each `.selector-bar-label` the same `min-width` + `text-align: end`.
 - **`.terminal-map-header` is shared chrome only** — base class sets bg/border/scanlines, but layout is page-scoped: `.route-panel > .terminal-map-header` owns the live-map grid (status / layers / features), `.terminal-board-page > .terminal-map-header` owns the terminals grid (title / tabs / kiosk). Don't add `> #x` rules to the base — they leak into the other page.
 - **One-way info bar** — clicks on the *map* (route line, bus marker, stop) push state up into the top info bar via `lockInfoBar`. Clicks on the *route cards below the map* call `selectRoute(route, "card")` and intentionally skip the info-bar update. Why: card clicks are list filters, not map interactions; pushing them up made the info bar feel like a duplicate selection display. Keep the source param when adding new entry points.
 - **Find Route is a `<button>`** that toggles `.is-open` on `.trip-planner-overlay` via `setTripPlannerOpen` in `transit-map.ts`. The Close affordance inside the overlay is also a `<button>`. Earlier revision used a hidden checkbox + `<label>` + `:has(.trip-toggle:checked)` to avoid JS, but `<label>` rendered with subtly different vertical alignment than its sibling `<button>` (Locate) in the Features bar, so the toggle moved to JS-driven class state for visual parity.
 - **Late-trip "scheduled" line** is a sibling under `.terminal-card-hero-meta`, not appended to the time string. Renders as `(HH:MM sched)` only when status kind is `late` AND scheduled differs from predicted. Old "(was HH:MM)" suffix ellipsized off-screen on phones; the new sibling wraps onto its own line.
+
+## Councillors Page UI
+
+Members are a card grid (`councillorCard(c, kind)` → `.councillor-grid`), **not** an accordion — bio + vote stats always visible.
+
+**Quick rules:**
+- `kind` (`"mayor"`/`"atlarge"`/`"ward"`) comes from the caller — the view model already groups members; never infer it from `c.Position`.
+- Grid is column-capped (3 / 2 / 1 at `lg` / `sm`), not `auto-fill minmax()` — max 3 wide is intentional.
+- One `.councillor-card-role` pill per card: Mayor gold, At-Large teal (non-geographic on purpose), Ward per-ward color.
+- Ward pill hexes must stay in sync across `badge-light/dark-overrides-council` (`_council.scss`) **and** `WARD_COLORS` in `ward-map.js`.
+
+Grid/breakpoints, role-pill + badge slots, ward-color sync, vote-summary nowrap, sticky-header resync → [docs/council.md](docs/council.md#councillors-page-ui).
 
 ## Responsive Patterns
 

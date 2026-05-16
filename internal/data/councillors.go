@@ -175,6 +175,8 @@ var CouncilByTerm = map[int]CouncilTerm{
 				Name:         "Dominic Pasqualino",
 				Position:     "Northwood",
 				Term:         "1st term",
+				Status:       "Stepping down",
+				StatusURL:    "https://yourthunderbay.ca/city-council-round-up-april-22-2026/",
 				Summary:      "Spent 35 years at the Can Car/Bombardier/Alstom rail plant and served 11 years as President of Unifor Local 1075. Met with over 108 federal representatives to lobby for transit manufacturing contracts that preserved local jobs. Advocates on council for infrastructure improvements and community services in Northwood.",
 				ShortSummary: "35-year rail worker, former Unifor Local 1075 president.",
 				Photo:        "pasqualino.jpg",

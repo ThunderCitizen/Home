@@ -42,8 +42,11 @@ func (CouncillorsPlugin) Name() string { return "councillors" }
 
 func (CouncillorsPlugin) Extract(ctx context.Context, pool *pgxpool.Pool, outDir string) ([]Dataset, error) {
 	const file = "councillors.tsv"
-	cols := []string{"name", "council_type", "term", "position", "term_number", "status", "summary", "short_summary", "photo", "source"}
-	query := `SELECT name, council_type, term, "position", term_number, status,
+	// status / status_url are deliberately excluded — "stepping down" etc. is
+	// editorial election context, not the curated council record. It ships as
+	// a code-level overlay in internal/data, never through the signed bundle.
+	cols := []string{"name", "council_type", "term", "position", "term_number", "summary", "short_summary", "photo", "source"}
+	query := `SELECT name, council_type, term, "position", term_number,
 	          summary, short_summary, photo, source
 	          FROM councillors ORDER BY term, council_type, name`
 

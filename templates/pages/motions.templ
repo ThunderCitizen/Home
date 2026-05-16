@@ -4,20 +4,33 @@ import (
 	"fmt"
 	"html"
 	"strings"
-	"thundercitizen/internal/models"
+
 	"thundercitizen/internal/views"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
 
-// escribeRefAsOfMeeting stamps the eScribe SourceRef with the latest meeting
-// date so the Minutes Stats footer reads "Source: ... as of <date>".
-func escribeRefAsOfMeeting(latest string) models.SourceRef {
-	ref := escribeRef
-	if latest != "" {
-		ref.AsOf = latest
-	}
-	return ref
+// minutesLastChecked is the date we last verified council minutes against
+// the city's eSCRIBE portal. Hand-maintained on purpose: bump it whenever
+// you run `./bin/fetcher votes` (the fetcher prints a reminder). It is NOT
+// auto/render-time — a date that silently tracks "now" would falsely claim
+// we checked even when ingestion hasn't run in months.
+const minutesLastChecked = "May 15, 2026"
+
+// minutesSourceFooter is the Minutes Stats footer, inline:
+// "Source: <eScribe>  ·  meetings as of <latest>  ·  last checked <date>".
+// "meetings as of" (not bare "as of") tells the reader the date is the
+// coverage ceiling — the city posts official minutes weeks after each
+// meeting — and "last checked" shows the gap is upstream lag, not neglect.
+templ minutesSourceFooter(latest string) {
+	<p class="source-footer">
+		<span class="source-footer-label">Source: </span>
+		@components.SourceLink(escribeRef)
+		if latest != "" {
+			<span class="source-footer-asof">meetings as of { latest }</span>
+		}
+		<span class="source-footer-asof">last checked { minutesLastChecked }</span>
+	</p>
 }
 
 // aiSummaryBannerTail assembles the link-bearing tail of the AI summary
@@ -77,7 +90,7 @@ templ Council(vm views.CouncilViewModel) {
 		@components.PageHeader(components.PageHeaderProps{Title: "Minutes"})
 		@components.HeroStats(components.HeroStatsProps{
 			Title:        "Minute Stats",
-			Footer:       components.SourceFooter(escribeRefAsOfMeeting(vm.Stats.LatestMeetingDate)),
+			Footer:       minutesSourceFooter(vm.Stats.LatestMeetingDate),
 			HeadingLevel: 2,
 		}) {
 			@components.StatGrid(components.StatGridProps{
@@ -89,7 +102,8 @@ templ Council(vm views.CouncilViewModel) {
 				Columns: 3,
 			})
 			<p class="hero-stats-lead">A <strong>recorded vote</strong> happens when a councillor requests a roll call. Most motions pass by voice vote.</p>
-			<p class="hero-stats-lead"><strong>Disclaimer:</strong> Summaries on this page are generated with AI to help you find topics in plain language without wrestling with jargon. For the binding record, see the City&rsquo;s eScribe portal.</p>
+			<p class="hero-stats-lead"><strong>Method:</strong> Every meeting, motion, and vote here is parsed from Thunder Bay&rsquo;s official, confirmed council minutes PDFs &mdash; never drafts, agendas, or live coverage. The city usually posts those minutes a few weeks after each meeting, so this data trails real time by design; the footer shows when we last checked the City&rsquo;s portal for newer minutes.</p>
+			<p class="hero-stats-lead"><strong>Disclaimer:</strong> The summaries on this page are generated with AI to help you find topics in plain language without wrestling with jargon. For the binding record, see the City&rsquo;s eScribe portal.</p>
 		}
 		@components.TermPanel(components.TermPanelProps{Title: "Meetings", HeadingLevel: 2}) {
 			@minutesSearchBar(vm)

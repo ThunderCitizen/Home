@@ -64,6 +64,8 @@ git commit -m "Update council vote data through <date>"
 
 `muni release` rewrites `data/muni/councillors.tsv` + `data/muni/council_*.tsv` + `BOD.tsv` from the now-enriched dev DB, signs the bundle with your hardware key, and uploads it to DO Spaces. On next boot production fetches the new bundle and applies changed datasets automatically.
 
+**Councillor `status` / `status_url` are deliberately NOT in the bundle.** "Stepping down", "Not seeking re-election", etc. is editorial election context, not the curated council record — it's ephemeral, has no signed-bundle citation column, and the `/councillors` page renders the member roster entirely from `internal/data` (the Go `CouncilByTerm`), never the DB `councillors` table. So status ships as a **code-level overlay**: edit `internal/data/councillors.go`, deploy the binary — no `muni-publish` needed. The `CouncillorsPlugin` extract in `internal/muni/plugins.go` intentionally omits the `status` column; don't re-add it.
+
 ---
 
 ## CLI Reference
@@ -167,10 +169,53 @@ The minutes page displays a disclaimer stating that summaries are AI-generated b
 
 ## Pages
 
-- `/councillors` — council members by term with client-side switching; vote stats (dissent rate, for/against), notable votes table, vote matrix with sticky photo headers and animated detail modal, interactive ward map with Esri satellite tiles and ward descriptions
+- `/councillors` — council members by term with client-side switching; members shown as a responsive card grid (see [Councillors Page UI](#councillors-page-ui)), vote matrix with sticky photo headers and animated detail modal, interactive ward map with Esri satellite tiles and ward descriptions
 - `/minutes` — meeting list with term selector, filter chips (All / Recorded Votes / Defeated), HTMX pagination
 - `/minutes/{id}` — meeting detail with all motions; procedural items collapsed, substantive motions with summary, clause breakdown, vote details
 - `/motions` — full-text search across all motions with term and result filters
+
+## Councillors Page UI
+
+The members list on `/councillors` is a **card grid, not an accordion**. The old `details/summary` accordion (and its `accordion.templ` component) was removed entirely — bio and vote stats are always visible, no click to expand.
+
+### Card model
+
+- All 13 members render through one `councillorCard(c, kind)` templ in `templates/pages/councillors.templ` into a single `.councillor-grid`.
+- `kind` is `"mayor"` / `"atlarge"` / `"ward"` and is **passed by the caller** — `CouncillorsPartial` already iterates `vm.Mayor` / `vm.AtLargeCouncillors` / `vm.WardCouncillors`, so the grouping is known. Never infer `kind` from `c.Position` (an at-large member's `Position` may be a title like "Budget Chair", or empty).
+
+### Grid
+
+`.councillor-grid` (in `style.scss`) is column-capped, **not** `auto-fill minmax()`:
+
+- `repeat(3, 1fr)` ≥ 1024px
+- `repeat(2, 1fr)` 600–1024px (`@include respond-to('lg')`)
+- `1fr` ≤ 600px (`@include respond-to('sm')`)
+
+Max 3 wide is a deliberate design choice — don't "fix" it with `auto-fill`.
+
+### Role pill + badges
+
+Inside `.councillor-card-id` the DOM order is **role row, then name** (the row renders above the name). The role row (`.councillor-card-rolerow`, flex, wraps when cramped) holds exactly one `.councillor-card-role` pill plus the term badge beside it:
+
+| kind | pill class | color |
+|------|------------|-------|
+| mayor | `.badge-mayor` | gold (`#d4a574` light / `#fbbf24` dark) |
+| atlarge | `.badge-atlarge` | teal (`#2dd4bf`) — deliberately non-geographic, distinct from gold and every ward hue |
+| ward | `.councillor-ward-badge` | per-ward, see below |
+
+The term badge (`.badge-term-N`) sits in `.councillor-card-rolerow` next to the role pill — **not** in `.councillor-card-badges`. The lower `.councillor-card-badges` row holds only the status badge and, for at-large members, the title (e.g. "Budget Chair") as a plain `.badge` — the title never goes in the role slot. `data-ward="<ward>"` is emitted on the `<article>` only for `kind == "ward"`.
+
+### Ward pill colors must match the map
+
+`[data-ward="…"] .councillor-ward-badge` hue overrides live in **both** `badge-light-overrides-council` and `badge-dark-overrides-council` mixins in `static/css/_council.scss`. The hexes are copied from `WARD_COLORS` in `static/councillors/ward-map.js`. There are effectively **three** copies (light mixin, dark mixin, JS map) — change one, change all three or the pill won't match the map.
+
+### Vote summary
+
+Reads `X for · Y against · Z absent`. Each stat is wrapped in `.vote-summary-stat` (`white-space: nowrap`) so a count never line-breaks away from its label.
+
+### Sticky vote-matrix header resync
+
+`voteMatrixPhotoSync()` copies the data table's column widths onto the sticky photo/name header (the header is a separate table). Width copy runs on load, on `htmx:afterSwap`, and **debounced (80ms) on `window resize`** — without the resize handler the frozen px widths drift out of alignment when the viewport changes (a refresh "fixed" it because load reran the sync). The horizontal-scroll mirror listener is wired exactly once (`scrollWired` guard), reset on HTMX swap since the wrapper element is replaced.
 
 ## Storage Layout
 

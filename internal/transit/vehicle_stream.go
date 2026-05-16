@@ -14,8 +14,26 @@ import (
 
 var streamLog = logger.New("vehicle-stream")
 
-// sleepPayload is sent to SSE clients when service is not running (1–6 AM).
-var sleepPayload = json.RawMessage(`{"sleep":true}`)
+// StreamStatus is the single source of truth the server publishes about its
+// own ability to serve fresh vehicle data. Every SSE frame carries it.
+type StreamStatus string
+
+const (
+	StatusLive  StreamStatus = "live"  // fresh data flowing
+	StatusStale StreamStatus = "stale" // upstream fetch failing repeatedly
+	StatusSleep StreamStatus = "sleep" // overnight quiet hours, no service running
+)
+
+// staleFailThreshold is the number of consecutive upstream fetch failures
+// before we flip to "stale". Gives a small grace window for transient
+// hiccups (single 502, brief DNS blip) before we cry wolf.
+const staleFailThreshold = 3
+
+// sleepPayload is the canonical sleep frame.
+var sleepPayload = json.RawMessage(`{"status":"sleep"}`)
+
+// stalePayload is the canonical stale frame.
+var stalePayload = json.RawMessage(`{"status":"stale"}`)
 
 // VehicleStream polls the upstream feeds and broadcasts vehicle state to
 // connected SSE clients. One upstream fetch serves all clients.
@@ -25,9 +43,11 @@ type VehicleStream struct {
 	interval time.Duration
 
 	mu         sync.RWMutex
-	current    []byte // latest JSON payload (pre-serialized)
-	currentRaw []byte // latest raw protobuf from upstream
-	ts         int64  // feed timestamp
+	current    []byte       // latest broadcast frame (always reflects status)
+	currentRaw []byte       // latest raw protobuf from upstream
+	ts         int64        // feed timestamp
+	fails      int          // consecutive upstream fetch failures
+	status     StreamStatus // single source of truth for what we're publishing
 
 	// Subscribers: each is a channel that receives new payloads
 	subMu sync.Mutex
@@ -80,34 +100,24 @@ func (vs *VehicleStream) Start(ctx context.Context) {
 	if !serviceQuiet() {
 		vs.poll(ctx)
 	} else {
-		vs.mu.Lock()
-		vs.current = sleepPayload
-		vs.currentRaw = nil
-		vs.mu.Unlock()
+		vs.setSleep()
 	}
 
 	go func() {
 		ticker := time.NewTicker(vs.interval)
 		defer ticker.Stop()
-		sleeping := false
 		for {
 			select {
 			case <-ticker.C:
 				if serviceQuiet() {
-					if !sleeping {
+					if vs.Status() != StatusSleep {
 						streamLog.Info("entering sleep — no service running")
-						sleeping = true
-						vs.mu.Lock()
-						vs.current = sleepPayload
-						vs.currentRaw = nil
-						vs.mu.Unlock()
-						vs.broadcast(sleepPayload)
+						vs.setSleep()
 					}
 					continue
 				}
-				if sleeping {
+				if vs.Status() == StatusSleep {
 					streamLog.Info("waking up — service window starting")
-					sleeping = false
 				}
 				vs.poll(ctx)
 			case <-ctx.Done():
@@ -210,11 +220,49 @@ func serviceQuiet() bool {
 	return h >= 1 && h < 6
 }
 
+// setSleep flips status to sleep and broadcasts.
+func (vs *VehicleStream) setSleep() {
+	vs.mu.Lock()
+	vs.status = StatusSleep
+	vs.current = sleepPayload
+	vs.currentRaw = nil
+	vs.mu.Unlock()
+	vs.broadcast(sleepPayload)
+}
+
+// recordFailure increments the consecutive-failure counter and flips status
+// to stale once the threshold is crossed. Returns true if status changed.
+func (vs *VehicleStream) recordFailure() bool {
+	vs.mu.Lock()
+	vs.fails++
+	if vs.status != StatusStale && vs.fails >= staleFailThreshold {
+		vs.status = StatusStale
+		vs.current = stalePayload
+		vs.mu.Unlock()
+		return true
+	}
+	vs.mu.Unlock()
+	return false
+}
+
 func (vs *VehicleStream) poll(ctx context.Context) {
 	vehicles, feedTS, err := vs.client.FetchVehiclesWithDelay(ctx)
 	if err != nil {
 		streamLog.Error("fetch failed", "err", err)
+		if vs.recordFailure() {
+			streamLog.Warn("upstream feed stale — notifying clients", "consecutive_fails", staleFailThreshold)
+			vs.broadcast(stalePayload)
+		}
 		return
+	}
+
+	vs.mu.Lock()
+	vs.fails = 0
+	wasStale := vs.status == StatusStale
+	vs.status = StatusLive
+	vs.mu.Unlock()
+	if wasStale {
+		streamLog.Info("upstream feed recovered")
 	}
 
 	// Cache raw protobuf alongside parsed data
@@ -248,6 +296,7 @@ func (vs *VehicleStream) poll(ctx context.Context) {
 	vs.lastServedM.RUnlock()
 
 	payload, err := json.Marshal(map[string]interface{}{
+		"status":      StatusLive,
 		"timestamp":   tsUnix,
 		"vehicles":    vehicles,
 		"stop_served": servedCopy,
@@ -358,6 +407,16 @@ func (vs *VehicleStream) Current() []byte {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
 	return vs.current
+}
+
+// Status returns what the server is currently publishing about itself.
+func (vs *VehicleStream) Status() StreamStatus {
+	vs.mu.RLock()
+	defer vs.mu.RUnlock()
+	if vs.status == "" {
+		return StatusLive
+	}
+	return vs.status
 }
 
 // RawFeed returns the latest raw protobuf from upstream.

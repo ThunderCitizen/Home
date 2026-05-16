@@ -254,13 +254,15 @@ func getColumnInfo(ctx context.Context, tx pgx.Tx, table string, columns []strin
 		info[name] = ci
 	}
 
+	// Tolerant reader: return info only for columns that exist in the
+	// target table. Callers drop the rest, so a TSV column absent from the
+	// schema (e.g. a field intentionally removed from the curated record)
+	// doesn't fail Apply for bundles that still carry it.
 	result := make(map[string]colInfo, len(columns))
 	for _, col := range columns {
-		ci, ok := info[col]
-		if !ok {
-			return nil, fmt.Errorf("column %q not found in table %s", col, table)
+		if ci, ok := info[col]; ok {
+			result[col] = ci
 		}
-		result[col] = ci
 	}
 	return result, nil
 }

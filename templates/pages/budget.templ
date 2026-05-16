@@ -12,7 +12,7 @@ import (
 var budgetSourceRef = models.SourceRef{
 	URL:   "https://www.thunderbay.ca/en/city-hall/resources/Budget/Original-2026-Budget---Operating-Budget-Final.pdf",
 	Label: "City of Thunder Bay, 2026 Operating Budget",
-	AsOf:  "2026 fiscal year",
+	AsOf:  "",
 }
 
 func budgetHeroItems(vm views.BudgetViewModel) []components.StatItem {
@@ -88,7 +88,6 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 			} else {
 			@components.HeroStats(components.HeroStatsProps{
 				Title:        "Summary",
-				Lead:         "Ontario law requires municipalities to balance operating budgets, meaning total revenue must equal total operating expenditure.",
 				Footer:       components.SourceFooter(budgetSourceRef),
 				HeadingLevel: 2,
 			}) {

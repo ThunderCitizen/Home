@@ -4,11 +4,14 @@
  */
 import type { VehiclePayload } from "./api.gen";
 
-// SSE can send either a vehicle payload or a sleep signal.
-export interface SleepPayload {
-  sleep: true;
+// Every SSE frame carries a server-published `status`. Vehicle data is only
+// present on "live" frames; "sleep" and "stale" are status-only markers.
+export type StreamStatus = "live" | "sleep" | "stale";
+
+export interface StatusFrame {
+  status: StreamStatus;
 }
-export type SSEPayload = VehiclePayload | SleepPayload;
+export type SSEPayload = (VehiclePayload & StatusFrame) | StatusFrame;
 
 // Leaflet marker discriminated union — prevents calling wrong methods.
 export interface CircleStop {

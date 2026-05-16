@@ -49,7 +49,9 @@ func (h *Handler) vehiclesSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", cache.Live)
 	w.Header().Set("Connection", "keep-alive")
 
-	// Send current state immediately
+	// Send current state immediately. The server keeps `current` in lockstep
+	// with its status — live payload, sleep marker, or stale marker — so the
+	// client always learns the right state on connect from one frame.
 	if cur := h.VehicleStream.Current(); cur != nil {
 		fmt.Fprintf(w, "data: %s\n\n", cur)
 		flusher.Flush()
