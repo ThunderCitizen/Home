@@ -76,24 +76,22 @@ func main() {
 	muniStatus := muni.NewStatus()
 	go applyMuniBundle(db, cfg, trust, muniStatus)
 
-	// GTFS: synchronous initial fetch so routes are in the DB before the
-	// server starts serving requests. On first boot this downloads +
-	// extracts + loads (~30s). On subsequent boots it hash-compares
-	// against the version stored in the DB and short-circuits (~2s)
-	// since the routes are still in the persistent volume.
+	// GTFS: the initial fetch is NOT done synchronously here. It used to
+	// be — a full GTFS zip HTTP download (60s client timeout, 3min cap)
+	// blocking the listener and causing a 502 on every deploy whenever
+	// upstream changed and the slow reload path (~30s) was taken.
 	//
-	// On failure we log and continue — the background refresher below
-	// will retry on its next tick, and the DB still has whatever was
-	// loaded last time. Better to serve stale data than to fail to boot.
+	// gtfsRefresher.Start() below spawns pollLoop, which already does an
+	// immediate CheckAndReload on its own goroutine before its ticker —
+	// so the initial fetch still happens at boot, just off the hot path.
+	// The DB retains the last GTFS load in the persistent volume across
+	// deploys, so the server serves stale-but-present routes for the few
+	// seconds until that background fetch finishes. Better to serve stale
+	// data immediately than to fail to boot.
 	if err := transit.EnsureStaticGTFS(); err != nil {
 		log.Warn("GTFS dir setup failed", "err", err)
 	}
 	gtfsRefresher := transit.NewGTFSRefresher(db)
-	gtfsCtx, gtfsCancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	if err := gtfsRefresher.CheckAndReload(gtfsCtx); err != nil {
-		log.Warn("initial GTFS fetch failed; background refresher will retry", "err", err)
-	}
-	gtfsCancel()
 
 	// Start transit recorder and stats engine
 	transitCtx, transitCancel := context.WithCancel(context.Background())
@@ -108,9 +106,9 @@ func main() {
 	// as bands close.
 	transit.NewChunkRollup(db).Start(transitCtx)
 
-	// Start GTFS background refresher for periodic updates. The initial
-	// fetch is already done synchronously above; this loop handles the
-	// every-4-hours upstream change detection.
+	// Start GTFS refresher. pollLoop does an immediate CheckAndReload
+	// (the boot-time initial fetch, now off the hot path) and then
+	// handles every-4-hours upstream change detection.
 	gtfsRefresher.Start(transitCtx)
 
 	th := transit.NewHandler(db, transit.Renderer{
