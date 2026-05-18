@@ -2,7 +2,7 @@
 #
 # Multi-stage build for the ThunderCitizen server + operator tools.
 #
-#   builder  golang:1.25-bookworm  → produces every Go binary we ship
+#   builder  golang:1.26-bookworm  → produces every Go binary we ship
 #   runtime  debian:bookworm-slim  → just the binaries + static assets + migrations
 #
 # Curated data is NOT bundled — the server downloads a signed muni bundle
@@ -16,7 +16,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # Builder
 # ─────────────────────────────────────────────────────────────────────
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 # Node + npm for SCSS and TypeScript bundling. nodejs in bookworm is 18.x
 # which is enough for our esbuild + sass + tsc usage.
