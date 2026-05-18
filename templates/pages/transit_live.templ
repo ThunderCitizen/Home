@@ -2,11 +2,18 @@ package pages
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"thundercitizen/internal/transit"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
+
+// sundayScheduleNotice matches the upstream "Sunday schedules are
+// available at thunderbay.ca/transit" sentence (with optional trailing
+// punctuation) so we can drop it from the holiday banner — it points
+// users off-site for info we already render.
+var sundayScheduleNotice = regexp.MustCompile(`(?i)\s*Sunday schedules are available at thunderbay\.ca/transit\.?`)
 
 func pillBorderStyle(color string) templ.Attributes {
 	return templ.Attributes{"style": "border-left-color:" + color}
@@ -45,6 +52,7 @@ func routeCancelSplit(trips map[string][]transit.CancelledTrip, routeID string) 
 func cleanAlertText(s string) string {
 	s = strings.ReplaceAll(s, "\r\n", " ")
 	s = strings.ReplaceAll(s, "\n", " ")
+	s = sundayScheduleNotice.ReplaceAllString(s, "")
 	return strings.Join(strings.Fields(s), " ")
 }
 
