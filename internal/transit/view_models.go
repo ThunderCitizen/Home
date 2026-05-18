@@ -18,6 +18,9 @@ type LiveViewModel struct {
 	CancelIncidents []CancelIncident           // consecutive cancellations grouped
 	StopAlerts      map[string][]StopAlert     // stop ID → alerts (for map markers)
 	FleetSize       int                        // total unique vehicles ever seen
+	BusCount        int                        // route-assigned vehicles live now (server-rendered badge)
+	ClockTime       string                     // HH:MM in TZ at render — initial value, JS ticks it
+	ClockDate       string                     // "Month D" in TZ at render — initial value, JS refreshes it
 	NoServiceRoutes []string                   // route IDs with no service today
 	RouteMeta       []RouteMetaAPI             // colors, names, terminals for JS
 }

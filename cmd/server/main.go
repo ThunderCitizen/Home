@@ -239,6 +239,9 @@ func main() {
 	r.Get("/health", h.Health)
 	r.Head("/health", h.Health)
 	r.Get("/version", h.Version)
+	// Social-share card source. cmd/ogshot screenshots this into
+	// static/og/*.png. No inbound links; safe to leave routed in prod.
+	r.Get("/og/render", h.OGCard)
 
 	// Transit — self-contained page + API routes
 	r.Mount("/transit", th.PageRoutes())

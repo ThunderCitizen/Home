@@ -15,6 +15,7 @@ make muni-extract         # Dev DB → TSV bundle in data/muni (applied on serve
 make muni-publish         # data/muni → extract + sign + zip + upload to DO Spaces (= muni release)
 go run ./cmd/perftest     # Latency report (server must be running)
 go run ./cmd/perftest -r  # Record + delta vs last run (saves to perftest/)
+go run ./cmd/ogshot       # Regenerate social-share OG card → static/og/*.png (server must be running)
 ```
 
 ## Key Patterns

@@ -223,9 +223,9 @@ templ TransitLive(vm transit.LiveViewModel) {
 			<input type="radio" name="term-tab" id="term-tab-cancels" class="terminal-tab-radio" aria-hidden="true" tabindex="-1"/>
 			<div class="terminal-header">
 				<div class="terminal-clock">
-					<span class="terminal-city">Thunder Bay — <span id="terminal-date"></span></span>
+					<span class="terminal-city">Thunder Bay — <span id="terminal-date">{ vm.ClockDate }</span></span>
 					<span class="terminal-clock-row">
-						<span id="terminal-time" class="terminal-time">--:--</span>
+						<span id="terminal-time" class="terminal-time">{ vm.ClockTime }</span>
 					</span>
 				</div>
 				<div class="terminal-tabs" role="tablist" aria-label="Terminal sections">
@@ -233,17 +233,15 @@ templ TransitLive(vm transit.LiveViewModel) {
 					<div class="terminal-tab-group">
 						<label for="term-tab-routes" class="terminal-tab-label" role="tab" id="tab-routes" aria-selected="true" tabindex="0" aria-controls="panel-routes">Routes</label>
 						<label for="term-tab-buses" class="terminal-tab-label" role="tab" id="tab-buses" aria-selected="false" tabindex="-1" aria-controls="panel-buses">
-							<span id="terminal-bus-count" class="terminal-badge-num">0</span> Buses
+							<span id="terminal-bus-count" class="terminal-badge-num">{ fmt.Sprintf("%d", vm.BusCount) }</span> Buses
 						</label>
-						if upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips) > 0 {
-							<label for="term-tab-cancels" class="terminal-tab-label" role="tab" id="tab-cancels" aria-selected="false" tabindex="-1" aria-controls="panel-cancels">
-								<span id="terminal-cancel-count" class="terminal-badge-num">{ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips)) }</span>
-								if upcomingCancellationCount(vm.CancelledTrips) > 0 {
-									<span class="terminal-cancels-upcoming">({ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips)) })</span>
-								}
-								Cancelled
-							</label>
-						}
+						<label for="term-tab-cancels" class="terminal-tab-label" role="tab" id="tab-cancels" aria-selected="false" tabindex="-1" aria-controls="panel-cancels">
+							<span id="terminal-cancel-count" class="terminal-badge-num">{ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips) + pastCancellationCount(vm.CancelledTrips)) }</span>
+							if upcomingCancellationCount(vm.CancelledTrips) > 0 {
+								<span class="terminal-cancels-upcoming">({ fmt.Sprintf("%d", upcomingCancellationCount(vm.CancelledTrips)) })</span>
+							}
+							Cancelled
+						</label>
 					</div>
 				</div>
 			</div>

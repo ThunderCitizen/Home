@@ -48,6 +48,7 @@ type VehicleStream struct {
 	ts         int64        // feed timestamp
 	fails      int          // consecutive upstream fetch failures
 	status     StreamStatus // single source of truth for what we're publishing
+	busCount   int          // vehicles with a route assignment in latest frame
 
 	// Subscribers: each is a channel that receives new payloads
 	subMu sync.Mutex
@@ -226,6 +227,7 @@ func (vs *VehicleStream) setSleep() {
 	vs.status = StatusSleep
 	vs.current = sleepPayload
 	vs.currentRaw = nil
+	vs.busCount = 0
 	vs.mu.Unlock()
 	vs.broadcast(sleepPayload)
 }
@@ -305,9 +307,17 @@ func (vs *VehicleStream) poll(ctx context.Context) {
 		return
 	}
 
+	busCount := 0
+	for i := range vehicles {
+		if vehicles[i].RouteID != "" {
+			busCount++
+		}
+	}
+
 	vs.mu.Lock()
 	vs.current = payload
 	vs.ts = tsUnix
+	vs.busCount = busCount
 	vs.mu.Unlock()
 
 	vs.broadcast(payload)
@@ -407,6 +417,16 @@ func (vs *VehicleStream) Current() []byte {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
 	return vs.current
+}
+
+// LiveBusCount returns the number of route-assigned vehicles in the latest
+// frame — same set the client counts for the "Buses" tab badge. Lets the
+// page render the real count instead of a "0" placeholder that snaps on the
+// first SSE frame. 0 when sleeping/stale.
+func (vs *VehicleStream) LiveBusCount() int {
+	vs.mu.RLock()
+	defer vs.mu.RUnlock()
+	return vs.busCount
 }
 
 // Status returns what the server is currently publishing about itself.

@@ -116,6 +116,12 @@ func (s *Service) Stats(variant string) *StatsReport {
 	return report
 }
 
+// LiveBusCount returns the route-assigned vehicle count from the latest
+// stream frame, for server-rendering the "Buses" tab badge.
+func (s *Service) LiveBusCount() int {
+	return s.stream.LiveBusCount()
+}
+
 // Live returns the live dashboard bundle. Slot has a 30s TTL so repeated
 // calls within that window hit the cache; a call after expiry re-loads.
 // Unlike other accessors, Live returns the error so handlers can log it

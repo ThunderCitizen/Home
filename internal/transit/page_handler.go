@@ -39,6 +39,10 @@ func (h *Handler) transitLivePage(w http.ResponseWriter, r *http.Request) {
 
 	vm := NewLiveViewModel(live.dashboard.Alerts, live.dashboard.CancelledTrips)
 	vm.FleetSize = live.dashboard.FleetSize
+	vm.BusCount = h.svc.LiveBusCount()
+	now := Now()
+	vm.ClockTime = now.Format("15:04")
+	vm.ClockDate = now.Format("January 2")
 	vm.CancelIncidents = live.incidents
 	vm.NoServiceRoutes = live.noService
 	vm.RouteMeta = h.svc.RouteMeta()
