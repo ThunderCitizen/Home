@@ -43,7 +43,7 @@ body{
 </div>
 <div class="body">
   <div class="headline">Thunder Bay's civic<br>data, in one place.</div>
-  <div class="tag">Transit tracking, council votes, the budget &amp; more &mdash; open, sourced, no tracking.</div>
+  <div class="tag">Transit tracking, council votes, the budget &amp; more &mdash; open and sourced.</div>
 </div>
 <div class="foot">
   <span>thundercitizen.ca</span>
