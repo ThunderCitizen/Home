@@ -1556,21 +1556,30 @@ h3.vote-matrix-card-label {
   padding: 0;
   background: var(--thunder-50);
   border-bottom: 1px solid var(--thunder-200);
+  white-space: normal;
 }
 
+// grid-template-rows: 0fr → 1fr animates to the content's actual height,
+// so long summaries reveal smoothly without a fixed max-height clip.
 .vote-matrix-detail-inner {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.25s ease;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+
+  > * {
+    min-height: 0;
+    overflow: hidden;
+  }
 }
 
 .vote-matrix-detail.is-open .vote-matrix-detail-inner {
-  max-height: 32rem; // generous; content rarely exceeds 6-8rem
+  grid-template-rows: 1fr;
 }
 
 .vote-matrix-detail-content {
   padding: var(--space-3) var(--space-4);
   border-left: 3px solid var(--accent);
+  white-space: normal;
 
   &.vote-matrix-detail--lost    { border-left-color: var(--status-error); }
   &.vote-matrix-detail--tie     { border-left-color: var(--status-warn); }
@@ -1589,6 +1598,8 @@ h3.vote-matrix-card-label {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+
+  .vote-matrix-detail-btn--primary { margin-left: auto; }
 }
 
 .vote-matrix-detail-btn {
