@@ -114,7 +114,7 @@ document.documentElement.classList.remove('no-js');
 		return cache;
 	}
 	if (window.matchMedia) {
-		window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(){ cache = null; if (window.applyDarkReaderLock) window.applyDarkReaderLock(); });
+		window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(){ cache = null; if (window.applyDarkReaderLock) window.applyDarkReaderLock(); if (window.updateThemePicker && (localStorage.getItem("theme") || "system") === "system") window.updateThemePicker("system"); });
 	}
 	window.ThemeColors = function(){ return cache || read(); };
 	var _isTouch = null;
@@ -159,15 +159,21 @@ document.documentElement.classList.remove('no-js');
 		window.setTheme(current === "dark" ? "light" : "dark");
 	};
 	window.updateThemePicker = function(active){
+		var resolved = active;
+		if (active === "system") {
+			resolved = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+		}
 		var btns = document.querySelectorAll(".theme-pick");
 		for (var i = 0; i < btns.length; i++) {
 			var b = btns[i];
-			var isActive = b.getAttribute("data-theme-pick") === active;
+			var pick = b.getAttribute("data-theme-pick");
+			var isActive = pick === active;
 			b.classList.toggle("active", isActive);
+			b.classList.toggle("resolved", active === "system" && pick === resolved);
 			b.setAttribute("aria-checked", isActive ? "true" : "false");
 		}
 		var cur = document.querySelector(".theme-picker-current");
-		if (cur) { cur.textContent = active; }
+		if (cur) { cur.textContent = active === "system" ? "system · " + resolved : active; }
 	};
 	var updateThemePicker = window.updateThemePicker;
 	var saved = localStorage.getItem("theme") || "system";

@@ -828,6 +828,12 @@ article > header {
       border-color: var(--hero-fg);
       filter: drop-shadow(0 0 6px color-mix(in srgb, var(--hero-fg) 55%, transparent));
     }
+
+    &.resolved {
+      opacity: 0.9;
+      border-style: dashed;
+      border-color: color-mix(in srgb, var(--hero-fg) 70%, transparent);
+    }
   }
 
   .theme-picker-current {
