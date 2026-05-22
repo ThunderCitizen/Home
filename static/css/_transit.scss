@@ -2708,14 +2708,60 @@ tr.route-tp-canceled {
   margin: 0 -0.75rem 0.75rem;
 
   > .terminal-map-title { grid-column: 1; }
-  > .drp-nav { grid-column: 2; justify-self: end; }
+  > .metrics-header-controls { grid-column: 2; justify-self: end; }
 
   @include respond-to('md') {
     grid-template-columns: 1fr;
 
     > .terminal-map-title { grid-column: 1; }
-    > .drp-nav { grid-column: 1; justify-self: stretch; }
+    > .metrics-header-controls { grid-column: 1; justify-self: stretch; }
   }
+}
+
+// Right-side controls in the metrics header: the export button sits flush
+// against the date picker so they read as one toolbar.
+.metrics-header-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  @include respond-to('md') {
+    width: 100%;
+
+    // Export keeps its content width; the picker takes the rest.
+    > .drp-nav { flex: 1 1 auto; }
+    .drp-trigger { width: 100%; justify-content: space-between; }
+  }
+}
+
+// Export button — phosphor accent treatment to mark it as the primary action
+// in the header, distinct from the neutral date-picker trigger beside it.
+.metrics-dl-btn {
+  @extend %term-control;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--pico-card-background-color));
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--accent) 22%, var(--pico-card-background-color));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+    color: var(--accent);
+  }
+}
+
+.metrics-dl-icon {
+  flex: 0 0 auto;
 }
 
 .metrics-disclaimer {

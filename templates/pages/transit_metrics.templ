@@ -81,7 +81,18 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 		<section class="metrics-panel" aria-label="System performance metrics">
 			<div class="terminal-map-header metrics-panel-header">
 				<h2 class="terminal-map-title">System Metrics</h2>
-				@dateRangeNav(vm.Range)
+				<div class="metrics-header-controls">
+					@dateRangeNav(vm.Range)
+					<a
+						href={ bundleURL(vm.Range) }
+						class="metrics-dl-btn"
+						download
+						title="Download a ZIP for the selected range: metrics, raw timepoint stop events, cancellations, and alerts (with a README). Capped at one year."
+					>
+						<svg class="metrics-dl-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+						<span>Export</span>
+					</a>
+				</div>
 			</div>
 			<div class="metrics-disclaimer">
 				<strong>Disclaimer:</strong> These are unofficial statistics derived from observing the GTFS feed. Questions or feedback: <a href="mailto:data@thundercitizen.ca">data@thundercitizen.ca</a>.
@@ -137,6 +148,14 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 		<script src={ assets.URL("/static/transit/trends-chart.js") }></script>
 		<script src={ assets.URL("/static/transit/date-range-picker.js") }></script>
 	}
+}
+
+// bundleURL builds the data-bundle download link bounded by the current picker
+// range. The server re-validates and caps the span, so the link is just a
+// convenience — changing the date picker reloads the page and this href
+// updates with it.
+func bundleURL(dr transit.DateRange) templ.SafeURL {
+	return templ.SafeURL("/api/transit/download?from=" + dr.From + "&to=" + dr.To)
 }
 
 func kpiPctAttrs(d kpiDef) templ.Attributes {

@@ -374,9 +374,9 @@ idx_transit_stop_geog           — GiST index on transit.stop for KNN nearest-n
 | `GET /transit/terminals` | Live departure boards for all canonical terminals |
 | `GET /transit/report` | Permanent redirect to `/transit` |
 
-### Terminals page (`/transit/terminals`)
+### Kiosk page (`/transit/kiosk`)
 
-Four canonical transit hubs hardcoded in `internal/transit/handler.go` (`canonicalTerminals`):
+Real-time departures from four canonical transit hubs hardcoded in `internal/transit/handler.go` (`canonicalTerminals`). `/transit/terminals` 301-redirects here.
 
 | Stop ID | Name |
 |---------|------|
@@ -385,11 +385,15 @@ Four canonical transit hubs hardcoded in `internal/transit/handler.go` (`canonic
 | 1231 | Confederation College |
 | 1222 | Lakehead University |
 
-Stop IDs are hardcoded (not read from the `is_terminal` DB flag) to avoid GTFS feed drift. Update manually if Thunder Bay Transit renumbers stops.
+Stop IDs are hardcoded (not read from an `is_terminal` DB flag) to avoid GTFS feed drift. Update manually if Thunder Bay Transit renumbers stops.
 
 Page embeds `RouteMeta` JSON for route pills on first paint, then `terminal-board.js` polls `/api/transit/stop/{id}/predictions` every 15 s. Polling pauses when the tab is hidden (Visibility API), uses exponential backoff (cap 30 s) on errors, and restarts immediately on terminal tab switch.
 
-**Kiosk / fullscreen mode** — triggered by the Kiosk button or the browser fullscreen API. Sets `body.terminal-fullscreen`; hides site chrome; switches to amber-on-black palette (21:1 contrast) with Atkinson Hyperlegible font for readability at 3 m. Cards paginate automatically every 8 s (4 per page) with an SVG countdown ring.
+**Kiosk / fullscreen mode** — triggered by the Kiosk button or the browser fullscreen API. Sets `body.terminal-fullscreen`, hides site chrome, and adds a full-viewport CRT scanline overlay (keeps the standard green-phosphor terminal palette). Locks to a fixed **3×3 grid** (`.terminal-card-grid` under `body.terminal-fullscreen`) with **no pagination or rotation** — every realistic terminal has ≤ 9 active routes so all groups fit one page.
+
+**Terminal card** (`renderCard` in `static/transit/terminal-board.js`, CSS `.terminal-card*`): extends `%card-base`, adds a 6px left border whose status variants (`-cancelled` / `-late` / `-early` / `-ontime` / `-scheduled`) recolor to encode arrival state. Two-row grid (header / body). Header = `pill + headsign + status` (3-col `auto minmax(0,1fr) auto`; headsign ellipsizes, status floats right). Body = 66/33 split: hero left (clock-time meta row, big minutes value, optional `(HH:MM sched)` line for late trips, optional cancelled banner), Then/Later stacked right with a left divider. Hero is `white-space: nowrap` with both axes bounded so it never wraps or overflows. Pico's default `article > header` chrome is overridden on `.terminal-card-head`. The late-trip "scheduled" line is a sibling under `.terminal-card-hero-meta` (not appended to the time string) so it wraps onto its own line on phones; renders only when status is `late` AND scheduled differs from predicted.
+
+**Web vs kiosk card sizing are independent on purpose.** Web uses `clamp(rem, vw, rem)` tuned for arm's-length phone reading — kept small so info isn't lost behind ellipses. Kiosk uses `container-type: size` plus a `@container tcard` block (bottom of `_transit.scss`) that rewrites every `--tc-*-fs` token as `min(<cqi>, <cqh>)` so each glyph fills whichever axis runs out first. Don't recouple them — web changes shouldn't ripple into kiosk or vice versa.
 
 ### API routes (mounted at `/api/transit`)
 
@@ -448,3 +452,41 @@ Two ways to get data into the dev DB:
    reproducible numbers without waiting for the recorder. See
    [cmd/seedtransit/README.md](../cmd/seedtransit/README.md). **Dev only —
    not bundled into the production Docker image.**
+
+## Frontend / UI patterns
+
+### Shared map component (`templates/components/map.templ`)
+
+Both Transit and Council pages use Leaflet via the shared `LeafletMap(MapProps)` templ component.
+
+```go
+type MapProps struct {
+    ID        string   // "transit-map", "ward-map"
+    AriaLabel string
+    Class     string   // extra CSS class ("transit-map-wrap", "ward-map-wrap")
+    Scripts   []string // JS loaded after Leaflet
+}
+```
+
+It renders the Leaflet CDN, `.map-wrap` container, map div, a children slot, and the page scripts. Shared behavior (scroll-zoom-on-click, zoom controls moved to bottom-left, `.map-active` focus ring) comes from an embedded script that finds the Leaflet instance *after* page JS creates it — the component never calls `L.map()` itself.
+
+- **Header is page-owned** — render `<div class="terminal-map-header">` above `@LeafletMap` and put layer toggles inside via `@MapLayerBar(groups)`. The component renders no header, so every consumer adds its own for visual parity.
+- **`MapLayerBar([]MapLayerGroup)`** renders `<button data-layer="key">` toggles; page JS reads the `.active` class for initial state and wires clicks.
+- **Page JS owns `L.map()` init** — each page configures its own Leaflet options.
+- **`.terminal-map-header` is shared chrome only** — the base class sets bg/border/scanlines, but layout is page-scoped: `.route-panel > .terminal-map-header` owns the live-map grid (status / layers / features); `.terminal-board-page > .terminal-map-header` owns the kiosk grid (title / tabs / kiosk); `.ward-panel > .terminal-map-header` owns the ward grid. Don't add `> #id` rules to the base class — they leak into the other pages.
+- **Zoom buttons** — shared component positions them bottom-left; Pico overrides round the `+` top and `-` bottom.
+
+Consumers: **Transit** (`transit_live.templ` + `web/transit/transit-map.ts`) puts a trip-planner overlay in the children slot; **Ward** (`councillors.templ` + `static/councillors/ward-map.js`) reuses the `.trip-planner-overlay` chrome for a ward-info overlay that slides in on hover/click.
+
+### Live page (`transit_live.templ`, `web/transit/transit-map.ts`)
+
+- **One-way info bar** — clicks on the *map* (route line, bus marker, stop) push state into the top info bar via `lockInfoBar`. Clicks on the *route cards below the map* call `selectRoute(route, "card")` and intentionally **skip** the info-bar update: card clicks are list filters, not map interactions, and pushing them up made the bar feel like a duplicate selection display. Keep the source param when adding new entry points.
+- **Find Route is a `<button>`** that toggles `.is-open` on `.trip-planner-overlay` via `setTripPlannerOpen`; the Close affordance is also a `<button>`. An earlier checkbox+`<label>`+`:has()` (no-JS) version mis-aligned vertically against its sibling `<button>` (Locate), so it moved to JS class state for parity.
+- **Route finder** is an accordion overlay pinned top-right of the map (`.trip-planner-overlay`): collapsed = tab, expanded = form + results at a fixed 380px height. The form uses `display: table` inside the overlay body — labels as tight left cells, inputs fill the right.
+- **Cancellation badges** on route pills split in two: red "X upcoming" + gray "Y earlier". The stat bar mirrors the split via `upcomingCancelledTrips` / `pastCancelledTrips` (both count trips, not incidents).
+- **Stop hover** enlarges the marker (+3 radius) and shows a name tooltip. Stop popups show "Updated Xs ago" from the predictions API `updated_at` (the GTFS-RT feed timestamp).
+- **Skeleton loading** — route grid shows pulsing pill shapes, live stats show skeleton text blocks (`.skeleton` / `.skeleton-text` / `.skeleton-pill` + `skeleton-pulse`).
+
+### Selector bars / segmented controls
+
+`%segmented-shell` (in `_placeholders.scss`) is the **single source of truth** for any tab/button strip: outer 1px `--term-border` + radius, inner `padding: 3px`, `gap: 0`, and a `> * + *` rule that paints 1px dividers between flush siblings via **inset `box-shadow`** (not `border` — children routinely reset `border: 0` to kill the default button outline, and an equal-specificity `border-left` loses on source order). `.selector-bar-btns` and `.terminal-tab-group` both `@extend` it; any new strip control must too — don't reinvent the chrome or redefine dividers locally (app-wide visual consistency depends on it). Don't reintroduce `gap`/`margin` — the adjacent-sibling rule needs flush children. When a strip switches to `display: grid` for a 2-col wrap (mobile kiosk), keep `gap: 0` and re-paint dividers per axis: `:nth-child(2n)` gets a left edge, `:nth-child(n+3)` a top edge, the bottom-right cell both. Adjacent shells line up vertically by giving each `.selector-bar-label` the same `min-width` + `text-align: end`.

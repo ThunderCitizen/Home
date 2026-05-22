@@ -219,6 +219,25 @@ EWT    = sum(h²) / (2·sum(h)) − sched_h/2
 Wait   = sum(h) / N
 ```
 
+### Data export (`download.go`)
+
+The Metrics tab's **Export** button streams a ZIP from `GET /api/transit/download?from=&to=`. One `COPY` per CSV runs on a single pooled connection, piped through `archive/zip` — flat memory regardless of size. Contents:
+
+| File | Source | Notes |
+|---|---|---|
+| `metrics_chunks.csv` | `route_band_chunk` | the aggregates (counts + headway sums) — the answer key |
+| `timepoint_stop_events.csv` | `stop_delay` at timepoints | raw per-stop delays + an `on_time` bool; lets analysts apply their own definition |
+| `cancellations.csv` | `cancellation` | deduped (see below) |
+| `alerts.csv` | `alert` | deduped (see below) |
+| `README.txt` | generated | column docs + recompute formulas |
+
+The date range is validated and capped by `parseDateRange` (≤ `MaxRangeDays`, one year) — that is the **only** bound; there is no SQL-hardcoded interval.
+
+Two non-obvious choices:
+
+1. **Timepoint membership** in `timepoint_stop_events.csv` is resolved via the `route_pattern_stop` join, **not** `stop_delay.is_timepoint` (which the recorder leaves false), mirroring `recipes/otp.go` so the export matches the OTP population exactly.
+2. **`cancellations` and `alerts` are append-per-poll event logs** (a record that stays active is re-inserted every feed poll). They're deduped to one row per logical record (`DISTINCT ON` + `first_seen` / `last_seen` / `poll_count`) **in the export query only**. Storage stays duplicated on purpose — the live site needs `MIN(feed_timestamp)` (cancel-notice KPI) and `MAX(feed_timestamp)` (current snapshot). Don't "fix" one side to match the other.
+
 ### Cancellation Incident Detection
 
 Cancellations are grouped into **incidents** by walking the actual schedule for each route and direction:

@@ -99,6 +99,7 @@ func (h *Handler) APIRoutes() chi.Router {
 	r.Get("/stops/analytics", h.stopAnalytics)
 	r.Get("/timepoints", h.timepoints)
 	r.Get("/routes", h.routesMeta)
+	r.Get("/download", h.dataDownload)
 	return r
 }
 
