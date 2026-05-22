@@ -49,8 +49,8 @@ func NewHomeViewModel(recentMeetings []council.MeetingSummary) HomeViewModel {
 		PendingMeetings: data.PendingCouncilMeetings,
 		Hero: components.HeroProps{
 			Title:    "Thunder Citizen",
-			Lead:     "Data\u00a0for\u00a0the\u00a0People! (of\u00a0Thunder\u00a0Bay)",
-			Subtitle: "Public data, made useful for Thunder Bay residents.",
+			Lead:     "Thunder\u00a0Bay's public data, in one\u00a0place.",
+			Subtitle: "Transit, council, and the budget — made clear.",
 		},
 		QuickLinks: []components.LinkedCardProps{
 			{

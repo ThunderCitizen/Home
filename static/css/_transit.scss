@@ -2764,6 +2764,154 @@ tr.route-tp-canceled {
   flex: 0 0 auto;
 }
 
+// Pre-download confirmation dialog (native <dialog>, opened by
+// download-confirm.js). Terminal/phosphor treatment to match the Export button
+// that triggers it.
+.export-dialog {
+  width: min(26rem, calc(100vw - var(--space-5)));
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--pico-card-background-color);
+  color: var(--pico-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),
+              0 12px 40px color-mix(in srgb, #000 45%, transparent);
+
+  &::backdrop {
+    background: color-mix(in srgb, #000 55%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  &[open] {
+    animation: export-dialog-in 140ms ease-out;
+  }
+}
+
+@keyframes export-dialog-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.export-dialog-inner {
+  padding: var(--space-4);
+}
+
+.export-dialog-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  margin-bottom: var(--space-3);
+
+  > h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+  }
+
+  > .export-dialog-range {
+    grid-column: 1 / -1;
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-2xs);
+    color: var(--pico-muted-color);
+    letter-spacing: 0.04em;
+  }
+}
+
+.export-dialog-tag {
+  align-self: center;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.1em;
+}
+
+.export-dialog-lead {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--pico-muted-color);
+}
+
+.export-dialog-files {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  list-style: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+
+  > li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding: 0.15rem 0;
+    font-size: var(--text-2xs);
+  }
+
+  .ef-name { color: var(--heading); }
+  .ef-desc { color: var(--pico-muted-color); text-align: right; }
+}
+
+.export-dialog-size {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--pico-muted-color);
+
+  > strong {
+    color: var(--accent);
+    font-weight: var(--weight-medium);
+  }
+}
+
+.export-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.export-btn-cancel,
+.export-btn-confirm {
+  @extend %term-control;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.export-btn-cancel {
+  border: 1px solid var(--pico-muted-border-color);
+  background: transparent;
+  color: var(--pico-muted-color);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--pico-color);
+    border-color: var(--pico-color);
+  }
+}
+
+.export-btn-confirm {
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--pico-card-background-color));
+  color: var(--accent);
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--accent) 22%, var(--pico-card-background-color));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+    color: var(--accent);
+  }
+}
+
 .metrics-disclaimer {
   font-size: var(--text-sm);
   color: var(--status-warn);

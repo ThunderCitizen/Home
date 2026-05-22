@@ -55,6 +55,7 @@ func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 	vm.KPI = "otp"
 	vm.RouteMeta = h.svc.RouteMeta()
 	vm.Range = parseDateRange(r, h.svc.SinceDate(r.Context()))
+	vm.ExportSize = EstimateBundleSize(vm.Range)
 
 	from, errFrom := time.ParseInLocation("2006-01-02", vm.Range.From, TZ)
 	to, errTo := time.ParseInLocation("2006-01-02", vm.Range.To, TZ)

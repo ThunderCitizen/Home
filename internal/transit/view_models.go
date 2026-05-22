@@ -49,6 +49,7 @@ type MetricsViewModel struct {
 	Chunks         []chunk.ChunkView // 7 days × 3 bands × N routes — THE metrics shape
 	CancelledTrips []CancelDetail    // per-trip cancel log for the date range
 	HasData        bool
+	ExportSize     string // approximate download size for Range, e.g. "~1.5 MB"
 }
 
 // RoutesViewModel contains data for the routes directory page (/transit/routes).

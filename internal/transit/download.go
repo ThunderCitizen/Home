@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"thundercitizen/internal/cache"
 	"thundercitizen/internal/logger"
@@ -13,6 +14,39 @@ import (
 )
 
 var downloadLog = logger.New("download")
+
+// avgBundleBytesPerDay is the per-day size of the compressed export ZIP, used
+// only for the "estimated size" shown in the download dialog. The bundle is
+// dominated by timepoint_stop_events, which scales ~linearly with service days,
+// so days × constant is close enough for a pre-download heads-up. Calibrated
+// against a real production week (~540 KB / 7 days). Recalibrate by downloading
+// a week and dividing by 7.
+const avgBundleBytesPerDay = 77 * 1024
+
+// EstimateBundleSize returns a human-readable, approximate size for the export
+// ZIP over the given range (e.g. "~1.5 MB"). It never touches the database.
+func EstimateBundleSize(dr DateRange) string {
+	days := 1
+	if from, err := time.ParseInLocation("2006-01-02", dr.From, TZ); err == nil {
+		if to, err := time.ParseInLocation("2006-01-02", dr.To, TZ); err == nil {
+			if d := int(to.Sub(from).Hours()/24) + 1; d > days {
+				days = d
+			}
+		}
+	}
+	return humanBytes(int64(days) * avgBundleBytesPerDay)
+}
+
+func humanBytes(b int64) string {
+	switch {
+	case b >= 1<<20:
+		return fmt.Sprintf("~%.1f MB", float64(b)/(1<<20))
+	case b >= 1<<10:
+		return fmt.Sprintf("~%d KB", b/(1<<10))
+	default:
+		return fmt.Sprintf("~%d B", b)
+	}
+}
 
 // bundleFile is one CSV inside the downloadable ZIP: the filename it gets in
 // the archive and the SELECT that produces it (date bounds already inlined).
@@ -122,6 +156,16 @@ ORDER BY first_seen`, dr.From, dr.To)
 // into the zip entry — no temp files, flat memory regardless of table size.
 func (h *Handler) dataDownload(w http.ResponseWriter, r *http.Request) {
 	dr := parseDateRange(r, "")
+
+	// Clear the server-wide 15s WriteTimeout for this route. The bundle streams
+	// to the client as it's generated, so a large range over a slow link easily
+	// exceeds 15s; without this the connection is force-closed mid-stream and
+	// the client gets a truncated, unopenable ZIP. Scoped per-connection — other
+	// routes keep the global timeout. Mirrors vehiclesSSE.
+	rc := http.NewResponseController(w)
+	if err := rc.SetWriteDeadline(time.Time{}); err != nil {
+		downloadLog.Warn("download: could not clear write deadline", "err", err)
+	}
 
 	name := fmt.Sprintf("thunder-transit-data-%s-to-%s.zip", dr.From, dr.To)
 	w.Header().Set("Content-Type", "application/zip")

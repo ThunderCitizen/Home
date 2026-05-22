@@ -87,6 +87,8 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 						href={ bundleURL(vm.Range) }
 						class="metrics-dl-btn"
 						download
+						data-export-trigger
+						aria-haspopup="dialog"
 						title="Download a ZIP for the selected range: metrics, raw timepoint stop events, cancellations, and alerts (with a README). Capped at one year."
 					>
 						<svg class="metrics-dl-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -94,6 +96,7 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 					</a>
 				</div>
 			</div>
+			@exportDialog(vm.Range, vm.ExportSize)
 			<div class="metrics-disclaimer">
 				<strong>Disclaimer:</strong> These are unofficial statistics derived from observing the GTFS feed. Questions or feedback: <a href="mailto:data@thundercitizen.ca">data@thundercitizen.ca</a>.
 			</div>
@@ -147,7 +150,40 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 		<script src={ assets.URL("/static/transit/chunks.js") }></script>
 		<script src={ assets.URL("/static/transit/trends-chart.js") }></script>
 		<script src={ assets.URL("/static/transit/date-range-picker.js") }></script>
+		<script src={ assets.URL("/static/transit/download-confirm.js") }></script>
 	}
+}
+
+// exportDialog is the pre-download confirmation shown when JS is on. The Export
+// link itself stays a real download anchor (no-JS users get a direct download);
+// download-confirm.js intercepts the click and opens this dialog. The file list
+// is fixed; only the range and the estimated size vary.
+templ exportDialog(dr transit.DateRange, size string) {
+	<dialog id="export-dialog" class="export-dialog" aria-labelledby="export-dialog-title">
+		<div class="export-dialog-inner">
+			<header class="export-dialog-head">
+				<span class="export-dialog-tag">EXPORT</span>
+				<h3 id="export-dialog-title">Transit data</h3>
+				<p class="export-dialog-range">{ dr.From } → { dr.To }</p>
+			</header>
+			<p class="export-dialog-lead">Downloads a ZIP containing:</p>
+			<ul class="export-dialog-files">
+				<li><span class="ef-name">metrics_chunks.csv</span><span class="ef-desc">pre-rolled KPI aggregates</span></li>
+				<li><span class="ef-name">timepoint_stop_events.csv</span><span class="ef-desc">raw per-stop delays</span></li>
+				<li><span class="ef-name">cancellations.csv</span><span class="ef-desc">cancelled trips</span></li>
+				<li><span class="ef-name">alerts.csv</span><span class="ef-desc">service alerts</span></li>
+				<li><span class="ef-name">README.txt</span><span class="ef-desc">field reference</span></li>
+			</ul>
+			<p class="export-dialog-size">Estimated size <strong>{ size }</strong></p>
+			<footer class="export-dialog-actions">
+				<button type="button" class="export-btn-cancel" data-export-cancel>Cancel</button>
+				<a href={ bundleURL(dr) } class="export-btn-confirm" download data-export-confirm>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+					<span>Download</span>
+				</a>
+			</footer>
+		</div>
+	</dialog>
 }
 
 // bundleURL builds the data-bundle download link bounded by the current picker
