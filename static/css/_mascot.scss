@@ -1,0 +1,180 @@
+// ==========================================================================
+// MASCOT TEST PAGE — temporary. Remove this file + its `@use` in style.scss
+// + templates/pages/mascot.templ + the /mascot route + static/img/clerk*.svg
+// once the artwork lands in the real layout.
+// ==========================================================================
+
+.mascot-themes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mascot-theme {
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "label  label"
+    "full   head"
+    "inline inline"
+    "inlineh inlineh";
+  gap: var(--space-3);
+
+  // Hard-coded so each panel renders its theme regardless of the site theme.
+  --m-text-dim:    color-mix(in srgb, currentColor 65%, transparent);
+  --m-text-faint:  color-mix(in srgb, currentColor 45%, transparent);
+  --m-border:      color-mix(in srgb, currentColor 25%, transparent);
+  --m-tint:        color-mix(in srgb, currentColor 7%, transparent);
+
+  &--light {
+    background: #e1d9c9;
+    color: #475b65;
+    border: 1px solid rgba(101, 123, 131, 0.25);
+  }
+
+  &--dark {
+    background: #0d1a0d;
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.18);
+  }
+}
+
+.mascot-theme-label {
+  grid-area: label;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--m-text-dim);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px dashed var(--m-border);
+}
+
+.mascot-theme-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+
+  &--full   { grid-area: full; }
+  &--head   { grid-area: head; }
+  &--inline { grid-area: inline; }
+  &--inlineh { grid-area: inlineh; }
+
+  &--inline,
+  &--inlineh {
+    align-items: stretch;
+  }
+}
+
+.mascot-theme-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--m-text-faint);
+}
+
+.mascot-theme-full {
+  width: 100%;
+  max-width: 140px;
+  height: auto;
+}
+
+.mascot-theme-head {
+  width: 100%;
+  max-width: 140px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: var(--m-tint);
+  border: 1px solid var(--m-border);
+
+  &--sm {
+    width: 56px;
+    max-width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+  }
+}
+
+.mascot-theme-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  > img {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: 1.45;
+    color: inherit;
+    min-width: 0;
+  }
+}
+
+.mascot-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  justify-content: center;
+  margin-top: var(--space-3);
+
+  figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  figcaption {
+    font-size: var(--text-xs);
+    color: var(--term-fg-dim);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+}
+
+.mascot-pair-art {
+  width: 300px;
+  max-width: 42vw;
+  height: auto;
+}
+
+.mascot-bigshow {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3) 0;
+}
+
+.mascot-bigshow-art {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+}
+
+.mascot-bigshow--neon {
+  background:
+    radial-gradient(ellipse at center, rgba(217, 70, 239, 0.18), transparent 65%),
+    #0d0d18;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.mascot-bigshow--mini .mascot-bigshow-art {
+  max-width: 220px;
+}

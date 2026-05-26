@@ -1,0 +1,73 @@
+package pages
+
+import (
+	"thundercitizen/templates"
+	"thundercitizen/templates/components"
+)
+
+templ Mascot() {
+	@templates.Layout(templates.SocialMeta{
+		Title:       "Mascot Test",
+		Description: "Mascot layout sandbox.",
+	}) {
+		@components.PageHeader(components.PageHeaderProps{
+			Title: "Meet the Clerk",
+		})
+
+		@components.Card(components.CardProps{Title: "Pair"}) {
+			<div class="mascot-pair">
+				<figure>
+					<img src="/static/img/clerk-blue.svg" alt="" class="mascot-pair-art" aria-hidden="true"/>
+				</figure>
+				<figure>
+					<img src="/static/img/clerk-green.svg" alt="" class="mascot-pair-art" aria-hidden="true"/>
+				</figure>
+			</div>
+		}
+
+		@components.Card(components.CardProps{Title: "Themes"}) {
+			<div class="mascot-themes">
+				@themePanel("light", "/static/img/clerk-blue.svg", "80 30 320 320")
+				@themePanel("dark", "/static/img/clerk-green.svg", "680 60 310 310")
+			</div>
+		}
+
+		@components.Card(components.CardProps{Title: "Neon"}) {
+			<div class="mascot-bigshow mascot-bigshow--neon mascot-bigshow--mini">
+				<img src="/static/img/clerk-purple.svg" alt="" class="mascot-bigshow-art" aria-hidden="true"/>
+			</div>
+		}
+	}
+}
+
+templ themePanel(mode, src, headBox string) {
+	<section class={ "mascot-theme", "mascot-theme--" + mode }>
+		<header class="mascot-theme-label">{ mode } mode</header>
+
+		<div class="mascot-theme-box mascot-theme-box--full">
+			<img src={ src } alt="" class="mascot-theme-full" aria-hidden="true"/>
+		</div>
+
+		<div class="mascot-theme-box mascot-theme-box--head">
+			<svg class="mascot-theme-head" viewBox={ headBox } aria-hidden="true">
+				<image href="/static/img/clerk.svg" width="1080" height="1080"/>
+			</svg>
+		</div>
+
+		<div class="mascot-theme-box mascot-theme-box--inline">
+			<div class="mascot-theme-inline">
+				<img src={ src } alt="" aria-hidden="true"/>
+				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+			</div>
+		</div>
+
+		<div class="mascot-theme-box mascot-theme-box--inlineh">
+			<div class="mascot-theme-inline">
+				<svg class="mascot-theme-head mascot-theme-head--sm" viewBox={ headBox } aria-hidden="true">
+					<image href="/static/img/clerk.svg" width="1080" height="1080"/>
+				</svg>
+				<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+			</div>
+		</div>
+	</section>
+}

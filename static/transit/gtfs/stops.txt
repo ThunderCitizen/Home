@@ -178,7 +178,7 @@
 1212,Canada Games Complex,48.42359,-89.24087,1,1212
 1213,Community Auditorium,48.42194,-89.2409,1,1213
 1214,Beverly & Newton,48.42136,-89.24328,1,1214
-1216,Ravenwood & Beverly,48.42095,-89.24657,1,1216
+1216,Beverly & Ravenwood,48.42095,-89.24657,1,1216
 1220,Oliver & Balmoral,48.42592,-89.25401,0,1220
 1222,Lakehead University,48.42144,-89.26211,1,1222
 1223,Nursing Building,48.42241,-89.26086,1,1223
@@ -245,7 +245,7 @@
 1292,Thunder Bay Regional Hospital,48.42597,-89.27016,1,1292
 1293,Oliver & Sanders,48.4221,-89.26626,1,1293
 1294,Oliver & Bora Laskin,48.42551,-89.25491,1,1294
-1298,Ravenwood & Beverly,48.4208,-89.2476,1,1298
+1298,Beverly & Ravenwood,48.4208,-89.2476,1,1298
 1299,Beverly & Darwin,48.42084,-89.24536,0,1299
 1300,Community Auditorium,48.42155,-89.24124,0,1300
 1301,Tbaytel Park,48.42364,-89.24073,1,1301
@@ -604,7 +604,7 @@
 1729,James & Arthur,48.38014,-89.28961,1,1729
 1730,James & Mini-Queens Park,48.37826,-89.28961,1,1730
 1731,James & Isabella,48.3764,-89.2896,0,1731
-1732,James & Walsh,48.37479,-89.28959,1,1732
+1732,James & Walsh,48.37569,-89.28967,1,1732
 1733,Walsh & Linwood,48.37427,-89.28607,1,1733
 1734,Walsh & Brown,48.37431,-89.28201,1,1734
 1735,Walsh & Edward,48.37426,-89.27905,0,1735

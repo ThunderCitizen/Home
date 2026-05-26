@@ -231,6 +231,7 @@ func main() {
 		r.Get("/motions", h.Motions)
 		r.Get("/about", h.About)
 		r.Get("/data", h.DataPacks)
+		r.Get("/👻/clerk-9f3a4b", h.Mascot)
 	})
 	// Accept HEAD on /health too — Docker's wget --spider probe uses HEAD
 	// and was getting a 405 from a GET-only route, which made the container

@@ -171,6 +171,10 @@ func (h *Handlers) About(w http.ResponseWriter, r *http.Request) {
 	pages.About(vm).Render(r.Context(), w)
 }
 
+func (h *Handlers) Mascot(w http.ResponseWriter, r *http.Request) {
+	pages.Mascot().Render(r.Context(), w)
+}
+
 // NotFound renders the themed 404 page with a 404 status. Used for HTML
 // page routes where a plain httperr JSON response would break the theme.
 // API routes should continue to use httperr.NotFound (JSON).
