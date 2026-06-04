@@ -48,6 +48,7 @@ type Handlers struct {
 
 type councilStore interface {
 	ListMeetingSummaries(ctx context.Context, f council.MeetingFilter) ([]council.MeetingSummary, int, error)
+	MeetingKeyItems(ctx context.Context, meetingID string, limit int) ([]string, error)
 	CouncillorVoteStatsAll(ctx context.Context, term string) (map[string]council.CouncillorVoteStats, error)
 	VoteMatrix(ctx context.Context, term string) ([]council.VoteMatrixMotion, []council.VoteMatrixRecord, error)
 	MotionStats(ctx context.Context, term string) (int, int, int, error)
@@ -103,10 +104,17 @@ func (h *Handlers) Home(w http.ResponseWriter, r *http.Request) {
 	store := newCouncilStore(h.db)
 	recent, _, err := store.ListMeetingSummaries(r.Context(), council.MeetingFilter{
 		Term:  "2022-2026",
-		Limit: 1,
+		Limit: 3,
 	})
 	if err != nil {
 		log.Warn("failed to load recent meetings", "err", err)
+	}
+	for i := range recent {
+		limit := 3
+		if recent[i].MotionCount >= 15 { // bigger meetings get a few more bullets
+			limit = 5
+		}
+		recent[i].KeyItems, _ = store.MeetingKeyItems(r.Context(), recent[i].ID, limit)
 	}
 
 	vm := views.NewHomeViewModel(recent)

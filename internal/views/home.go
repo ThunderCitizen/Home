@@ -1,6 +1,8 @@
 package views
 
 import (
+	"strings"
+
 	"thundercitizen/internal/council"
 	"thundercitizen/internal/data"
 	"thundercitizen/templates/components"
@@ -16,31 +18,52 @@ type HomeViewModel struct {
 
 // RecentMeetingView is a compact meeting row for the home page.
 type RecentMeetingView struct {
-	Slug    string
-	ID      string
-	Date    string
-	Summary string
-	Motions int
+	Slug     string
+	ID       string
+	Date     string
+	Summary  string
+	Motions  int
+	KeyItems []string
+}
+
+// shortSummary trims a meeting summary down to roughly limit characters for the
+// compact home card, but only ever on a sentence boundary — never mid-sentence,
+// and with no trailing ellipsis. If the first sentence already exceeds the
+// limit it's returned whole; a summary with no sentence punctuation is returned
+// as-is rather than cut.
+func shortSummary(s string, limit int) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= limit {
+		return s
+	}
+	end := 0
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; c == '.' || c == '!' || c == '?' {
+			if i+1 >= len(s) || s[i+1] == ' ' {
+				end = i + 1
+				if end >= limit {
+					break
+				}
+			}
+		}
+	}
+	if end == 0 {
+		return s
+	}
+	return s[:end]
 }
 
 // NewHomeViewModel creates the view model for the home page
 func NewHomeViewModel(recentMeetings []council.MeetingSummary) HomeViewModel {
 	recent := make([]RecentMeetingView, len(recentMeetings))
 	for i, m := range recentMeetings {
-		summary := m.Summary
-		if len(summary) > 200 {
-			cut := 200
-			for cut > 150 && summary[cut] != ' ' {
-				cut--
-			}
-			summary = summary[:cut] + "..."
-		}
 		recent[i] = RecentMeetingView{
-			Slug:    council.MeetingSlug(m.Title, m.Date),
-			ID:      m.ID,
-			Date:    humanDate(m.Date),
-			Summary: summary,
-			Motions: m.MotionCount,
+			Slug:     council.MeetingSlug(m.Title, m.Date),
+			ID:       m.ID,
+			Date:     humanDate(m.Date),
+			Summary:  shortSummary(m.Summary, 200),
+			Motions:  m.MotionCount,
+			KeyItems: m.KeyItems,
 		}
 	}
 

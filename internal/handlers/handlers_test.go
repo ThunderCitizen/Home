@@ -30,6 +30,9 @@ type stubCouncilStore struct {
 func (s stubCouncilStore) ListMeetingSummaries(ctx context.Context, f council.MeetingFilter) ([]council.MeetingSummary, int, error) {
 	return s.listMeetingSummaries(ctx, f)
 }
+func (s stubCouncilStore) MeetingKeyItems(ctx context.Context, meetingID string, limit int) ([]string, error) {
+	return nil, nil
+}
 func (s stubCouncilStore) CouncillorVoteStatsAll(ctx context.Context, term string) (map[string]council.CouncillorVoteStats, error) {
 	return s.councillorVoteStatsAll(ctx, term)
 }

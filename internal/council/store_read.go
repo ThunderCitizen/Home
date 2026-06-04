@@ -46,6 +46,43 @@ type MeetingSummary struct {
 	CarriedCount  int
 	LostCount     int
 	MediaCount    int
+	KeyItems      []string
+}
+
+// MeetingKeyItems returns up to limit notable (non-procedural) motion labels
+// for a meeting, defeated/media-covered items first, for the home page bullets.
+func (s *Store) MeetingKeyItems(ctx context.Context, meetingID string, limit int) ([]string, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT COALESCE(NULLIF(llm_label, ''), LEFT(motion_text, 60))
+		FROM council_motions
+		WHERE meeting_id = $1 AND raw_text != ''
+		  AND lower(motion_text) NOT LIKE 'that the minutes of the following%'
+		  AND lower(motion_text) NOT LIKE 'that the agenda as printed%'
+		  AND lower(motion_text) NOT LIKE 'that the following by-law%'
+		  AND lower(motion_text) NOT LIKE 'that the following resolution be introduced%'
+		  AND lower(motion_text) NOT LIKE 'that the hour being%'
+		  AND lower(motion_text) NOT LIKE 'that city council recess%'
+		  AND lower(motion_text) NOT LIKE 'that the consent agenda%'
+		  AND llm_label NOT ILIKE '%agenda confirmed%'
+		  AND llm_label NOT ILIKE '%consent agenda%'
+		  AND llm_label NOT ILIKE '%meeting minutes%'
+		  AND llm_label NOT ILIKE '%meeting proceedings%'
+		  AND llm_label NOT ILIKE '%calendar%'
+		ORDER BY (result = 'LOST') DESC, (media_url IS NOT NULL AND media_url <> '') DESC, motion_index
+		LIMIT $2`, meetingID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var item string
+		if err := rows.Scan(&item); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
 }
 
 // ListMeetingSummaries returns meetings with motion counts, filterable and paginated.

@@ -64,6 +64,17 @@ git commit -m "Update council vote data through <date>"
 
 `muni release` rewrites `data/muni/councillors.tsv` + `data/muni/council_*.tsv` + `BOD.tsv` from the now-enriched dev DB, signs the bundle with your hardware key, and uploads it to DO Spaces. On next boot production fetches the new bundle and applies changed datasets automatically.
 
+### Step 6: Refresh the home page "Recent Council Activity" card
+
+The home card has two zones, newest-at-top: a hand-curated **pending** row for the meeting that has happened but whose minutes aren't on eSCRIBE yet (agenda preview), then the **recent** rows for meetings that now have minutes. Keep them consistent every cycle:
+
+1. **Pending zone — `internal/data/pending_council.go`.** Keep exactly **one** entry: the most recent meeting that still has an Agenda but no `PostMinutes` PDF on eSCRIBE. When `fetcher votes` ingests a meeting's minutes, **remove** its pending entry (it auto-flows into the recent zone from the DB) and **add** the next meeting's entry. Source the `Summary` + `KeyItems` bullets from that meeting's eSCRIBE agenda — the bullet format is the established style; keep ~5 items, one report/by-law each.
+2. **Recent zone — automatic.** `handlers.Home` pulls the latest 3 meetings (`ListMeetingSummaries`, `Limit: 3`) straight from the DB; their summaries come from `cmd/summarize`. No edit needed — Step 2 already populated them. The card shows a short summary + motion count only (no extra badges).
+
+No `muni-publish` for this — it's a code-level change. `templ generate && go build`, commit, deploy the binary.
+
+To find the pending entry's agenda + ID without a browser (eSCRIBE 403s plain fetches): `POST /MeetingsCalendarView.aspx/PastMeetings` with `{"type":"City Council","pageNumber":1}` lists recent meetings incl. ones lacking `PostMinutes`; the HTML agenda link is `Meeting.aspx?Id=<id>&Agenda=Agenda&lang=English` and the PDF is `FileStream.ashx?DocumentId=<n>` (read it with `pdftotext -layout`).
+
 **Councillor `status` / `status_url` are deliberately NOT in the bundle.** "Stepping down", "Not seeking re-election", etc. is editorial election context, not the curated council record — it's ephemeral, has no signed-bundle citation column, and the `/councillors` page renders the member roster entirely from `internal/data` (the Go `CouncilByTerm`), never the DB `councillors` table. So status ships as a **code-level overlay**: edit `internal/data/councillors.go`, deploy the binary — no `muni-publish` needed. The `CouncillorsPlugin` extract in `internal/muni/plugins.go` intentionally omits the `status` column; don't re-add it.
 
 ---

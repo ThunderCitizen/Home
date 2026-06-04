@@ -34,6 +34,11 @@ templ Home(vm views.HomeViewModel) {
 			@components.Card(components.CardProps{Title: "Notice Board"}) {
 				<div class="notice-welcome">
 					<div class="notice-item">
+						<strong>Council minutes — caught up</strong>
+						<time class="notice-date" datetime="2026-06-03">Posted June 3, 2026</time>
+						<p>eSCRIBE posted the backlog and we&rsquo;ve processed it — minutes, motions, and recorded votes are now current through May 19, 2026.</p>
+					</div>
+					<div class="notice-item">
 						<strong>Transit holiday alert</strong>
 						<time class="notice-date" datetime="2026-05-14">Posted May 14, 2026</time>
 						<p>The Victoria Day alert was published early and tagged every stop. Alerts now respect their active window.</p>
@@ -87,6 +92,13 @@ templ Home(vm views.HomeViewModel) {
 									<span class="recent-meeting-count">{ fmt.Sprintf("%d motions", m.Motions) }</span>
 								</div>
 								<p class="recent-meeting-summary">{ m.Summary }</p>
+								if len(m.KeyItems) > 0 {
+									<ul class="recent-meeting-items">
+										for _, item := range m.KeyItems {
+											<li>{ item }</li>
+										}
+									</ul>
+								}
 								<div class="recent-meeting-footer">
 									<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">Minutes</a>
 								</div>
