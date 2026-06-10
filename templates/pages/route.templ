@@ -318,7 +318,10 @@ func routeBadgeColor(c string) string {
 	return "#6b7280"
 }
 
-func routeBadgeFg(_ string) string {
+func routeBadgeFg(c string) string {
+	if c != "" {
+		return "#" + strings.TrimPrefix(c, "#")
+	}
 	return "white"
 }
 
@@ -705,4 +708,3 @@ func tripStatus(t transit.ScheduledTrip) string {
 	}
 	return fmt.Sprintf("%dm early (%s)", minutes, observed)
 }
-

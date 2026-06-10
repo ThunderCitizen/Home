@@ -20,16 +20,23 @@ func pillBorderStyle(color string) templ.Attributes {
 }
 
 func pillIdStyle(bg string) templ.Attributes {
-	return templ.Attributes{"style": "background:" + bg}
+	return templ.Attributes{"style": "background:" + bg + "; color: var(--text-on-dark)"}
 }
 
 func alertRouteStyle(meta []transit.RouteMetaAPI, routeID string) templ.Attributes {
 	for _, r := range meta {
 		if r.RouteID == routeID && r.Color != "" {
-			return templ.Attributes{"style": "background:" + r.Color}
+			return templ.Attributes{"style": "background:" + r.Color + "; color: " + routeTextColor(r.TextColor)}
 		}
 	}
 	return templ.Attributes{}
+}
+
+func routeTextColor(c string) string {
+	if c != "" {
+		return "#" + strings.TrimPrefix(c, "#")
+	}
+	return "var(--text-on-dark)"
 }
 
 // routeCancelSplit returns (past, upcoming) cancellation counts for one

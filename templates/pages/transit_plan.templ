@@ -55,7 +55,7 @@ func routeColorCSS(leg transit.Leg) string {
 }
 
 func routeBadgeStyle(leg transit.Leg) templ.Attributes {
-	return templ.Attributes{"style": "background:" + routeColorCSS(leg)}
+	return templ.Attributes{"style": "background:" + routeColorCSS(leg) + "; color:var(--text-on-dark)"}
 }
 
 // prevWasTransit reports whether the leg before index i is a transit leg.

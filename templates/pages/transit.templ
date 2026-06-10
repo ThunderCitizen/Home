@@ -25,7 +25,7 @@ templ routeRow(rt transit.RouteMetaAPI, kpi transit.RouteRowKPI) {
 		data-href={ "/transit/route/" + rt.RouteID }
 		{ routeCardStyle(rt.Color)... }
 	>
-		<td class="route-table-id" { routeIdStyle(rt.Color)... }>{ rt.RouteID }</td>
+		<td class="route-table-id" { routeIdStyle(rt.Color, rt.TextColor)... }>{ rt.RouteID }</td>
 		<td class="route-table-name">{ rt.Name }</td>
 		<td class="route-table-num"><span class="route-metric-val">{ valOrDash(kpi.Trips) }</span></td>
 		<td class="route-table-num"><span class="route-metric-val">{ valOrDash(kpi.Cancel) }</span></td>
@@ -117,8 +117,14 @@ func routeCardStyle(color string) templ.Attributes {
 	return templ.Attributes{"style": "--route-color: " + color}
 }
 
-func routeIdStyle(bg string) templ.Attributes {
-	return templ.Attributes{"style": "background:" + bg}
+func routeIdStyle(bg, fg string) templ.Attributes {
+	style := "background:" + bg
+	if fg != "" {
+		style += "; color:#" + strings.TrimPrefix(fg, "#")
+	} else {
+		style += "; color:var(--text-on-dark)"
+	}
+	return templ.Attributes{"style": style}
 }
 
 func cancelLeadClass(leadMin int) string {

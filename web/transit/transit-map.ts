@@ -100,6 +100,7 @@ const TB_ZOOM = 12;
 // All known routes (from GTFS static data)
 // Route metadata — populated from server-rendered JSON on init
 const ROUTE_COLORS: Record<string, string> = {};
+const ROUTE_TEXT_COLORS: Record<string, string> = {};
 const ROUTE_NAMES: Record<string, string> = {};
 const ROUTE_TERMINALS: Record<string, string[]> = {};
 // Derived from route meta (7-day trailing window of scheduled service)
@@ -122,9 +123,21 @@ function loadRouteMeta(): void {
     if (!e || !e.route_id) continue;
     ALL_ROUTES.push(e.route_id);
     if (e.color) ROUTE_COLORS[e.route_id] = e.color;
+    if (e.text_color) ROUTE_TEXT_COLORS[e.route_id] = normalizeRouteColor(e.text_color);
     if (e.name) ROUTE_NAMES[e.route_id] = e.name;
     if (e.terminals && e.terminals.length > 0) ROUTE_TERMINALS[e.route_id] = e.terminals;
   }
+}
+
+function normalizeRouteColor(color: string): string {
+  if (!color) return "";
+  return color.charAt(0) === "#" ? color : "#" + color;
+}
+
+function routeBadgeStyle(routeId: string, colorOverride?: string): string {
+  const bg = colorOverride || ROUTE_COLORS[routeId] || TC.statusMuted;
+  const fg = ROUTE_TEXT_COLORS[routeId] || "var(--text-on-dark)";
+  return "background:" + bg + ";color:" + fg;
 }
 
 const SHAPES_URL = "/static/transit/route-shapes.json";
@@ -800,7 +813,7 @@ function busInfoHtml(v: LocalVehicle): string {
     if (v.delay < -60) delay = Math.round(-v.delay / 60) + "m early";
     else if (v.delay > 300) delay = Math.round(v.delay / 60) + "m late";
   }
-  return '<span class="info-route" style="background:' + color + '">' + v.routeId + '</span>' +
+  return '<span class="info-route" style="' + routeBadgeStyle(v.routeId, color) + '">' + v.routeId + '</span>' +
     ' <span class="info-id">#' + v.id + '</span>' +
     (name ? ' <span class="info-name">' + name + '</span>' : '') +
     ' <span class="info-detail">' + status + '</span>' +
@@ -841,7 +854,7 @@ function stopPredictionsHtml(stopId: string, stopName: string, preds: {route_id:
       if (p.delay_seconds >= 300) minsClass = "info-late";
       else if (p.delay_seconds <= -120) minsClass = "info-early";
     }
-    html += ' <span class="info-route" style="background:' + color + '">' + p.route_id + '</span>' +
+    html += ' <span class="info-route" style="' + routeBadgeStyle(p.route_id, color) + '">' + p.route_id + '</span>' +
       ' <span class="info-detail">in</span> <span class="' + minsClass + '">' + mins + '</span>';
   }
   if (preds.length === 0) {
@@ -1168,7 +1181,7 @@ function updateRouteGrid(vehicles: LocalVehicle[]): void {
       '<button type="button" class="' + cls + '" role="listitem" data-route="' + escapeHtml(id) + '"' +
       ' style="border-left-color:' + color + '"' +
       ' title="' + titleParts + '">' +
-      '<span class="route-pill-id" style="background:' + color + '">' + escapeHtml(id) + '</span>' +
+      '<span class="route-pill-id" style="' + routeBadgeStyle(id, color) + '">' + escapeHtml(id) + '</span>' +
       nameSpan +
       rightCol +
       footer +
@@ -1260,7 +1273,7 @@ function routeInfoHtml(routeId: string): string {
   const trips = cancelledTrips[routeId] || [];
   const upcoming = trips.filter(function (t) { return !!t.upcoming; }).length;
 
-  let html = '<span class="info-route" style="background:' + color + '">' + escapeHtml(routeId) + '</span>' +
+  let html = '<span class="info-route" style="' + routeBadgeStyle(routeId, color) + '">' + escapeHtml(routeId) + '</span>' +
     ' <span class="info-name">' + escapeHtml(name) + '</span>' +
     ' <span class="info-detail">· ' + busCount + ' bus' + (busCount === 1 ? '' : 'es') + ' active</span>';
   if (upcoming > 0) {
@@ -2658,6 +2671,7 @@ function buildBusRow(v: LocalVehicle): HTMLElement {
   const badge = document.createElement('span');
   badge.className = 'stat-modal-route';
   badge.style.background = color;
+  badge.style.color = ROUTE_TEXT_COLORS[v.routeId] || 'var(--text-on-dark)';
   badge.textContent = v.routeId;
 
   const detail = document.createElement('span');
@@ -2739,6 +2753,7 @@ function buildCancelRow(rid: string, t: CancelledTrip): HTMLElement {
   const badge = document.createElement('span');
   badge.className = 'stat-modal-route';
   badge.style.background = color;
+  badge.style.color = ROUTE_TEXT_COLORS[rid] || 'var(--text-on-dark)';
   badge.textContent = rid;
 
   const detail = document.createElement('span');

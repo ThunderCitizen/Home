@@ -37,16 +37,6 @@ type FreshnessRow struct {
 func NewAboutViewModel(now time.Time, feeds []transit.FeedStats, lastMinutesCheck, lastBundleCheck time.Time) AboutViewModel {
 	rows := make([]FreshnessRow, 0, len(feeds)+2)
 
-	budgetRow := freshnessRow(
-		"Budget · Operating ledger",
-		"2026 Operating Budget",
-		"annual",
-		lastBundleCheck,
-		now,
-	)
-	budgetRow.DetailURL = "https://thunderbay.ca/en/city-hall/2026-budget.aspx"
-	rows = append(rows, budgetRow)
-
 	const gtfsOpenDataURL = "https://www.thunderbay.ca/en/city-services/developers---open-data.aspx"
 	for _, f := range feeds {
 		label, detail := transitFeedLabel(f.FeedType)
@@ -63,8 +53,17 @@ func NewAboutViewModel(now time.Time, feeds []transit.FeedStats, lastMinutesChec
 		now,
 	)
 	minutesRow.DetailURL = "https://pub-thunderbay.escribemeetings.com"
-	minutesRow.Note = "We check eScribe regularly. Meetings are listed there promptly, but no official minutes PDFs have been posted since April 7."
 	rows = append(rows, minutesRow)
+
+	budgetRow := freshnessRow(
+		"Budget · Operating ledger",
+		"2026 Operating Budget",
+		"annual",
+		lastBundleCheck,
+		now,
+	)
+	budgetRow.DetailURL = "https://thunderbay.ca/en/city-hall/2026-budget.aspx"
+	rows = append(rows, budgetRow)
 
 	return AboutViewModel{
 		Freshness: FreshnessReport{
