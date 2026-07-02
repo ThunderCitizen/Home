@@ -67,4 +67,4 @@ git add static/...      # commit refreshed static JSON (bundle TSVs are not comm
 git commit
 ```
 
-The next server boot (once the `muni_fetch_state` 24h throttle expires) downloads the new bundle, verifies the signature, and applies any new datasets into the DB automatically.
+The next server boot downloads the new bundle, verifies the signature, and applies any new datasets into the DB automatically.

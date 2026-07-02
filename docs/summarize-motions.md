@@ -24,7 +24,7 @@ This writes `llm_summary` and `llm_label` to `council_motions`, and a meeting-le
 make muni-publish     # extract + sign + zip + upload in one step
 ```
 
-The app re-fetches the bundle on next boot (after the 24h `muni_fetch_state` window) and applies new datasets automatically.
+The app re-fetches the bundle on next boot and applies new datasets automatically.
 
 ### 3. Commit
 

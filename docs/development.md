@@ -70,7 +70,7 @@ make lint-js   # ESLint only
 
 ### Shipping curated data to production
 
-Curated state (councillors, budget ledger, council votes, wards) ships as a **signed muni bundle** — a set of TSVs plus `BOD.tsv` (bill-of-datasets), zipped and uploaded to DO Spaces. The server downloads, verifies, and applies it on boot, throttled by `muni_fetch_state.last_checked_at` (24h).
+Curated state (councillors, budget ledger, council votes, wards) ships as a **signed muni bundle** — a set of TSVs plus `BOD.tsv` (bill-of-datasets), zipped and uploaded to DO Spaces. The server downloads, verifies, and applies it on every production boot.
 
 ```bash
 make muni-publish          # extract + sign + zip + upload in one step (= muni release)

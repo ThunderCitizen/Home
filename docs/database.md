@@ -22,7 +22,7 @@ Migrations in `migrations/`. Relations live in named Postgres schemas:
   - **Fleet tracking** — `transit.vehicle`, `transit.vehicle_assignment`
   - **Operational** — `transit.feed_state`, `transit.feed_gap`
 - **`public.*`** — everything else: `councillors`, `council_meetings`, `council_motions`, `council_vote_records`, `budget_accounts`, `budget_ledger`
-- **Operational public tables** — `data_patch_log` (muni bundle apply audit: dataset checksum + signer + timestamp), `muni_fetch_state` (single-row throttle, migration `000007`)
+- **Operational public tables** — `data_patch_log` (muni bundle apply audit: dataset checksum + signer + timestamp), `muni_fetch_state` (last successful production bundle check, migration `000007`)
 
 ## PostGIS
 

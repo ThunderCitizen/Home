@@ -144,7 +144,7 @@ Event-sourced transit analytics. See [docs/transit.md](transit.md) for full deta
 Provenance lives in two places:
 
 1. **`data_patch_log`** — append-only audit table that records every dataset applied from a muni bundle, with the SHA-256 of the dataset TSV and the bundle signer. Tells you exactly what data shipped, when, and who signed it.
-2. **`muni_fetch_state`** (migration `000007`) — single-row throttle table (`last_checked_at timestamptz`). On boot the server skips the bundle download entirely if the last check is within 24h.
+2. **`muni_fetch_state`** (migration `000007`) — records the most recent successful production bundle check for operator visibility.
 3. **Source files in `static/`** — `static/budget/fir_YYYY.json`, `static/councillors/votes_*.json`, `static/transit/gtfs/*.txt` etc. are committed (or .gitignored and regenerated via `./bin/fetcher`) and represent the latest fetched state. They're the input to the muni extractor (`./bin/muni extract`).
 
 The earlier `documents` + `facts` + `fact_citations` citation graph was removed pre-launch — it was write-only after the CPI removal, and the bundle mechanism gives the same audit story for the data we actually ship.

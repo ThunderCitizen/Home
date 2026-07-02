@@ -318,11 +318,6 @@ func main() {
 	log.Info("stopped")
 }
 
-// muniCheckInterval is how long a successful bundle check is valid before
-// we'll re-hit the upstream source. Kept short enough to pick up new
-// publications within a day, long enough that dev hot-reloads don't spam DO.
-const muniCheckInterval = 24 * time.Hour
-
 // applyMuniBundle resolves the bundle (local dir in dev, DO Spaces in
 // prod) and applies it. Runs in its own goroutine — the HTTP listener
 // is already accepting requests from the last-applied DB state when
@@ -370,17 +365,6 @@ func applyMuniBundle(db *pgxpool.Pool, cfg *config.Config, trust *munisign.Trust
 		if n > 0 {
 			log.Info("applied muni data", "datasets", n)
 		}
-		return
-	}
-
-	// Production path.
-	if last, err := muni.LastCheckedAt(ctx, db); err != nil {
-		log.Warn("muni fetch state unreadable; fetching anyway", "err", err)
-	} else if !last.IsZero() && time.Since(last) < muniCheckInterval {
-		status.SetSkipped("prod: last checked within 24h")
-		log.Info("muni bundle recently checked; skipping fetch",
-			"last_checked", last.Format(time.RFC3339),
-			"age", time.Since(last).Round(time.Minute))
 		return
 	}
 
