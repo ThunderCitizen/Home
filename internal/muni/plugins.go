@@ -19,6 +19,13 @@ func init() {
 	Register(&CouncilVotesPlugin{})
 	Register(&BudgetAccountsPlugin{})
 	Register(&BudgetLedgerPlugin{})
+	Register(capitalProjectsPlugin())
+	Register(capitalProjectYearsPlugin())
+	Register(capitalProjectFundingPlugin())
+	Register(capitalProjectStakeholdersPlugin())
+	Register(capitalProjectApprovalsPlugin())
+	Register(capitalProjectProcurementsPlugin())
+	Register(capitalProjectBidsPlugin())
 }
 
 const collectedNow = "" // sentinel — plugins call time.Now() in Extract
@@ -32,6 +39,7 @@ var (
 	termEnd2022   = time.Date(2026, 11, 14, 0, 0, 0, 0, time.UTC)
 	fy2026Start   = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	fy2026End     = time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
+	fy2027End     = time.Date(2027, 12, 31, 0, 0, 0, 0, time.UTC)
 )
 
 // ─── Councillors ────────────────────────────────────────────────────────
@@ -299,4 +307,146 @@ func (BudgetLedgerPlugin) Apply(ctx context.Context, tx pgx.Tx, fsys fs.FS, ds D
 		return 0, err
 	}
 	return ds.Rows, UpsertFromStaging(ctx, tx, ds.Table, "muni_staging", header, []string{"source_hash"})
+}
+
+// ─── Capital projects ──────────────────────────────────────────────────
+
+const capitalBudgetSourceURL = "https://pub-thunderbay.escribemeetings.com/FileStream.ashx?DocumentId=10325"
+
+type capitalTablePlugin struct {
+	name        string
+	file        string
+	table       string
+	description string
+	cols        []string
+	query       string
+	keys        []string
+}
+
+func (p capitalTablePlugin) Name() string { return p.name }
+
+func (p capitalTablePlugin) Extract(ctx context.Context, pool *pgxpool.Pool, outDir string) ([]Dataset, error) {
+	rows, sha, err := runExtractQuery(ctx, pool, outDir, p.file, p.query, p.cols)
+	if err != nil {
+		return nil, err
+	}
+	return []Dataset{{
+		File: p.file, Plugin: p.name, Table: p.table,
+		SourceURL:   capitalBudgetSourceURL,
+		SourceDoc:   capitalBudgetSourceURL,
+		Description: p.description,
+		Collected:   time.Now().UTC(), License: "public-record", Processor: "pg_dump",
+		Rows: rows, SHA256: sha,
+		PackID:    "budget-2026-2027",
+		UnitKind:  UnitBudgetYear,
+		UnitStart: fy2026Start, UnitEnd: fy2027End,
+	}}, nil
+}
+
+func (p capitalTablePlugin) Apply(ctx context.Context, tx pgx.Tx, fsys fs.FS, ds Dataset) (int, error) {
+	header, err := LoadStaging(ctx, tx, fsys, ds, "muni_staging")
+	if err != nil {
+		return 0, err
+	}
+	if err := DeleteMissingFromStaging(ctx, tx, ds.Table, "muni_staging", p.keys); err != nil {
+		return 0, err
+	}
+	return ds.Rows, UpsertFromStaging(ctx, tx, ds.Table, "muni_staging", header, p.keys)
+}
+
+func capitalProjectsPlugin() Plugin {
+	return capitalTablePlugin{
+		name:        "capital_projects",
+		file:        "capital_projects.tsv",
+		table:       "capital_projects",
+		description: "Capital project records 2026-2027",
+		cols: []string{"id", "name", "official_name", "service", "category", "asset_type", "action", "lifecycle", "status",
+			"description", "benefits", "ward", "location", "source_context", "source_url", "source_doc", "source_page", "source_hash", "source"},
+		query: `SELECT id, name, official_name, service, category, asset_type, action, lifecycle, status,
+		        description, benefits, ward, location, source_context, source_url, source_doc, source_page, source_hash, source
+		        FROM capital_projects ORDER BY service, category, name`,
+		keys: []string{"id"},
+	}
+}
+
+func capitalProjectYearsPlugin() Plugin {
+	return capitalTablePlugin{
+		name:        "capital_project_years",
+		file:        "capital_project_years.tsv",
+		table:       "capital_project_years",
+		description: "Capital project annual budgets 2026-2027",
+		cols:        []string{"project_id", "fiscal_year", "amount", "budget_status", "source_url", "source_doc", "source_page", "source"},
+		query: `SELECT project_id, fiscal_year, amount::text, budget_status, source_url, source_doc, source_page, source
+		        FROM capital_project_years ORDER BY fiscal_year, project_id`,
+		keys: []string{"project_id", "fiscal_year"},
+	}
+}
+
+func capitalProjectFundingPlugin() Plugin {
+	return capitalTablePlugin{
+		name:        "capital_project_funding",
+		file:        "capital_project_funding.tsv",
+		table:       "capital_project_funding",
+		description: "Capital project funding sources 2026-2027",
+		cols:        []string{"project_id", "fiscal_year", "funding_source", "funding_kind", "amount", "source_url", "source_doc", "source_page", "source"},
+		query: `SELECT project_id, fiscal_year, funding_source, funding_kind, amount::text, source_url, source_doc, source_page, source
+		        FROM capital_project_funding ORDER BY fiscal_year, project_id, funding_source`,
+		keys: []string{"project_id", "fiscal_year", "funding_source"},
+	}
+}
+
+func capitalProjectStakeholdersPlugin() Plugin {
+	return capitalTablePlugin{
+		name:        "capital_project_stakeholders",
+		file:        "capital_project_stakeholders.tsv",
+		table:       "capital_project_stakeholders",
+		description: "Capital project stakeholders 2026-2027",
+		cols:        []string{"project_id", "name", "role", "organization", "stakeholder_type", "source_url", "source_doc", "source_page", "source"},
+		query: `SELECT project_id, name, role, organization, stakeholder_type, source_url, source_doc, source_page, source
+		        FROM capital_project_stakeholders ORDER BY project_id, role, name`,
+		keys: []string{"project_id", "name", "role"},
+	}
+}
+
+func capitalProjectApprovalsPlugin() Plugin {
+	return capitalTablePlugin{
+		name:        "capital_project_approvals",
+		file:        "capital_project_approvals.tsv",
+		table:       "capital_project_approvals",
+		description: "Capital project approval records 2026-2027",
+		cols: []string{"approval_id", "project_id", "fiscal_year", "approval_stage", "approval_date", "approval_body",
+			"meeting_id", "motion_id", "result", "source_url", "source_doc", "source_page", "source_hash", "source"},
+		query: `SELECT approval_id, project_id, fiscal_year, approval_stage, approval_date::text, approval_body,
+		        meeting_id, motion_id, result, source_url, source_doc, source_page, source_hash, source
+		        FROM capital_project_approvals ORDER BY approval_date, approval_id`,
+		keys: []string{"approval_id"},
+	}
+}
+
+func capitalProjectProcurementsPlugin() Plugin {
+	return capitalTablePlugin{
+		name:        "capital_project_procurements",
+		file:        "capital_project_procurements.tsv",
+		table:       "capital_project_procurements",
+		description: "Capital project procurement records",
+		cols: []string{"procurement_id", "project_id", "title", "procurement_type", "stage", "posted_at", "closed_at",
+			"awarded_at", "awarded_vendor", "award_amount", "source_url", "source_doc", "source_hash", "source"},
+		query: `SELECT procurement_id, project_id, title, procurement_type, stage, posted_at::text, closed_at::text,
+		        awarded_at::text, awarded_vendor, award_amount::text, source_url, source_doc, source_hash, source
+		        FROM capital_project_procurements ORDER BY project_id, procurement_id`,
+		keys: []string{"procurement_id"},
+	}
+}
+
+func capitalProjectBidsPlugin() Plugin {
+	return capitalTablePlugin{
+		name:        "capital_project_bids",
+		file:        "capital_project_bids.tsv",
+		table:       "capital_project_bids",
+		description: "Capital project bid records",
+		cols:        []string{"bid_id", "procurement_id", "bidder", "bid_amount", "result", "source_url", "source_doc", "source_hash", "source"},
+		query: `SELECT bid_id, procurement_id, bidder, bid_amount::text, result, source_url, source_doc, source_hash, source
+		        FROM capital_project_bids ORDER BY procurement_id, bidder`,
+		keys: []string{"bid_id"},
+	}
 }

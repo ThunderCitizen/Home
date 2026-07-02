@@ -245,7 +245,6 @@ article > header {
   display: grid;
   gap: 0.75rem;
 
-  &.cols-2 { grid-template-columns: repeat(2, 1fr); }
   &.cols-3 { grid-template-columns: repeat(3, 1fr); }
   &.cols-4 { grid-template-columns: repeat(4, 1fr); }
 
@@ -927,6 +926,7 @@ article > header {
   &.cols-2 { grid-template-columns: repeat(2, 1fr); }
   &.cols-3 { grid-template-columns: repeat(3, 1fr); }
   &.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  &.cols-5 { grid-template-columns: repeat(5, 1fr); }
 
   @media (max-width: 768px) {
     &.cols-2,
@@ -998,8 +998,10 @@ a.card-link {
   gap: 1rem;
   text-align: center;
 
+  &.cols-2 { grid-template-columns: repeat(2, 1fr); }
   &.cols-3 { grid-template-columns: repeat(3, 1fr); }
   &.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  &.cols-5 { grid-template-columns: repeat(5, 1fr); }
 
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
@@ -1668,6 +1670,32 @@ h3.vote-matrix-card-label {
   .badge-status-info  { @include badge-light-hue(#60a5fa); }
   .badge-status-error { @include badge-light-hue(#f87171); }
   .badge-status-muted { @include badge-light-hue(#9ca3af); }
+  .capital-section-all        { @include badge-light-hue(#60a5fa); }
+  .capital-section-infrastructure { @include badge-light-hue(#22d3ee); }
+  .capital-section-places     { @include badge-light-hue(#4ade80); }
+  .capital-section-vehicles   { @include badge-light-hue(#94a3b8); }
+  .capital-section-emergency  { @include badge-light-hue(#ef4444); }
+  .capital-section-digital-planning { @include badge-light-hue(#c084fc); }
+  .capital-section-roads      { @include badge-light-hue(#f59e0b); }
+  .capital-section-water      { @include badge-light-hue(#0ea5e9); }
+  .capital-section-wastewater { @include badge-light-hue(#14b8a6); }
+  .capital-section-stormwater { @include badge-light-hue(#38bdf8); }
+  .capital-section-waste      { @include badge-light-hue(#84cc16); }
+  .capital-section-buildings  { @include badge-light-hue(#d4a574); }
+  .capital-section-fleet      { @include badge-light-hue(#94a3b8); }
+  .capital-section-parks      { @include badge-light-hue(#4ade80); }
+  .capital-section-recreation { @include badge-light-hue(#22c55e); }
+  .capital-section-housing    { @include badge-light-hue(#fb7185); }
+  .capital-section-transit    { @include badge-light-hue(#60a5fa); }
+  .capital-section-parking    { @include badge-light-hue(#818cf8); }
+  .capital-section-fire       { @include badge-light-hue(#ef4444); }
+  .capital-section-police     { @include badge-light-hue(#2563eb); }
+  .capital-section-ems        { @include badge-light-hue(#f472b6); }
+  .capital-section-technology { @include badge-light-hue(#60a5fa); }
+  .capital-section-equipment  { @include badge-light-hue(#e5e7eb); }
+  .capital-section-studies    { @include badge-light-hue(#c084fc); }
+  .capital-section-initiatives { @include badge-light-hue(#fbbf24); }
+  .capital-section-other      { @include badge-light-hue(#9ca3af); }
   // /data pack-kind pills (detail list labels)
   .badge.pack-kind-council { @include badge-light-hue(#60a5fa); }
   .badge.pack-kind-budget  { @include badge-light-hue(#fbbf24); }
@@ -1685,6 +1713,32 @@ h3.vote-matrix-card-label {
   .badge-status-info  { @include badge-dark-hue(#60a5fa); }
   .badge-status-error { @include badge-dark-hue(#f87171); }
   .badge-status-muted { @include badge-dark-hue(#9ca3af); }
+  .capital-section-all        { @include badge-dark-hue(#60a5fa); }
+  .capital-section-infrastructure { @include badge-dark-hue(#22d3ee); }
+  .capital-section-places     { @include badge-dark-hue(#4ade80); }
+  .capital-section-vehicles   { @include badge-dark-hue(#94a3b8); }
+  .capital-section-emergency  { @include badge-dark-hue(#ef4444); }
+  .capital-section-digital-planning { @include badge-dark-hue(#c084fc); }
+  .capital-section-roads      { @include badge-dark-hue(#f59e0b); }
+  .capital-section-water      { @include badge-dark-hue(#0ea5e9); }
+  .capital-section-wastewater { @include badge-dark-hue(#14b8a6); }
+  .capital-section-stormwater { @include badge-dark-hue(#38bdf8); }
+  .capital-section-waste      { @include badge-dark-hue(#84cc16); }
+  .capital-section-buildings  { @include badge-dark-hue(#d4a574); }
+  .capital-section-fleet      { @include badge-dark-hue(#94a3b8); }
+  .capital-section-parks      { @include badge-dark-hue(#4ade80); }
+  .capital-section-recreation { @include badge-dark-hue(#22c55e); }
+  .capital-section-housing    { @include badge-dark-hue(#fb7185); }
+  .capital-section-transit    { @include badge-dark-hue(#60a5fa); }
+  .capital-section-parking    { @include badge-dark-hue(#818cf8); }
+  .capital-section-fire       { @include badge-dark-hue(#ef4444); }
+  .capital-section-police     { @include badge-dark-hue(#2563eb); }
+  .capital-section-ems        { @include badge-dark-hue(#f472b6); }
+  .capital-section-technology { @include badge-dark-hue(#60a5fa); }
+  .capital-section-equipment  { @include badge-dark-hue(#e5e7eb); }
+  .capital-section-studies    { @include badge-dark-hue(#c084fc); }
+  .capital-section-initiatives { @include badge-dark-hue(#fbbf24); }
+  .capital-section-other      { @include badge-dark-hue(#9ca3af); }
   // /data pack-kind pills (detail list labels)
   .badge.pack-kind-council { @include badge-dark-hue(#60a5fa); }
   .badge.pack-kind-budget  { @include badge-dark-hue(#fbbf24); }
@@ -2169,4 +2223,3 @@ h3.vote-matrix-card-label {
   margin-top: var(--space-2);
   color: var(--pico-muted-color);
 }
-

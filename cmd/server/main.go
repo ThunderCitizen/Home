@@ -225,6 +225,7 @@ func main() {
 		r.Use(middleware.PageCache(cache.Page))
 		r.Get("/", h.Home)
 		r.Get("/budget", h.Budget)
+		r.Get("/capital", h.Capital)
 		r.Get("/councillors", h.Councillors)
 		r.Get("/minutes", h.Council)
 		r.Get("/minutes/{id}", h.CouncilMeeting)

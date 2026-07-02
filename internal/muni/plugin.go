@@ -185,6 +185,28 @@ func UpsertFromStaging(ctx context.Context, tx pgx.Tx, table, stagingTable strin
 	return nil
 }
 
+// DeleteMissingFromStaging treats a staged TSV as the authoritative key set for
+// a table and removes target rows whose keys are absent from staging.
+func DeleteMissingFromStaging(ctx context.Context, tx pgx.Tx, table, stagingTable string, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	clauses := make([]string, 0, len(keys))
+	for _, key := range keys {
+		clauses = append(clauses, fmt.Sprintf(`t."%[1]s"::text = s."%[1]s"`, key))
+	}
+	_, err := tx.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s t
+		 WHERE NOT EXISTS (
+		   SELECT 1 FROM %s s WHERE %s
+		 )`,
+		table, stagingTable, strings.Join(clauses, " AND ")))
+	if err != nil {
+		return fmt.Errorf("DELETE missing FROM %s: %w", table, err)
+	}
+	return nil
+}
+
 func quotedCols(header []string) string {
 	parts := make([]string, len(header))
 	for i, c := range header {

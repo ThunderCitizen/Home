@@ -1,0 +1,1005 @@
+package components
+
+import (
+	"fmt"
+	"net/url"
+	"strings"
+	"thundercitizen/internal/models"
+)
+
+type CapitalBudgetPanelProps struct {
+	HasData       bool
+	TotalLabel    string
+	ProjectCount  int
+	YearLabels    []CapitalYearTotalItem
+	FundingLabels []CapitalFundingTotalItem
+	Projects      []CapitalProjectItem
+	Source        models.SourceRef
+}
+
+type CapitalYearTotalItem struct {
+	Year        int
+	AmountLabel string
+}
+
+type CapitalFundingTotalItem struct {
+	Year        int
+	Kind        string
+	Label       string
+	Amount      float64
+	AmountLabel string
+	ShareLabel  string
+	SharePct    float64
+	BarWidth    string
+}
+
+type CapitalProjectItem struct {
+	ID          string
+	Name        string
+	OfficialName string
+	Service     string
+	Category    string
+	Action      string
+	Status      string
+	Description string
+	Benefits    string
+	Ward        string
+	Location    string
+	SourceContext string
+	TotalAmount float64
+	TotalLabel  string
+	Years       []CapitalYearTotalItem
+	Funding     []CapitalFundingItem
+	SourceLineCount int
+	SourceLines []CapitalSourceLineItem
+	Approval    string
+	SourceURL   string
+	SourcePage  int
+}
+
+type CapitalSourceLineItem struct {
+	Category    string
+	AmountLabel string
+}
+
+type CapitalFundingItem struct {
+	Kind        string
+	Label       string
+	Source      string
+	Amount      float64
+	AmountLabel string
+	BarWidth    string
+}
+
+type CapitalSectionSummaryItem struct {
+	Section             string
+	OfficialSection     string
+	Count               int
+	TotalAmount         float64
+	TotalLabel          string
+	SharePct            float64
+	ShareLabel          string
+	FeaturedTitle       string
+	FeaturedName        string
+	FeaturedAmount      float64
+	FeaturedAmountLabel string
+}
+
+templ CapitalBudgetPanel(props CapitalBudgetPanelProps) {
+	if props.HasData {
+		@TermPanel(TermPanelProps{
+			Title:        "Capital Projects",
+			HeadingLevel: 2,
+			Footer:       SourceFooter(props.Source),
+			}) {
+				<div class="capital-project-toolbar">
+					<span class="capital-project-count">Categories</span>
+					<div class="capital-project-controls">
+						<div class="capital-filter-group" data-capital-section-filter-ui aria-label="Filter capital projects by budget section">
+							<button type="button" class="capital-filter-btn active" data-capital-section-filter="" aria-pressed="true">
+								<span class="capital-filter-amount">{ capitalProjectSectionTotalLabel(props.Projects) }</span>
+								<span class="capital-filter-name capital-section-all">All</span>
+							</button>
+							for _, section := range capitalProjectSectionSummaries(props.Projects) {
+								<button type="button" class="capital-filter-btn" data-capital-section-filter={ section.Section } aria-pressed="false">
+									<span class="capital-filter-amount">{ section.TotalLabel }</span>
+									<span class={ "capital-filter-name", capitalProjectSectionClass(section.Section) }>{ section.Section }</span>
+								</button>
+							}
+						<div class="capital-section-sharebar" aria-label="Capital budget by section">
+							for _, section := range capitalProjectSectionSummaries(props.Projects) {
+								<button type="button" class={ "capital-section-sharebar-segment", capitalProjectSectionClass(section.Section) } data-capital-section-filter={ section.Section } aria-label={ capitalSectionSegmentLabel(section) } aria-pressed="false" { capitalSectionShareStyle(section.SharePct)... }></button>
+							}
+						</div>
+						<div class="capital-section-summary-panels" data-capital-section-summary-ui>
+							@CapitalSectionSummaryPanel(capitalProjectAllSummary(props.Projects), true)
+							for _, section := range capitalProjectSectionSummaries(props.Projects) {
+								@CapitalSectionSummaryPanel(section, false)
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="capital-project-table-wrap">
+				<table class="capital-project-table">
+					<thead>
+						<tr>
+							<th scope="col" class="capital-project-id-col">ID</th>
+							<th scope="col"><button type="button" class="capital-table-sort" data-capital-sort="project" aria-label="Sort by project name">Project <span class="capital-sort-arrow" aria-hidden="true"></span></button></th>
+							<th scope="col" class="capital-project-money-col capital-project-amount-col"><button type="button" class="capital-table-sort active" data-capital-sort="total" data-capital-sort-dir="desc" aria-label="Sort by total, descending">Total <span class="capital-sort-arrow" aria-hidden="true">↓</span></button></th>
+							<th scope="col" class="capital-project-money-col capital-project-funding-col capital-project-levy-col"><button type="button" class="capital-table-sort" data-capital-sort="levy" aria-label="Sort by levy">Levy <span class="capital-sort-arrow" aria-hidden="true"></span></button></th>
+							<th scope="col" class="capital-project-money-col capital-project-funding-col capital-project-grant-col"><button type="button" class="capital-table-sort" data-capital-sort="grant" aria-label="Sort by grants">Grants <span class="capital-sort-arrow" aria-hidden="true"></span></button></th>
+							<th scope="col" class="capital-project-money-col capital-project-funding-col capital-project-debt-col"><button type="button" class="capital-table-sort" data-capital-sort="debt" aria-label="Sort by debt">Debt <span class="capital-sort-arrow" aria-hidden="true"></span></button></th>
+							<th scope="col" class="capital-project-money-col capital-project-funding-col capital-project-reserve-col"><button type="button" class="capital-table-sort" data-capital-sort="reserve" aria-label="Sort by reserves">Reserves <span class="capital-sort-arrow" aria-hidden="true"></span></button></th>
+						</tr>
+					</thead>
+					<tbody class="capital-project-table-body">
+						for _, project := range props.Projects {
+							@CapitalProjectRow(project)
+						}
+					</tbody>
+				</table>
+			</div>
+			<script>
+				(function() {
+					var panel = document.currentScript.closest('.term-panel');
+					if (!panel) return;
+					var sorter = panel.querySelector('.capital-project-table thead');
+					var sectionFilterer = panel.querySelector('[data-capital-section-filter-ui]');
+					var sectionSummaries = panel.querySelectorAll('[data-capital-section-summary]');
+					var body = panel.querySelector('.capital-project-table-body');
+					if (!sorter || !body) return;
+					var rows = Array.prototype.slice.call(body.querySelectorAll('[data-capital-row]'));
+					var activeSectionFilter = '';
+					function closeSourcePopovers(except) {
+						Array.prototype.forEach.call(panel.querySelectorAll('.capital-project-source-lines.active'), function(popover) {
+							if (popover === except) return;
+							popover.classList.remove('active');
+							var btn = popover.querySelector('.capital-project-source-lines-trigger');
+							if (btn) btn.setAttribute('aria-expanded', 'false');
+						});
+					}
+					function numericValue(row, key) {
+						var raw = row.getAttribute('data-capital-sort-' + key) || '';
+						var value = parseFloat(raw.replace(/[^0-9.]/g, ''));
+						return Number.isFinite(value) ? value : 0;
+					}
+					function textValue(row, key) {
+						return (row.getAttribute('data-capital-sort-' + key) || '').toLowerCase();
+					}
+					function defaultDirection(key) {
+						return key === 'project' ? 'asc' : 'desc';
+					}
+					function isNumericSort(key) {
+						return ['total', 'levy', 'grant', 'debt', 'reserve'].indexOf(key) !== -1;
+					}
+					function matchesFilter(row) {
+						return !activeSectionFilter || row.getAttribute('data-capital-filter-section') === activeSectionFilter;
+					}
+					function updateVisibleRows() {
+						rows.forEach(function(row) {
+							var match = matchesFilter(row);
+							row.hidden = !match;
+						});
+					}
+					function updateSectionFocus(value) {
+						if (sectionFilterer) sectionFilterer.classList.toggle('has-selection', value !== '');
+						Array.prototype.forEach.call(sectionSummaries, function(summary) {
+							var active = (summary.getAttribute('data-capital-section-summary') || '') === value;
+							summary.classList.toggle('active', active);
+							summary.setAttribute('aria-hidden', active ? 'false' : 'true');
+						});
+					}
+					function sortRows(key, direction) {
+						var dir = direction === 'desc' ? -1 : 1;
+						var sorted = rows.slice().sort(function(a, b) {
+							if (isNumericSort(key)) {
+								return (numericValue(a, key) - numericValue(b, key)) * dir || textValue(a, 'project').localeCompare(textValue(b, 'project'));
+							}
+							return textValue(a, key).localeCompare(textValue(b, key)) * dir || numericValue(b, 'total') - numericValue(a, 'total');
+						});
+						sorted.forEach(function(row) { body.appendChild(row); });
+						rows = sorted;
+						updateVisibleRows();
+					}
+					function updateSortButtons(activeBtn, key, direction) {
+						Array.prototype.forEach.call(sorter.querySelectorAll('[data-capital-sort]'), function(b) {
+							var active = b === activeBtn;
+							var arrow = b.querySelector('.capital-sort-arrow');
+							b.classList.toggle('active', active);
+							if (active) {
+								b.setAttribute('data-capital-sort-dir', direction);
+								b.setAttribute('aria-label', 'Sort by ' + (key === 'total' ? 'total' : key) + ', ' + (direction === 'desc' ? 'descending' : 'ascending'));
+								if (arrow) arrow.textContent = direction === 'desc' ? '↓' : '↑';
+							} else {
+								b.removeAttribute('data-capital-sort-dir');
+								if (arrow) arrow.textContent = '';
+							}
+						});
+					}
+					sorter.addEventListener('click', function(e) {
+						var btn = e.target.closest('[data-capital-sort]');
+						if (!btn) return;
+						var key = btn.getAttribute('data-capital-sort');
+						var wasActive = btn.classList.contains('active');
+						var currentDir = btn.getAttribute('data-capital-sort-dir') || defaultDirection(key);
+						var nextDir = wasActive ? (currentDir === 'desc' ? 'asc' : 'desc') : defaultDirection(key);
+						updateSortButtons(btn, key, nextDir);
+						sortRows(key, nextDir);
+					});
+					panel.addEventListener('click', function(e) {
+						var btn = e.target.closest('.capital-project-source-lines-trigger');
+						if (!btn) {
+							if (!e.target.closest('.capital-project-source-lines')) closeSourcePopovers();
+							return;
+						}
+						var popover = btn.closest('.capital-project-source-lines');
+						var isActive = popover && popover.classList.contains('active');
+						closeSourcePopovers(popover);
+						if (popover) {
+							popover.classList.toggle('active', !isActive);
+							btn.setAttribute('aria-expanded', !isActive ? 'true' : 'false');
+						}
+					});
+					panel.addEventListener('keydown', function(e) {
+						if (e.key === 'Escape') closeSourcePopovers();
+					});
+					function bindFilter(filterer, attr, setter) {
+						if (!filterer) return;
+						filterer.addEventListener('click', function(e) {
+							var btn = e.target.closest('[' + attr + ']');
+							if (!btn) return;
+							var selected = btn.getAttribute(attr) || '';
+							setter(selected);
+							Array.prototype.forEach.call(filterer.querySelectorAll('[' + attr + ']'), function(b) {
+								var active = (b.getAttribute(attr) || '') === selected;
+								b.classList.toggle('active', active);
+								b.setAttribute('aria-pressed', active ? 'true' : 'false');
+							});
+							updateSectionFocus(selected);
+							updateVisibleRows();
+						});
+					}
+					bindFilter(sectionFilterer, 'data-capital-section-filter', function(value) { activeSectionFilter = value; });
+					updateSectionFocus('');
+					var defaultBtn = sorter.querySelector('[data-capital-sort="total"]');
+					if (defaultBtn) {
+						updateSortButtons(defaultBtn, 'total', 'desc');
+						sortRows('total', 'desc');
+					}
+				})();
+			</script>
+		}
+	}
+}
+
+	templ CapitalSectionSummaryPanel(summary CapitalSectionSummaryItem, active bool) {
+		<section class={ "capital-section-summary", capitalProjectSectionClass(summary.Section), templ.KV("active", active) } data-capital-section-summary={ capitalSectionSummaryKey(summary.Section) } aria-hidden={ capitalSectionHiddenLabel(active) }>
+			<div class="capital-section-summary-head">
+				if summary.Section != "All" {
+					<span class={ "badge", "capital-project-pill-section", capitalProjectSectionClass(summary.Section) }>{ summary.Section }</span>
+				}
+				if summary.OfficialSection != "" && summary.OfficialSection != summary.Section {
+					<strong class="capital-section-summary-title">{ summary.OfficialSection }</strong>
+				}
+		</div>
+			<dl class="capital-section-summary-grid">
+				<div>
+					<dd>{ summary.TotalLabel }</dd>
+					<dt>Total</dt>
+				</div>
+				<div>
+					<dd>{ fmt.Sprintf("%d", summary.Count) }</dd>
+					<dt>Projects</dt>
+				</div>
+				<div>
+					<dd>{ summary.ShareLabel }</dd>
+					<dt>Share</dt>
+				</div>
+				if summary.FeaturedName != "" {
+					<div class="capital-section-summary-feature">
+						<dd>
+							<span>{ summary.FeaturedName }</span>
+							if summary.FeaturedAmountLabel != "" {
+								<small>{ summary.FeaturedAmountLabel }</small>
+							}
+						</dd>
+						<dt>{ summary.FeaturedTitle }</dt>
+					</div>
+				}
+			</dl>
+	</section>
+}
+
+templ CapitalProjectRow(project CapitalProjectItem) {
+	<tr class={ "capital-project-row", templ.KV("capital-project-row-has-source-lines", project.SourceLineCount > 1) } data-capital-row data-capital-filter-section={ capitalProjectSectionRollup(project) } data-capital-sort-project={ project.Name } data-capital-sort-total={ fmt.Sprintf("%.0f", project.TotalAmount) } data-capital-sort-levy={ fmt.Sprintf("%.0f", capitalProjectFundingKindAmount(project, "tax_levy")) } data-capital-sort-grant={ fmt.Sprintf("%.0f", capitalProjectFundingKindAmount(project, "grant")) } data-capital-sort-debt={ fmt.Sprintf("%.0f", capitalProjectFundingKindAmount(project, "debenture")) } data-capital-sort-reserve={ fmt.Sprintf("%.0f", capitalProjectFundingKindAmount(project, "reserve")) }>
+		<td class="capital-project-id-col" data-label="ID">
+			if project.ID != "" {
+				<a class="capital-project-record-link" href={ templ.SafeURL(capitalProjectSourceURL(project)) } target="_blank" rel="noopener" title="Search this project number in the capital budget PDF">
+					<span class="capital-project-record-text">{ capitalProjectNumberLabel(project) }</span>
+					<span class="ext-link-icon" aria-hidden="true"></span>
+				</a>
+			}
+			if project.SourceLineCount > 1 {
+				<div class="capital-project-pill-row">
+					@CapitalProjectSharedCode(project, "capital-project-source-lines-pill")
+				</div>
+			}
+		</td>
+		<th scope="row" class="capital-project-name-cell">
+			<div class="capital-project-name-row">
+				<div class="capital-project-name">
+					if place := capitalProjectPlace(project); place != "" {
+						<small>{ place }</small>
+					}
+					<span class="capital-project-briefline">{ project.Name }</span>
+				</div>
+				<div class="capital-project-label-row">
+					<span class={ "badge", "capital-project-pill-section", capitalProjectSectionClass(capitalProjectSectionTag(project)) } title={ capitalProjectSectionDescription(capitalProjectSectionTag(project)) }>{ capitalProjectSectionTag(project) }</span>
+				</div>
+			</div>
+		</th>
+		<td class="capital-project-money-col capital-project-amount-col" data-label="Total"><strong>{ project.TotalLabel }</strong></td>
+		<td class="capital-project-money-col capital-project-funding-col capital-project-levy-col" data-label="Levy">
+			if levy := capitalProjectLevyLabel(project); levy != "" {
+				<strong>{ levy }</strong>
+			} else {
+				<span class="capital-project-zero">0</span>
+			}
+		</td>
+		<td class="capital-project-money-col capital-project-funding-col capital-project-grant-col" data-label="Grants">
+			if grants := capitalProjectFundingKindLabel(project, "grant"); grants != "" {
+				<strong>{ grants }</strong>
+			} else {
+				<span class="capital-project-zero">0</span>
+			}
+		</td>
+		<td class="capital-project-money-col capital-project-funding-col capital-project-debt-col" data-label="Debt">
+			if debt := capitalProjectFundingKindLabel(project, "debenture"); debt != "" {
+				<strong>{ debt }</strong>
+			} else {
+				<span class="capital-project-zero">0</span>
+			}
+		</td>
+		<td class="capital-project-money-col capital-project-funding-col capital-project-reserve-col" data-label="Reserves">
+			if reserves := capitalProjectFundingKindLabel(project, "reserve"); reserves != "" {
+				<strong>{ reserves }</strong>
+			} else {
+				<span class="capital-project-zero">0</span>
+			}
+		</td>
+	</tr>
+}
+
+templ CapitalProjectSharedCode(project CapitalProjectItem, extraClass string) {
+	<div class={ "capital-project-source-lines", extraClass }>
+		<button type="button" class="capital-project-source-lines-trigger" aria-expanded="false" aria-label={ capitalProjectSourceLineSummary(project.SourceLineCount, project.SourceLines) }>
+			<span class="capital-project-source-lines-label">Shared code</span>
+			<span class="capital-project-source-lines-icon" aria-hidden="true">i</span>
+		</button>
+		<span class="capital-project-source-lines-copy">
+			<span>{ capitalProjectSourceLineSummary(project.SourceLineCount, project.SourceLines) }</span>
+		</span>
+	</div>
+}
+
+func capitalYearLabel(project CapitalProjectItem, year int) string {
+	for _, y := range project.Years {
+		if y.Year == year {
+			return y.AmountLabel
+		}
+	}
+	return "-"
+}
+
+func capitalProjectSourceLineSummary(lineCount int, lines []CapitalSourceLineItem) string {
+	if lineCount <= 1 {
+		return ""
+	}
+	parts := make([]string, 0, len(lines))
+	for _, line := range lines {
+		category := strings.TrimSpace(line.Category)
+		if category == "" {
+			category = "Budget line"
+		}
+		amount := strings.TrimSpace(line.AmountLabel)
+		if amount != "" {
+			parts = append(parts, fmt.Sprintf("%s %s", category, amount))
+			continue
+		}
+		parts = append(parts, category)
+	}
+	if len(parts) == 0 {
+		return fmt.Sprintf("This code appears on %d official budget rows.", lineCount)
+	}
+	if len(parts) == 1 {
+		return fmt.Sprintf("This code appears on %d official budget rows in %s.", lineCount, parts[0])
+	}
+	return fmt.Sprintf("This code appears on %d official budget rows: %s.", lineCount, strings.Join(parts, " · "))
+}
+
+func capitalProjectLevyLabel(project CapitalProjectItem) string {
+	return capitalProjectFundingKindLabel(project, "tax_levy")
+}
+
+func capitalProjectSectionFilters(projects []CapitalProjectItem) []string {
+	summaries := capitalProjectSectionSummaries(projects)
+	sections := make([]string, 0, len(summaries))
+	for _, summary := range summaries {
+		sections = append(sections, summary.Section)
+	}
+	return sections
+}
+
+func capitalProjectSectionSummaries(projects []CapitalProjectItem) []CapitalSectionSummaryItem {
+	seen := map[string]bool{}
+	emitted := map[string]bool{}
+	bySection := map[string]CapitalSectionSummaryItem{}
+	var total float64
+	for _, project := range projects {
+		total += project.TotalAmount
+		if section := capitalProjectSectionRollup(project); section != "" {
+			seen[section] = true
+			summary := bySection[section]
+			summary.Section = section
+			if summary.OfficialSection == "" {
+				summary.OfficialSection = capitalProjectRollupDescription(section)
+			}
+			summary.Count++
+			summary.TotalAmount += project.TotalAmount
+			if project.TotalAmount > summary.FeaturedAmount {
+				summary.FeaturedTitle = "Largest project"
+				summary.FeaturedName = project.Name
+				summary.FeaturedAmount = project.TotalAmount
+				summary.FeaturedAmountLabel = project.TotalLabel
+			}
+			bySection[section] = summary
+		}
+	}
+	summaries := []CapitalSectionSummaryItem{}
+	appendSummary := func(section string) {
+		summary := bySection[section]
+		summary.TotalLabel = capitalCompactDollarsLabel(summary.TotalAmount)
+		if total > 0 {
+			summary.SharePct = summary.TotalAmount / total * 100
+		}
+		summary.ShareLabel = capitalPercentLabel(summary.SharePct)
+		summaries = append(summaries, summary)
+		emitted[section] = true
+	}
+	for _, section := range capitalProjectSectionOrder {
+		if seen[section] {
+			appendSummary(section)
+		}
+	}
+	for _, project := range projects {
+		section := capitalProjectSectionRollup(project)
+		if section == "" || emitted[section] {
+			continue
+		}
+		appendSummary(section)
+	}
+	return summaries
+}
+
+func capitalProjectAllSummary(projects []CapitalProjectItem) CapitalSectionSummaryItem {
+	summary := CapitalSectionSummaryItem{
+		Section:         "All",
+		OfficialSection: "All capital projects",
+		Count:           len(projects),
+		SharePct:        100,
+		ShareLabel:      "100%",
+	}
+	for _, project := range projects {
+		summary.TotalAmount += project.TotalAmount
+	}
+	summary.TotalLabel = capitalCompactDollarsLabel(summary.TotalAmount)
+	for _, section := range capitalProjectSectionSummaries(projects) {
+		if section.TotalAmount > summary.FeaturedAmount {
+			summary.FeaturedTitle = "Largest section"
+			summary.FeaturedName = section.Section
+			summary.FeaturedAmount = section.TotalAmount
+			summary.FeaturedAmountLabel = section.TotalLabel
+		}
+	}
+	return summary
+}
+
+func capitalProjectSectionTotalLabel(projects []CapitalProjectItem) string {
+	var total float64
+	for _, project := range projects {
+		total += project.TotalAmount
+	}
+	return capitalCompactDollarsLabel(total)
+}
+
+func capitalSectionShareStyle(pct float64) templ.Attributes {
+	if pct < 0 {
+		pct = 0
+	}
+	if pct > 100 {
+		pct = 100
+	}
+	return templ.Attributes{"style": fmt.Sprintf("--capital-section-share:%.2f%%", pct)}
+}
+
+func capitalSectionSegmentLabel(section CapitalSectionSummaryItem) string {
+	return fmt.Sprintf("Filter to %s, %s of capital plan", section.Section, section.ShareLabel)
+}
+
+func capitalSectionSummaryKey(section string) string {
+	if strings.EqualFold(strings.TrimSpace(section), "all") {
+		return ""
+	}
+	return section
+}
+
+func capitalSectionHiddenLabel(active bool) string {
+	if active {
+		return "false"
+	}
+	return "true"
+}
+
+func capitalPercentLabel(pct float64) string {
+	if pct <= 0 {
+		return "0%"
+	}
+	if pct >= 99.95 {
+		return "100%"
+	}
+	if pct < 1 {
+		return fmt.Sprintf("%.1f%%", pct)
+	}
+	return fmt.Sprintf("%.1f%%", pct)
+}
+
+func capitalProjectFundingKindLabel(project CapitalProjectItem, kind string) string {
+	total := capitalProjectFundingKindAmount(project, kind)
+	if total <= 0 {
+		return ""
+	}
+	return capitalCompactDollarsLabel(total)
+}
+
+func capitalProjectFundingKindAmount(project CapitalProjectItem, kind string) float64 {
+	var total float64
+	for _, f := range project.Funding {
+		if f.Kind == kind || strings.EqualFold(f.Label, kind) {
+			total += f.Amount
+		}
+	}
+	return total
+}
+
+func capitalCompactDollarsLabel(dollars float64) string {
+	if dollars <= 0 {
+		return "$0"
+	}
+	if dollars < 1_000 {
+		return fmt.Sprintf("$%.0f", dollars)
+	}
+	if dollars < 1_000_000 {
+		thousands := dollars / 1_000
+		if thousands < 10 {
+			return fmt.Sprintf("$%.1fK", thousands)
+		}
+		return fmt.Sprintf("$%.0fK", thousands)
+	}
+	return fmt.Sprintf("$%.1fM", dollars/1_000_000)
+}
+
+func capitalProjectNumberLabel(project CapitalProjectItem) string {
+	id := strings.TrimSpace(project.ID)
+	if id == "" {
+		return "Project"
+	}
+	parts := strings.Split(id, "-")
+	limit := 4
+	if len(parts) < limit {
+		limit = len(parts)
+	}
+	if len(parts) > limit && allDigits(parts[limit]) {
+		limit++
+	}
+	return strings.ToUpper(strings.Join(parts[:limit], "-"))
+}
+
+func capitalProjectSourceURL(project CapitalProjectItem) string {
+	base := strings.TrimSpace(project.SourceURL)
+	if base == "" {
+		return "#"
+	}
+	number := capitalProjectNumberLabel(project)
+	return fmt.Sprintf("%s#search=%s", base, url.QueryEscape(number))
+}
+
+func allDigits(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func capitalProjectPlace(project CapitalProjectItem) string {
+	var place string
+	if project.SourceContext != "" {
+		place = project.SourceContext
+	} else if project.Location != "" {
+		place = project.Location
+	} else if project.Ward != "" {
+		place = project.Ward + " ward"
+	} else {
+		name := strings.ToLower(project.Name)
+		switch {
+		case strings.Contains(name, "pacific avenue"):
+			place = "Pacific Avenue"
+		case strings.Contains(name, "oliver road") && strings.Contains(name, "mcintyre river"):
+			place = "Oliver Road / McIntyre River"
+		case strings.Contains(name, "mission island"):
+			place = "Mission Island"
+		case strings.Contains(name, "waverley library"):
+			place = "Waverley Library"
+		case strings.Contains(name, "waterfront district parkade"):
+			place = "Waterfront District Parkade"
+		case strings.Contains(name, "victoria parkade"):
+			place = "Victoria Parkade"
+		case strings.Contains(name, "transit facility"):
+			place = "Transit Facility"
+		case strings.Contains(name, "superior north ems hq"):
+			place = "Superior North EMS HQ"
+		}
+	}
+	return capitalProjectDistinctPlace(project.Name, place)
+}
+
+func capitalProjectDistinctPlace(name string, place string) string {
+	place = strings.TrimSpace(place)
+	if place == "" {
+		return ""
+	}
+	if strings.Contains(strings.ToLower(name), strings.ToLower(place)) {
+		return ""
+	}
+	return place
+}
+
+var capitalProjectSectionOrder = []string{
+	"Roads",
+	"Water & Wastewater",
+	"Waste",
+	"Public Places",
+	"Vehicles & Gear",
+	"Emergency",
+	"Transit",
+	"Parking",
+	"Digital & Planning",
+	"Other",
+}
+
+func capitalProjectSectionClass(section string) string {
+	switch strings.ToLower(strings.TrimSpace(section)) {
+	case "all":
+		return "capital-section-all"
+	case "infrastructure":
+		return "capital-section-infrastructure"
+	case "water & wastewater":
+		return "capital-section-water"
+	case "public places":
+		return "capital-section-places"
+	case "vehicles & gear":
+		return "capital-section-vehicles"
+	case "emergency":
+		return "capital-section-emergency"
+	case "digital & planning":
+		return "capital-section-digital-planning"
+	case "roads":
+		return "capital-section-roads"
+	case "water":
+		return "capital-section-water"
+	case "wastewater":
+		return "capital-section-wastewater"
+	case "stormwater":
+		return "capital-section-stormwater"
+	case "waste":
+		return "capital-section-waste"
+	case "buildings":
+		return "capital-section-buildings"
+	case "fleet":
+		return "capital-section-fleet"
+	case "parks":
+		return "capital-section-parks"
+	case "recreation":
+		return "capital-section-recreation"
+	case "housing":
+		return "capital-section-housing"
+	case "transit":
+		return "capital-section-transit"
+	case "parking":
+		return "capital-section-parking"
+	case "fire":
+		return "capital-section-fire"
+	case "police":
+		return "capital-section-police"
+	case "ems":
+		return "capital-section-ems"
+	case "tech":
+		return "capital-section-technology"
+	case "equipment":
+		return "capital-section-equipment"
+	case "studies":
+		return "capital-section-studies"
+	case "civic":
+		return "capital-section-initiatives"
+	default:
+		return "capital-section-other"
+	}
+}
+
+func capitalProjectSectionTag(project CapitalProjectItem) string {
+	return capitalProjectPublicSection(project)
+}
+
+func capitalProjectSectionRollup(project CapitalProjectItem) string {
+	return capitalProjectRollupForTag(capitalProjectSectionTag(project))
+}
+
+func capitalProjectRollupForTag(tag string) string {
+	switch strings.ToLower(strings.TrimSpace(tag)) {
+	case "roads":
+		return "Roads"
+	case "water", "wastewater", "stormwater":
+		return "Water & Wastewater"
+	case "waste":
+		return "Waste"
+	case "buildings", "parks", "recreation", "housing":
+		return "Public Places"
+	case "fleet", "equipment":
+		return "Vehicles & Gear"
+	case "fire", "police", "ems":
+		return "Emergency"
+	case "transit":
+		return "Transit"
+	case "parking":
+		return "Parking"
+	case "tech", "studies", "civic":
+		return "Digital & Planning"
+	default:
+		return "Other"
+	}
+}
+
+func capitalProjectPublicSection(project CapitalProjectItem) string {
+	id := strings.ToLower(project.ID)
+	name := strings.ToLower(project.Name)
+	service := strings.ToLower(project.Service)
+	category := strings.ToLower(project.Category)
+	text := strings.Join([]string{id, name, service, category}, " ")
+	switch {
+	case strings.Contains(id, "-ems-") || strings.Contains(name, "ambulance") || strings.Contains(name, "medical equipment") || strings.Contains(name, "superior north ems"):
+		return "EMS"
+	case strings.Contains(id, "-fir-") || strings.Contains(service, "fire") || strings.Contains(category, "fire") || containsAny(text, "fire hall", "pumper", "aerial ladder", "fire hose", "auto extrication"):
+		return "Fire"
+	case strings.Contains(id, "-pol-") || strings.Contains(service, "police") || containsAny(text, "police", "armoury", "body worn", "forensics", "cyber crime", "uniform patrol"):
+		return "Police"
+	case strings.Contains(id, "-trn-") || containsAny(text, "transit", "bus wash", "shelter", "accessible stop", "terminal realignment"):
+		return "Transit"
+	case strings.Contains(id, "-pkg-") || containsAny(text, "parking", "parkade", "parking meters"):
+		return "Parking"
+	case strings.Contains(id, "waw") || strings.Contains(service, "waterworks") || containsAny(text, "watermain", "water fill", "water meter", "lead service", "lead reduction", "hydrant", "valves", "cathodic", "wtp", "reservoir", "pump station"):
+		return "Water"
+	case strings.Contains(id, "san") || strings.Contains(service, "wastewater") || containsAny(text, "sanitary", "sewage", "wpcp", "wastewater"):
+		return "Wastewater"
+	case strings.Contains(service, "stormwater") || containsAny(text, "stormwater", "storm sewer", "drainage", "outfall", "trunk ditch", "low impact development"):
+		return "Stormwater"
+	case strings.Contains(service, "solid waste") || strings.Contains(service, "landfill") || strings.Contains(id, "sow") || containsAny(text, "landfill", "organics", "solid waste", "litter", "cell capping", "gas system"):
+		return "Waste"
+	case strings.Contains(service, "housing") || strings.Contains(service, "child care") || containsAny(text, "housing", "residential", "jasper furnishings", "food delivery"):
+		return "Housing"
+	case strings.Contains(id, "pks") || containsAny(text, "park", "playground", "trail", "golf", "urban forest", "tree planting", "forestry", "public art", "boater"):
+		return "Parks"
+	case containsAny(service, "arenas", "aquatics", "community and cultural", "public library") || containsAny(text, "arena", "stadia", "aquatics", "community centre", "older adult", "canada games", "ice resurfacer", "stage equipment", "library", "tourism"):
+		return "Recreation"
+	case containsAny(category, "professional fees", "plans and studies", "engineering") || containsAny(text, "study", "studies", "design", "assessment", "audit", "strategy", "planning", "pre-engineering", "property acquisition", "aerial photography", "orthophotography"):
+		return "Studies"
+	case strings.Contains(service, "roads") || strings.Contains(service, "bridges") || strings.Contains(service, "active transportation") || strings.Contains(id, "rds") || containsAny(text, "road", "bridge", "culvert", "sidewalk", "signal", "street lighting", "pavement", "asphalt", "traffic", "railway crossing", "arterial", "guardrail", "retaining wall"):
+		return "Roads"
+	case containsAny(category, "technology") || containsAny(text, "digital", "software", "network & software", "payroll", "crm", "website", "digitization"):
+		return "Tech"
+	case containsAny(category, "facilities") || containsAny(text, "facility", "facilities", "building", "office", "whalen", "security", "energy efficiency", "lighting upgrades"):
+		return "Buildings"
+	case containsAny(category, "fleet") || containsAny(text, "fleet", "vehicle", "vehicles"):
+		return "Fleet"
+	case containsAny(category, "equipment") || strings.Contains(name, "equipment"):
+		return "Equipment"
+	case strings.Contains(service, "initiatives and support") || containsAny(category, "initiatives and support") || containsAny(text, "beautification", "civic pride", "growth project", "customer service"):
+		return "Civic"
+	default:
+		return "Other"
+	}
+}
+
+func containsAny(value string, needles ...string) bool {
+	for _, needle := range needles {
+		if strings.Contains(value, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func capitalProjectCategoryFamily(category string) string {
+	category = strings.TrimSpace(category)
+	if category == "" {
+		return ""
+	}
+	for _, sep := range []string{" (", " - "} {
+		if idx := strings.Index(category, sep); idx > 0 {
+			return strings.TrimSpace(category[:idx])
+		}
+	}
+	return capitalProjectSectionDisplayName(category)
+}
+
+func capitalProjectSectionTitle(project CapitalProjectItem) string {
+	if project.Category != "" {
+		return project.Category
+	}
+	return project.Service
+}
+
+func capitalProjectSectionOfficialName(project CapitalProjectItem) string {
+	return capitalProjectRollupDescription(capitalProjectSectionRollup(project))
+}
+
+func capitalProjectRollupDescription(section string) string {
+	switch strings.ToLower(strings.TrimSpace(section)) {
+	case "all":
+		return "All tracked capital projects"
+	case "infrastructure":
+		return "Roads, water, wastewater, stormwater, and waste systems"
+	case "roads":
+		return "Roads, bridges, sidewalks, signals, and street lighting"
+	case "water & wastewater":
+		return "Water, wastewater, and stormwater systems"
+	case "waste":
+		return "Landfill, organics, solid waste facilities, and waste fleet"
+	case "public places":
+		return "Buildings, parks, recreation, and housing projects"
+	case "vehicles & gear":
+		return "Fleet, vehicles, tools, and equipment"
+	case "emergency":
+		return "Fire, police, and emergency medical services"
+	case "transit":
+		return "Transit facilities, shelters, stops, buses, and service equipment"
+	case "parking":
+		return "Parking meters and parkade repairs"
+	case "digital & planning":
+		return "Technology, studies, plans, and civic support projects"
+	default:
+		return strings.TrimSpace(section)
+	}
+}
+
+func capitalProjectSectionDescription(section string) string {
+	switch strings.ToLower(strings.TrimSpace(section)) {
+	case "all":
+		return "All tracked capital projects"
+	case "roads":
+		return "Streets, bridges, sidewalks, signals, and street lighting"
+	case "water":
+		return "Drinking water plants, pipes, hydrants, meters, and lead reduction"
+	case "wastewater":
+		return "Sanitary sewers, sewage pumping, and treatment plant work"
+	case "stormwater":
+		return "Storm sewers, drainage, outfalls, ponds, and ditches"
+	case "waste":
+		return "Landfill, organics, solid waste facilities, and waste fleet"
+	case "buildings":
+		return "City buildings, offices, facilities, security, and energy upgrades"
+	case "fleet":
+		return "Vehicle and fleet replacement not tied to a single service"
+	case "parks":
+		return "Parks, trails, playgrounds, sports fields, forestry, and public art"
+	case "recreation":
+		return "Arenas, pools, community centres, libraries, and cultural facilities"
+	case "housing":
+		return "Housing, child care, residential furnishings, and related vehicles"
+	case "transit":
+		return "Transit facilities, shelters, stops, buses, and service equipment"
+	case "parking":
+		return "Parking meters and parkade repairs"
+	case "fire":
+		return "Fire facilities, vehicles, equipment, and response tools"
+	case "police":
+		return "Police facilities, vehicles, protective equipment, and technology"
+	case "ems":
+		return "Paramedic facilities, ambulances, and medical equipment"
+	case "tech":
+		return "Digital systems, software, customer service tools, and IT upgrades"
+	case "equipment":
+		return "Small equipment and specialized tools"
+	case "studies":
+		return "Plans, designs, assessments, strategy, and engineering work"
+	case "civic":
+		return "Civic initiatives, customer service, and corporate support projects"
+	default:
+		return strings.TrimSpace(section)
+	}
+}
+
+func capitalProjectSectionDisplayName(section string) string {
+	switch strings.ToLower(strings.TrimSpace(section)) {
+	case "professional fees, plans and studies":
+		return "Studies"
+	case "active transportation and traffic infrastructure":
+		return "Mobility"
+	case "thunder bay fire rescue":
+		return "Fire"
+	case "transit services":
+		return "Transit"
+	case "technology":
+		return "Tech"
+	case "superior north ems":
+		return "EMS"
+	case "municipal offices and facilities":
+		return "Municipal"
+	case "initiatives and support":
+		return "Support"
+	default:
+		return strings.TrimSpace(section)
+	}
+}
+
+func capitalProjectCategoryTag(project CapitalProjectItem) string {
+	category := strings.ToLower(strings.TrimSpace(project.Category))
+	service := strings.ToLower(strings.TrimSpace(project.Service))
+	switch {
+	case strings.Contains(category, "system maintenance") || strings.Contains(category, "system maintenence"):
+		return "Maintenance"
+	case strings.Contains(category, "advanced metering"):
+		return "Metering"
+	case strings.Contains(category, "renewal") || strings.Contains(category, "rehabilitation") || strings.Contains(category, "replacement") || strings.Contains(category, "preservation"):
+		return "Renewal"
+	case strings.Contains(category, "watermain") || strings.Contains(category, "waterworks") || strings.Contains(category, "water") || strings.Contains(service, "waterworks"):
+		return "Water"
+	case strings.Contains(category, "sanitary") || strings.Contains(category, "wastewater") || strings.Contains(service, "wastewater"):
+		return "Wastewater"
+	case strings.Contains(category, "stormwater") || strings.Contains(service, "stormwater"):
+		return "Stormwater"
+	case strings.Contains(category, "fleet") || strings.Contains(category, "vehicle") || strings.Contains(service, "fleet"):
+		return "Fleet"
+	case strings.Contains(category, "forestry"):
+		return "Forestry"
+	case strings.Contains(category, "park") || strings.Contains(category, "trail") || strings.Contains(category, "playground") || strings.Contains(category, "sports") || strings.Contains(category, "boater") || strings.Contains(service, "parks"):
+		return "Parks"
+	case strings.Contains(category, "street lighting"):
+		return "Lighting"
+	case strings.Contains(category, "sidewalk") || strings.Contains(category, "traffic") || strings.Contains(category, "active transportation"):
+		return "Mobility"
+	case strings.Contains(category, "bridge") || strings.Contains(category, "culvert") || strings.Contains(category, "road") || strings.Contains(category, "guardrail") || strings.Contains(category, "retaining wall") || strings.Contains(service, "bridge") || strings.Contains(service, "culvert") || strings.Contains(service, "road") || category == "network":
+		return "Roads"
+	case strings.Contains(category, "facility") || strings.Contains(category, "building") || strings.Contains(category, "arena") || strings.Contains(category, "library") || strings.Contains(service, "arena") || strings.Contains(service, "library") || strings.Contains(service, "municipal offices") || strings.Contains(service, "cultural") || strings.Contains(service, "child care") || strings.Contains(service, "long-term care"):
+		return "Facilities"
+	case strings.Contains(category, "equipment") || strings.Contains(category, "technology") || strings.Contains(service, "police") || strings.Contains(service, "fire"):
+		return "Equipment"
+	case strings.Contains(category, "superior north ems") || strings.Contains(service, "ems"):
+		return "EMS"
+	case strings.Contains(service, "housing"):
+		return "Housing"
+	case strings.Contains(service, "transit"):
+		return "Transit"
+	case strings.Contains(service, "solid waste") || strings.Contains(service, "landfill"):
+		return "Waste"
+	case strings.Contains(service, "parking"):
+		return "Parking"
+	case strings.Contains(category, "professional fees") || strings.Contains(category, "plans") || strings.Contains(category, "studies") || strings.Contains(category, "engineering") || strings.Contains(category, "programs") || strings.Contains(category, "initiatives") || strings.Contains(service, "engineering") || strings.Contains(service, "initiatives"):
+		return "Planning"
+	}
+	return "Other"
+}

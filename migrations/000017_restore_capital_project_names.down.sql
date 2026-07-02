@@ -1,0 +1,2 @@
+-- Project names come from the official capital budget import.
+-- This repair migration is intentionally not reversible.

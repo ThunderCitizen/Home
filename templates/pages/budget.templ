@@ -15,9 +15,18 @@ var budgetSourceRef = models.SourceRef{
 	AsOf:  "",
 }
 
-func budgetHeroItems(vm views.BudgetViewModel) []components.StatItem {
+var capitalSourceRef = models.SourceRef{
+	URL:   "https://pub-thunderbay.escribemeetings.com/FileStream.ashx?DocumentId=10325",
+	Label: "City of Thunder Bay, 2026-2027 Capital Budget",
+	AsOf:  "",
+}
+
+func operatingRevenueHeroItems(vm views.BudgetViewModel) []components.StatItem {
 	items := []components.StatItem{
-		{Value: vm.TopLine.PropertyTax, Label: "Property Tax", Note: vm.TopLine.TaxPct},
+		{Value: vm.TopLine.PropertyTax, Label: "Operating Levy", Note: vm.TopLine.TaxPct},
+	}
+	if vm.TopLine.CapitalLevy != "" {
+		items = append(items, components.StatItem{Value: vm.TopLine.CapitalLevy, Label: "Capital Levy", Note: vm.TopLine.CapitalNote})
 	}
 	if vm.TopLine.Grants != "" {
 		items = append(items, components.StatItem{Value: vm.TopLine.Grants, Label: "Grants", Note: vm.TopLine.GrantsPct})
@@ -25,32 +34,99 @@ func budgetHeroItems(vm views.BudgetViewModel) []components.StatItem {
 	if vm.TopLine.OtherSources != "" {
 		items = append(items, components.StatItem{Value: vm.TopLine.OtherSources, Label: "Other Sources", Note: vm.TopLine.OtherPct})
 	}
-	if vm.TopLine.HasSpending {
-		items = append(items, components.StatItem{Value: vm.TopLine.Operating, Label: "Operating Expense", Note: "day-to-day services"})
-	}
 	return items
 }
 
-func budgetHeroCols(vm views.BudgetViewModel) int {
+func operatingRevenueHeroCols(vm views.BudgetViewModel) int {
 	n := 1
+	if vm.TopLine.CapitalLevy != "" {
+		n++
+	}
 	if vm.TopLine.Grants != "" {
 		n++
 	}
 	if vm.TopLine.OtherSources != "" {
 		n++
 	}
-	if vm.TopLine.HasSpending {
-		n++
-	}
 	return n
 }
 
-
-templ budgetExpandToggle() {
-	<div class="selector-bar-group">
-		<button type="button" class="selector-bar-btn" id="toggle-all-highlights">Expand all</button>
-	</div>
+func capitalFundingHeroItems(capital views.CapitalBudgetView, year int) []components.StatItem {
+	type summaryGroup struct {
+		label   string
+		amount  float64
+		tooltip string
+	}
+	groups := []summaryGroup{
+		{label: "Tax Levy"},
+		{label: "Grants"},
+		{label: "Debt"},
+		{label: "Reserves & Other"},
+	}
+	developerContributions := 0.0
+	total := 0.0
+	for _, f := range capital.FundingLabels {
+		if f.Year != year {
+			continue
+		}
+		total += f.Amount
+		switch f.Kind {
+		case "tax_levy":
+			groups[0].amount += f.Amount
+		case "grant":
+			groups[1].amount += f.Amount
+		case "debenture":
+			groups[2].amount += f.Amount
+		case "reserve":
+			groups[3].amount += f.Amount
+		case "developer":
+			developerContributions += f.Amount
+			groups[3].amount += f.Amount
+		default:
+			groups[3].amount += f.Amount
+		}
+	}
+	items := make([]components.StatItem, 0, len(groups))
+	for _, g := range groups {
+		items = append(items, components.StatItem{
+			Value:   capitalSummaryAmountLabel(g.amount),
+			Label:   g.label,
+			Note:    capitalSummaryNote(g.label, g.amount, total, developerContributions),
+			Tooltip: g.tooltip,
+		})
+	}
+	return items
 }
+
+func capitalSummaryAmountLabel(dollars float64) string {
+	if dollars <= 0 {
+		return "$0"
+	}
+	return fmt.Sprintf("$%.1fM", dollars/1_000_000)
+}
+
+func capitalSummaryShareLabel(amount float64, total float64) string {
+	if total <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.0f%%", amount/total*100)
+}
+
+func capitalSummaryNote(label string, amount float64, total float64, developerContributions float64) string {
+	share := capitalSummaryShareLabel(amount, total)
+	if label != "Reserves & Other" {
+		return share
+	}
+	if developerContributions > 0 {
+		return fmt.Sprintf("%s (%s dev fees)", share, capitalSummaryAmountLabel(developerContributions))
+	}
+	return fmt.Sprintf("%s (no dev fees)", share)
+}
+
+func capitalYearSummaryTitle(year views.CapitalYearTotalView) string {
+	return fmt.Sprintf("%d Capital - %s", year.Year, year.AmountLabel)
+}
+
 
 templ Budget(vm views.BudgetViewModel) {
 	@templates.Layout(templates.SocialMeta{
@@ -58,13 +134,7 @@ templ Budget(vm views.BudgetViewModel) {
 		Description: "Thunder Bay's operating budget, visualized — trace where property tax dollars flow, by department and service.",
 		OGImage:     "/static/og/budget.png",
 	}) {
-		@components.YearSelector(components.YearSelectorProps{
-			Years:      vm.Years,
-			Current:    vm.Year,
-			BaseURL:    "/budget",
-			ParamName:  "year",
-			HTMXTarget: "#budget-content",
-		})
+		@components.BudgetNav(components.BudgetNavProps{Current: "operating"})
 		<div id="budget-content">
 			@BudgetPartial(vm)
 		</div>
@@ -74,10 +144,23 @@ templ Budget(vm views.BudgetViewModel) {
 	}
 }
 
+templ Capital(capital views.CapitalBudgetView) {
+	@templates.Layout(templates.SocialMeta{
+		Title:       "Capital Budget",
+		Description: "Thunder Bay's capital budget, summarized by year and traced through project-level records.",
+		OGImage:     "/static/og/budget.png",
+	}) {
+		@components.BudgetNav(components.BudgetNavProps{Current: "capital"})
+		<div id="capital-content">
+			@CapitalPartial(capital)
+		</div>
+	}
+}
+
 // BudgetPartial renders the content inside #budget-content.
 // Used by HTMX on year switch and by the full page on initial load.
 templ BudgetPartial(vm views.BudgetViewModel) {
-	@components.PageHeader(components.PageHeaderProps{Title: fmt.Sprintf("%d Budget", vm.Year)})
+	@components.PageHeader(components.PageHeaderProps{Title: fmt.Sprintf("%d Operating Budget", vm.Year)})
 			if !vm.HasData {
 				<article class="budget-empty-state" data-section="empty">
 					<header>
@@ -91,9 +174,15 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 				Footer:       components.SourceFooter(budgetSourceRef),
 				HeadingLevel: 2,
 			}) {
+				<h3 class="budget-summary-row-title">
+					Operating
+					if vm.TopLine.HasSpending {
+						{ " - " + vm.TopLine.Operating }
+					}
+				</h3>
 				@components.StatGrid(components.StatGridProps{
-					Items: budgetHeroItems(vm),
-					Columns: budgetHeroCols(vm),
+					Items: operatingRevenueHeroItems(vm),
+					Columns: operatingRevenueHeroCols(vm),
 				})
 			}
 			<div class="budget-flow-view">
@@ -107,12 +196,11 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 				</article>
 				<div id="sankey-detail" class="sankey-detail"></div>
 			</div>
-			@components.TermPanel(components.TermPanelProps{Title: "Service Details", HeaderAction: budgetExpandToggle(), HeadingLevel: 2}) {
-				<p class="service-details-legend">Percentages and bar widths are share of the total operating budget.</p>
+			@components.TermPanel(components.TermPanelProps{Title: "Service Details", HeadingLevel: 2}) {
 				<div id="service-details-list" data-section="serviceDetails">
 					for _, item := range vm.ItemsDesc {
-						<details class="service-detail-item">
-							<summary class="service-detail-header">
+						<div class="service-detail-item">
+							<div class="service-detail-header">
 								<div class="service-detail-row">
 									<span class="budget-swatch" aria-hidden="true" { swatchStyle(item.Color)... }>{ " " }</span>
 									<strong>{ item.Name }</strong>
@@ -122,7 +210,7 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 								if tagline := serviceTagline(item.Name); tagline != "" {
 									<span class="service-detail-tagline">{ tagline }</span>
 								}
-							</summary>
+							</div>
 							if bullets := serviceBullets(item.Name); len(bullets) > 0 {
 								<ul class="service-detail-bullets">
 									for _, b := range bullets {
@@ -130,7 +218,7 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 									}
 								</ul>
 							}
-						</details>
+						</div>
 					}
 				</div>
 			}
@@ -144,49 +232,121 @@ templ BudgetPartial(vm views.BudgetViewModel) {
 			window.renderBudgetSankey(sd, sv);
 		}
 
-		(function() {
-			var btn = document.getElementById('toggle-all-highlights');
-			var container = document.getElementById('service-details-list');
-			if (!container) return;
-
-			function getAll() {
-				return Array.prototype.slice.call(container.querySelectorAll('details.service-detail-item'));
-			}
-
-			function allOpen() {
-				var items = getAll();
-				return items.length > 0 && items.every(function(d) { return d.open; });
-			}
-
-			function updateBtn() {
-				if (btn) btn.textContent = allOpen() ? 'Collapse all' : 'Expand all';
-			}
-
-			container.addEventListener('toggle', function(e) {
-				if (e.target.classList.contains('service-detail-item')) updateBtn();
-			}, true);
-
-			if (!btn) return;
-			btn.addEventListener('click', function() {
-				var items = getAll();
-				var shouldOpen = !allOpen();
-				items.forEach(function(d) { d.open = shouldOpen; });
-				updateBtn();
-			});
-		})();
 	</script>
+}
+
+templ CapitalPartial(capital views.CapitalBudgetView) {
+	@components.PageHeader(components.PageHeaderProps{Title: "2026-2027 Capital Budget"})
+	if !capital.HasData {
+		<article class="budget-empty-state" data-section="empty">
+			<header>
+				<h2>No capital budget data</h2>
+			</header>
+			<p>The capital ledger has no project records. Apply the relevant data patch to populate it.</p>
+		</article>
+	} else {
+		@components.HeroStats(components.HeroStatsProps{
+			Title:        "Summary",
+			Footer:       components.SourceFooter(capitalSourceRef),
+			HeadingLevel: 2,
+			}) {
+				for _, y := range capital.YearLabels {
+					<h3 class="budget-summary-row-title">{ capitalYearSummaryTitle(y) }</h3>
+					@components.StatGrid(components.StatGridProps{
+						Items:   capitalFundingHeroItems(capital, y.Year),
+					Columns: 4,
+				})
+			}
+		}
+		@components.CapitalBudgetPanel(capitalBudgetPanelProps(capital))
+	}
 }
 
 func swatchStyle(color string) templ.Attributes {
 	return templ.Attributes{"style": fmt.Sprintf("background: %s", color)}
 }
 
-func trendBarStyle(pct int) templ.Attributes {
-	return templ.Attributes{"style": fmt.Sprintf("width:%d%%", pct)}
+func capitalBudgetPanelProps(capital views.CapitalBudgetView) components.CapitalBudgetPanelProps {
+	props := components.CapitalBudgetPanelProps{
+		HasData:       capital.HasData,
+		TotalLabel:    capital.TotalLabel,
+		ProjectCount:  capital.ProjectCount,
+		Source:        capitalSourceRef,
+		YearLabels:    make([]components.CapitalYearTotalItem, 0, len(capital.YearLabels)),
+		FundingLabels: make([]components.CapitalFundingTotalItem, 0, len(capital.FundingLabels)),
+		Projects:      make([]components.CapitalProjectItem, 0, len(capital.Projects)),
+	}
+	for _, y := range capital.YearLabels {
+		props.YearLabels = append(props.YearLabels, components.CapitalYearTotalItem{
+			Year:        y.Year,
+			AmountLabel: y.AmountLabel,
+		})
+	}
+	for _, f := range capital.FundingLabels {
+		props.FundingLabels = append(props.FundingLabels, components.CapitalFundingTotalItem{
+			Year:        f.Year,
+			Kind:        f.Kind,
+			Label:       f.Label,
+			Amount:      f.Amount,
+			AmountLabel: f.AmountLabel,
+			ShareLabel:  f.ShareLabel,
+			SharePct:    f.SharePct,
+			BarWidth:    f.BarWidth,
+		})
+	}
+	for _, p := range capital.Projects {
+		project := components.CapitalProjectItem{
+			ID:          p.ID,
+			Name:        p.Name,
+			OfficialName: p.OfficialName,
+			Service:     p.Service,
+			Category:    p.Category,
+			Action:      p.Action,
+			Status:      p.Status,
+			Description: p.Description,
+			Benefits:    p.Benefits,
+			Ward:        p.Ward,
+			Location:    p.Location,
+			SourceContext: p.SourceContext,
+			TotalAmount: p.TotalAmount,
+			TotalLabel:  p.TotalLabel,
+			SourceLineCount: p.SourceLineCount,
+			Approval:    p.Approval,
+			SourceURL:   p.SourceURL,
+			SourcePage:  p.SourcePage,
+			Years:       make([]components.CapitalYearTotalItem, 0, len(p.Years)),
+			Funding:     make([]components.CapitalFundingItem, 0, len(p.Funding)),
+			SourceLines: make([]components.CapitalSourceLineItem, 0, len(p.SourceLines)),
+		}
+		for _, y := range p.Years {
+			project.Years = append(project.Years, components.CapitalYearTotalItem{
+				Year:        y.Year,
+				AmountLabel: y.AmountLabel,
+			})
+		}
+		for _, f := range p.Funding {
+			project.Funding = append(project.Funding, components.CapitalFundingItem{
+				Kind:        f.Kind,
+				Label:       f.Label,
+				Source:      f.Source,
+				Amount:      f.Amount,
+				AmountLabel: f.AmountLabel,
+				BarWidth:    f.BarWidth,
+			})
+		}
+		for _, line := range p.SourceLines {
+			project.SourceLines = append(project.SourceLines, components.CapitalSourceLineItem{
+				Category:    line.Category,
+				AmountLabel: line.AmountLabel,
+			})
+		}
+		props.Projects = append(props.Projects, project)
+	}
+	return props
 }
 
-// serviceInfo carries the one-line tagline shown on the service row and the
-// expanded bullet points shown when the user clicks to open. Content comes
+// serviceInfo carries the one-line tagline and supporting bullets shown in
+// the operating service detail list. Content comes
 // from the City of Thunder Bay 2026 Approved Operating Budget PDF —
 // Department/Division Summaries (pp. 39–169). Paraphrased or quoted; update
 // alongside the source PDF.
@@ -315,4 +475,3 @@ func serviceBullets(name string) []string {
 	}
 	return nil
 }
-

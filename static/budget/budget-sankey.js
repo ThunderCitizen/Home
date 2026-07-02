@@ -12,6 +12,7 @@
   const serviceEl = document.getElementById('service-details');
   if (!container || !dataEl) return;
 
+  const CAPITAL_BUDGET_NAME = 'Capital Budget';
   let data, serviceDetails, drillable;
   const detailPanel = document.getElementById('sankey-detail');
   const subtitleEl = document.querySelector('[data-section="subtitle"]');
@@ -22,12 +23,13 @@
 
   // Persistent banner elements — created once, updated in place for smooth transitions
   let bannerEl, bannerSwatch, bannerTitle, bodyEl, backEl;
+  let bodyUpdateTimer = null;
   let unhoverTimer = null;
   const UNHOVER_DELAY = 300; // ms before reverting to default on mouseleave
 
   // URL hash ↔ service name mapping
   function toSlug(name) { return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
-  let slugToName = {}; // built after serviceDetails is set
+  let slugToName = {}; // built after sankey details and serviceDetails are set
 
   function init(sankeyData, svcDetails) {
     data = sankeyData || {};
@@ -56,9 +58,11 @@
 
     renderSankey(container, data, {
       ariaLabel: 'Budget flow diagram showing how property taxes are allocated to city services',
-      isDrillable: function (name) { return drillable[name]; },
+      isDrillable: isOverviewDrillable,
       onNodeClick: function (name) {
-        if (drillable[name]) {
+        if (name === CAPITAL_BUDGET_NAME) {
+          focusCapitalBudget(true);
+        } else if (isOverviewDrillable(name)) {
           slideTo(name);
         } else {
           lockDetail(data, name);
@@ -68,6 +72,7 @@
 
     // Build slug lookup
     slugToName = {};
+    Object.keys(data.details || {}).forEach(function (name) { slugToName[toSlug(name)] = name; });
     Object.keys(serviceDetails).forEach(function (name) { slugToName[toSlug(name)] = name; });
 
     if (detailPanel) {
@@ -98,11 +103,49 @@
       showDefault(data);
     }
 
-    // Auto-drill from URL hash
+    openHashTarget();
+  }
+
+  function openHashTarget() {
     const hash = location.hash.replace('#', '');
-    if (hash && slugToName[hash]) {
-      slideTo(slugToName[hash]);
+    const name = hash && slugToName[hash];
+    if (!name) return;
+    if (name === CAPITAL_BUDGET_NAME) {
+      focusCapitalBudget(false);
+      return;
     }
+    if (isOverviewDrillable(name)) {
+      slideTo(name);
+      return;
+    }
+    showOverviewShell();
+    currentView = 'overview';
+    activeSankeyData = data;
+    lockDetail(data, name);
+    const scrollTarget = detailPanel || container.closest('article') || document.querySelector('.sankey-viewport');
+    if (scrollTarget) scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function isOverviewDrillable(name) {
+    return !!drillable[name] && name !== CAPITAL_BUDGET_NAME;
+  }
+
+  function focusCapitalBudget(updateHash) {
+    showOverviewShell();
+    currentView = 'overview';
+    activeSankeyData = data;
+    lockDetail(data, CAPITAL_BUDGET_NAME);
+    pulseCapitalNav();
+    if (updateHash) history.replaceState(null, '', '#' + toSlug(CAPITAL_BUDGET_NAME));
+  }
+
+  function pulseCapitalNav() {
+    const link = document.querySelector('.year-selector-link[href="/capital"]');
+    if (!link) return;
+    link.classList.remove('year-selector-link-pulse');
+    void link.offsetWidth;
+    link.classList.add('year-selector-link-pulse');
+    window.setTimeout(function () { link.classList.remove('year-selector-link-pulse'); }, 1800);
   }
 
   // ── Render a Sankey into a container ──
@@ -338,8 +381,10 @@
   // ── Detail panel ──
   function updateBody(html, cb) {
     if (!bodyEl) return;
+    if (bodyUpdateTimer) clearTimeout(bodyUpdateTimer);
     bodyEl.style.opacity = '0';
-    setTimeout(function () {
+    bodyUpdateTimer = setTimeout(function () {
+      bodyUpdateTimer = null;
       bodyEl.innerHTML = html;
       bodyEl.style.opacity = '1';
       if (cb) cb();
@@ -375,7 +420,9 @@
     const title = sankeyData.title || ('Revenue · ' + label);
     updateBanner(title, null);
 
-    let html = '<ul class="sankey-detail-list">';
+    let html = '';
+    if (sankeyData.description) html += '<p>' + sankeyData.description + '</p>';
+    html += '<ul class="sankey-detail-list">';
     const seen = {};
     const targets = [];
     sankeyData.links.forEach(function (link) {
@@ -415,7 +462,7 @@
       }
     }
     if (d.description) html += '<p>' + d.description + '</p>';
-    if (currentView === 'overview' && drillable[name]) {
+    if (currentView === 'overview' && isOverviewDrillable(name)) {
       html += '<p class="sankey-detail-drill-hint" data-drill="' + name + '">' + (isTouch() ? 'Tap' : 'Click') + ' to see detailed breakdown →</p>';
     }
     html += sourceLink(sankeyData);
@@ -524,6 +571,20 @@
     setTimeout(function () { showDefault(svc); }, 500);
   }
 
+  function showOverviewShell() {
+    activeSankeyData = data;
+    updateColumnHeader(data);
+    if (slider) slider.classList.remove('slid');
+    if (detailContainer) detailContainer.innerHTML = '';
+    if (headingEl) headingEl.textContent = defaultHeading;
+    if (subtitleEl) subtitleEl.textContent = defaultSubtitle;
+    var viewport = document.querySelector('.sankey-viewport');
+    if (viewport) {
+      viewport.style.height = '';
+      viewport.style.transition = '';
+    }
+  }
+
   function slideBack() {
     locked = false;
     lockedName = null;
@@ -580,5 +641,7 @@
   window.renderBudgetSankey = function (sankeyData, svcDetails) {
     init(sankeyData, svcDetails);
   };
+
+  window.addEventListener('hashchange', openHashTarget);
 
 })();

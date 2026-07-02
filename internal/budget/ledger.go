@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -94,6 +95,51 @@ type SankeyFlow struct {
 	DebitName  string
 	Amount     float64
 	Desc       string
+}
+
+// CapitalProject is a capital budget project/program with annual budget
+// amounts and funding sources. Amounts are stored in dollars.
+type CapitalProject struct {
+	ID            string
+	Name          string
+	OfficialName  string
+	Service       string
+	Category      string
+	AssetType     string
+	Action        string
+	Lifecycle     string
+	Status        string
+	Description   string
+	Benefits      string
+	Ward          string
+	Location      string
+	SourceContext string
+	SourceURL     string
+	SourcePage    int
+	Years         []CapitalProjectYear
+	Funding       []CapitalProjectFunding
+	Approvals     []CapitalProjectApproval
+}
+
+type CapitalProjectYear struct {
+	FiscalYear int
+	Amount     float64
+	Status     string
+}
+
+type CapitalProjectFunding struct {
+	FiscalYear int
+	Source     string
+	Kind       string
+	Amount     float64
+}
+
+type CapitalProjectApproval struct {
+	Stage  string
+	Date   string
+	Body   string
+	Result string
+	URL    string
 }
 
 // Ledger provides access to the budget ledger tables.
@@ -340,7 +386,7 @@ func (l *Ledger) SankeyRevenueNodes(ctx context.Context, year int) ([]SankeyNode
 		FROM budget_ledger l
 		JOIN budget_accounts a ON a.code = l.credit_code
 		WHERE l.fiscal_year = $1 AND l.credit_code LIKE 'revenue.%'
-		  AND l.budget_type = 'operating'
+		  AND l.budget_type IN ('operating', 'capital')
 		GROUP BY a.code, a.name, a.color, a.sort_order
 		ORDER BY a.sort_order`, year)
 	if err != nil {
@@ -366,7 +412,7 @@ func (l *Ledger) SankeyServiceNodes(ctx context.Context, year int) ([]SankeyNode
 		FROM budget_ledger l
 		JOIN budget_accounts a ON a.code = 'service.' || split_part(l.debit_code, '.', 2)
 		WHERE l.fiscal_year = $1 AND l.credit_code LIKE 'revenue.%'
-		  AND l.budget_type = 'operating'
+		  AND l.budget_type IN ('operating', 'capital')
 		GROUP BY a.code, a.name, a.color, a.sort_order
 		ORDER BY a.sort_order`, year)
 	if err != nil {
@@ -395,7 +441,7 @@ func (l *Ledger) SankeyFlows(ctx context.Context, year int) ([]SankeyFlow, error
 		JOIN budget_accounts ca ON ca.code = l.credit_code
 		JOIN budget_accounts da ON da.code = 'service.' || split_part(l.debit_code, '.', 2)
 		WHERE l.fiscal_year = $1 AND l.credit_code LIKE 'revenue.%'
-		  AND l.budget_type = 'operating'
+		  AND l.budget_type IN ('operating', 'capital')
 		GROUP BY l.credit_code, ca.name, svc_code, da.name
 		ORDER BY SUM(l.amount) DESC`, year)
 	if err != nil {
@@ -425,7 +471,7 @@ func (l *Ledger) SankeyDrillDown(ctx context.Context, year int, serviceCode stri
 		JOIN budget_accounts ca ON ca.code = l.credit_code
 		JOIN budget_accounts da ON da.code = l.debit_code
 		WHERE l.fiscal_year = $1 AND l.debit_code LIKE $2
-		  AND l.budget_type = 'operating'
+		  AND l.budget_type IN ('operating', 'capital')
 		GROUP BY l.credit_code, ca.name, l.debit_code, da.name
 		ORDER BY SUM(l.amount) DESC`, year, prefix)
 	if err != nil {
@@ -451,7 +497,7 @@ func (l *Ledger) ServiceAccountNodes(ctx context.Context, year int, serviceCode 
 		FROM budget_ledger l
 		JOIN budget_accounts a ON a.code = l.debit_code
 		WHERE l.fiscal_year = $1 AND l.debit_code LIKE $2
-		  AND l.budget_type = 'operating'
+		  AND l.budget_type IN ('operating', 'capital')
 		GROUP BY a.code, a.name, a.color, a.sort_order
 		ORDER BY SUM(l.amount) DESC`, year, prefix)
 	if err != nil {
@@ -475,6 +521,137 @@ func (l *Ledger) HasEntries(ctx context.Context, year int) (bool, error) {
 	err := l.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM budget_ledger WHERE fiscal_year = $1`, year).Scan(&count)
 	return count > 0, err
+}
+
+// CapitalProjects returns capital project records with years, funding, and
+// approval metadata grouped for display. It is intentionally separate from the
+// operating double-entry ledger because capital projects persist across years
+// and later collect procurement/bid history.
+func (l *Ledger) CapitalProjects(ctx context.Context, startYear, endYear int) ([]CapitalProject, error) {
+	rows, err := l.pool.Query(ctx, `
+		SELECT DISTINCT p.id, p.name, p.official_name, p.service, p.category, p.asset_type,
+		       p.action, p.lifecycle, p.status, p.description, p.benefits,
+		       p.ward, p.location, p.source_context, p.source_url, COALESCE(p.source_page, 0)
+		FROM capital_projects p
+		JOIN capital_project_years y ON y.project_id = p.id
+		WHERE y.fiscal_year BETWEEN $1 AND $2
+		ORDER BY p.service, p.category, p.name`, startYear, endYear)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	projects := []CapitalProject{}
+	byID := map[string]int{}
+	for rows.Next() {
+		var p CapitalProject
+		if err := rows.Scan(&p.ID, &p.Name, &p.OfficialName, &p.Service, &p.Category, &p.AssetType,
+			&p.Action, &p.Lifecycle, &p.Status, &p.Description, &p.Benefits,
+			&p.Ward, &p.Location, &p.SourceContext, &p.SourceURL, &p.SourcePage); err != nil {
+			return nil, err
+		}
+		byID[p.ID] = len(projects)
+		projects = append(projects, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(projects) == 0 {
+		return projects, nil
+	}
+
+	yearRows, err := l.pool.Query(ctx, `
+		SELECT project_id, fiscal_year, amount, budget_status
+		FROM capital_project_years
+		WHERE fiscal_year BETWEEN $1 AND $2
+		ORDER BY fiscal_year`, startYear, endYear)
+	if err != nil {
+		return nil, err
+	}
+	defer yearRows.Close()
+	for yearRows.Next() {
+		var projectID, status string
+		var year int
+		var amount float64
+		if err := yearRows.Scan(&projectID, &year, &amount, &status); err != nil {
+			return nil, err
+		}
+		if idx, ok := byID[projectID]; ok {
+			projects[idx].Years = append(projects[idx].Years, CapitalProjectYear{
+				FiscalYear: year,
+				Amount:     amount,
+				Status:     status,
+			})
+		}
+	}
+	if err := yearRows.Err(); err != nil {
+		return nil, err
+	}
+
+	fundingRows, err := l.pool.Query(ctx, `
+		SELECT project_id, fiscal_year, funding_source, funding_kind, amount
+		FROM capital_project_funding
+		WHERE fiscal_year BETWEEN $1 AND $2
+		ORDER BY fiscal_year, funding_kind, funding_source`, startYear, endYear)
+	if err != nil {
+		return nil, err
+	}
+	defer fundingRows.Close()
+	for fundingRows.Next() {
+		var projectID string
+		var f CapitalProjectFunding
+		if err := fundingRows.Scan(&projectID, &f.FiscalYear, &f.Source, &f.Kind, &f.Amount); err != nil {
+			return nil, err
+		}
+		if idx, ok := byID[projectID]; ok {
+			projects[idx].Funding = append(projects[idx].Funding, f)
+		}
+	}
+	if err := fundingRows.Err(); err != nil {
+		return nil, err
+	}
+
+	approvalRows, err := l.pool.Query(ctx, `
+		SELECT project_id, approval_stage, COALESCE(approval_date::text, ''),
+		       approval_body, result, source_url
+		FROM capital_project_approvals
+		ORDER BY approval_date, approval_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer approvalRows.Close()
+	for approvalRows.Next() {
+		var projectID string
+		var a CapitalProjectApproval
+		if err := approvalRows.Scan(&projectID, &a.Stage, &a.Date, &a.Body, &a.Result, &a.URL); err != nil {
+			return nil, err
+		}
+		if idx, ok := byID[projectID]; ok {
+			projects[idx].Approvals = append(projects[idx].Approvals, a)
+		}
+	}
+	if err := approvalRows.Err(); err != nil {
+		return nil, err
+	}
+
+	sort.SliceStable(projects, func(i, j int) bool {
+		ti := capitalProjectTotal(projects[i])
+		tj := capitalProjectTotal(projects[j])
+		if projects[i].Service == projects[j].Service {
+			return ti > tj
+		}
+		return projects[i].Service < projects[j].Service
+	})
+
+	return projects, nil
+}
+
+func capitalProjectTotal(p CapitalProject) float64 {
+	var total float64
+	for _, y := range p.Years {
+		total += y.Amount
+	}
+	return total
 }
 
 // VerifyBalance checks that every service sub-ledger balances: inflows from

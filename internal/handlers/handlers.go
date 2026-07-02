@@ -131,6 +131,16 @@ func (h *Handlers) Budget(w http.ResponseWriter, r *http.Request) {
 	renderPage(w, r, pages.BudgetPartial(vm), pages.Budget(vm))
 }
 
+func (h *Handlers) Capital(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vm, err := views.NewCapitalBudgetView(ctx, h.ledger)
+	if err != nil {
+		middleware.HandleUnavailable(ctx, w, "capital budget data unavailable", err)
+		return
+	}
+	renderPage(w, r, pages.CapitalPartial(vm), pages.Capital(vm))
+}
+
 func (h *Handlers) Councillors(w http.ResponseWriter, r *http.Request) {
 	store := newCouncilStore(h.db)
 	ctx := r.Context()

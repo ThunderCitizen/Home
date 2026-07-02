@@ -1,0 +1,29 @@
+package components
+
+// BudgetNavProps configures the budget section navigation bar.
+type BudgetNavProps struct {
+	Current string // "operating" or "capital"
+}
+
+var budgetNavItems = []struct {
+	Key   string
+	Href  string
+	Label string
+}{
+	{"operating", "/budget", "2026 Operating"},
+	{"capital", "/capital", "2026-2027 Capital"},
+}
+
+templ BudgetNav(props BudgetNavProps) {
+	<div class="year-selector-card">
+		<nav class="year-selector" aria-label="Budget view">
+			for _, item := range budgetNavItems {
+				if item.Key == props.Current {
+					<a href={ templ.SafeURL(item.Href) } class="year-selector-link active" aria-current="page">{ item.Label }</a>
+				} else {
+					<a href={ templ.SafeURL(item.Href) } class="year-selector-link">{ item.Label }</a>
+				}
+			}
+		</nav>
+	</div>
+}

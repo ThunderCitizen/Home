@@ -70,7 +70,7 @@ func BuildSankeyFromLedger(ctx context.Context, ledger *budget.Ledger, year int,
 			Color: n.Color,
 		}
 	}
-	sd.Title = fmt.Sprintf("Operating Budget · $%.1fM", expenseTotal)
+	sd.Title = fmt.Sprintf("Budget Flow · $%.1fM", expenseTotal)
 	sd.IncomeTotal = fmt.Sprintf("$%.1fM", revenueTotal)
 	sd.ExpenseTotal = fmt.Sprintf("$%.1fM", expenseTotal)
 
