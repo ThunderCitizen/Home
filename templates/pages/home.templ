@@ -58,52 +58,53 @@ templ Home(vm views.HomeViewModel) {
 				</div>
 			}
 
-			if len(vm.RecentMeetings) > 0 || len(vm.PendingMeetings) > 0 {
+			if len(vm.CouncilActivity) > 0 {
 				@components.Card(components.CardProps{Title: "Recent Council Activity"}) {
 					<div class="recent-meetings">
-						for _, m := range vm.PendingMeetings {
-							<div class="recent-meeting recent-meeting--pending">
-								<div class="recent-meeting-header">
-									<strong>{ m.Date }</strong>
-								</div>
-								if m.Summary != "" {
-									<p class="recent-meeting-summary">{ m.Summary }</p>
-								}
-								if len(m.KeyItems) > 0 {
-									<ul class="recent-meeting-items">
-										for _, item := range m.KeyItems {
-											<li>{ item }</li>
-										}
-									</ul>
-								}
-								<div class="recent-meeting-footer">
-									if m.MinutesETA != "" {
-										<span class="recent-meeting-eta">{ m.MinutesETA }</span>
-									}
-									<span class="recent-meeting-status">Minutes Pending</span>
-								</div>
-							</div>
-						}
-						for _, m := range vm.RecentMeetings {
-							<div class="recent-meeting">
-								<div class="recent-meeting-header">
-									<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) }>
+						for _, m := range vm.CouncilActivity {
+							if m.Pending {
+								<div class="recent-meeting recent-meeting--pending">
+									<div class="recent-meeting-header">
 										<strong>{ m.Date }</strong>
-									</a>
-									<span class="recent-meeting-count">{ fmt.Sprintf("%d motions", m.Motions) }</span>
-								</div>
-								<p class="recent-meeting-summary">{ m.Summary }</p>
-								if len(m.KeyItems) > 0 {
-									<ul class="recent-meeting-items">
-										for _, item := range m.KeyItems {
-											<li>{ item }</li>
+									</div>
+									if m.Summary != "" {
+										<p class="recent-meeting-summary">{ m.Summary }</p>
+									}
+									if len(m.KeyItems) > 0 {
+										<ul class="recent-meeting-items">
+											for _, item := range m.KeyItems {
+												<li>{ item }</li>
+											}
+										</ul>
+									}
+									<div class="recent-meeting-footer">
+										if m.MinutesETA != "" {
+											<span class="recent-meeting-eta">{ m.MinutesETA }</span>
 										}
-									</ul>
-								}
-								<div class="recent-meeting-footer">
-									<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">Minutes</a>
+										<span class="recent-meeting-status">Minutes Pending</span>
+									</div>
 								</div>
-							</div>
+							} else {
+								<div class="recent-meeting">
+									<div class="recent-meeting-header">
+										<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) }>
+											<strong>{ m.Date }</strong>
+										</a>
+										<span class="recent-meeting-count">{ fmt.Sprintf("%d motions", m.Motions) }</span>
+									</div>
+									<p class="recent-meeting-summary">{ m.Summary }</p>
+									if len(m.KeyItems) > 0 {
+										<ul class="recent-meeting-items">
+											for _, item := range m.KeyItems {
+												<li>{ item }</li>
+											}
+										</ul>
+									}
+									<div class="recent-meeting-footer">
+										<a href={ templ.SafeURL(fmt.Sprintf("/minutes/%s", m.Slug)) } class="meeting-row-btn">Minutes</a>
+									</div>
+								</div>
+							}
 						}
 					</div>
 					<p class="recent-meetings-more"><a href="/minutes">View all meetings &rarr;</a></p>

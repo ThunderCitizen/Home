@@ -32,9 +32,9 @@ func runSign(args []string) {
 //	muni sign -key <k> <dir>     — explicit private key path
 //	muni sign -key <k>           — (error) dir required
 //
-// Autodetect walks ~/.ssh/*.pub, matches each fingerprint against the
-// embedded trust store, and picks the private key next to the first
-// match. Logs which key it chose so nothing is silently ambiguous.
+// Autodetect walks approved signers in trust-store filename order, then
+// finds the matching ~/.ssh/*.pub and private sibling. This lets key
+// rotation prefer a newer approved signer by naming it earlier.
 func parseSignArgs(args []string) (string, string) {
 	if len(args) >= 3 && args[0] == "-key" {
 		return args[1], args[2]
@@ -51,9 +51,9 @@ func parseSignArgs(args []string) (string, string) {
 	return "", ""
 }
 
-// autodetectSigningKey returns the first private key under ~/.ssh/
-// whose public half matches a fingerprint in keys/approved/. The
-// match is strict: fingerprint equality, not filename heuristics.
+// autodetectSigningKey returns the private key under ~/.ssh/ whose public
+// half matches the first approved signer in keys/approved/ filename order.
+// The match is strict: fingerprint equality, not filename heuristics.
 func autodetectSigningKey() (string, error) {
 	trust, err := munisign.LoadTrust()
 	if err != nil {
@@ -70,6 +70,7 @@ func autodetectSigningKey() (string, error) {
 		return "", fmt.Errorf("read %s: %w", sshDir, err)
 	}
 
+	byFingerprint := make(map[string]string)
 	for _, e := range entries {
 		name := e.Name()
 		if e.IsDir() || !strings.HasSuffix(name, ".pub") {
@@ -85,7 +86,13 @@ func autodetectSigningKey() (string, error) {
 			continue
 		}
 		fp := ssh.FingerprintSHA256(k)
-		if _, ok := trust.Approved[fp]; !ok {
+		byFingerprint[fp] = pubPath
+	}
+
+	approved, _ := trust.Summary()
+	for _, signer := range approved {
+		pubPath, ok := byFingerprint[signer.Fingerprint]
+		if !ok {
 			continue
 		}
 		privPath := strings.TrimSuffix(pubPath, ".pub")

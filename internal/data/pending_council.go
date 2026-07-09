@@ -11,6 +11,7 @@ package data
 // meeting's minutes at the next meeting, so minutes post ~a few days after
 // that approval).
 type PendingMeeting struct {
+	DateISO    string   // sortable date, YYYY-MM-DD
 	Date       string   // human-readable, e.g. "Tuesday, April 21"
 	Status     string   // "Upcoming" | "Pending minutes"
 	AgendaURL  string   // eSCRIBE Agenda link (may be empty)
@@ -24,10 +25,11 @@ type PendingMeeting struct {
 // Remove entries once the fetcher ingests the PostMinutes PDF for each.
 var PendingCouncilMeetings = []PendingMeeting{
 	{
-		Date:      "Tuesday, June 2",
+		DateISO:   "2026-06-02",
+		Date:      "Tuesday, June 2, 2026",
 		Status:    "Pending minutes",
 		AgendaURL: "https://pub-thunderbay.escribemeetings.com/Meeting.aspx?Id=51c8071e-5815-4a20-b831-418f4439c55e&Agenda=Agenda&lang=English",
-		Summary:   "A NOHFC funding bid for the Canada Games Complex, a Microsoft 365 licensing procurement, a centralized customer service update, and an Indigenous data governance presentation.",
+		Summary:   "Still awaiting the official PostMinutes PDF for June 2. The agenda included a NOHFC funding bid for the Canada Games Complex, Microsoft 365 licensing, a centralized customer service update, and an Indigenous data governance presentation.",
 		KeyItems: []string{
 			"Canada Games Complex capital enhancements — Stage 2 NOHFC funding application for sport-event hosting (Report 251-2026)",
 			"Microsoft 365 licensing & digitization — single-source procurement (Report 188-2026)",
@@ -35,6 +37,6 @@ var PendingCouncilMeetings = []PendingMeeting{
 			"Indigenous Data Governance presentation",
 			"Holding Symbol removal at 2019 Almira Avenue (By-law 259-2026)",
 		},
-		MinutesETA: "Expected after the next council meeting",
+		MinutesETA: "Not yet posted on eSCRIBE; June 23 is processed",
 	},
 }

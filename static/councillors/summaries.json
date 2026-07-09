@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-06-04T01:43:55Z",
+  "exported_at": "2026-07-09T17:25:31Z",
   "motions": [
     {
       "meeting_id": "d79ca8a7-84c8-41d4-a058-5a23fc93507e",
@@ -7718,8 +7718,17 @@
       "meeting_id": "41f7bdd5-d5f5-42ba-a6bb-fd6754390207",
       "meeting_date": "2022-12-19",
       "agenda_item": "",
-      "llm_summary": "Council confirmed the official minutes from five meetings held between October and December 2022. This is a standard procedural step to verify that the recorded decisions and discussions are accurate.",
-      "llm_label": "Confirm meeting minutes Oct-Dec 2022",
+      "llm_summary": "Council voted to remove a reference to Centennial Village (Confederation Drive) from a report about outdoor rinks, based on a memo from Councillor Johnsen.",
+      "llm_label": "Remove Centennial Village from rinks report",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "41f7bdd5-d5f5-42ba-a6bb-fd6754390207",
+      "meeting_date": "2022-12-19",
+      "agenda_item": "",
+      "llm_summary": "Council is closing the unsupervised pond at Vale Community Centre and adding Vickers Park's skating path to the city's outdoor rink program, both effective for the 2022/2023 season.",
+      "llm_label": "Vale Community Centre pond closure; Vickers Park rink add...",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -7736,17 +7745,8 @@
       "meeting_id": "41f7bdd5-d5f5-42ba-a6bb-fd6754390207",
       "meeting_date": "2022-12-19",
       "agenda_item": "",
-      "llm_summary": "Council voted to remove a reference to Centennial Village (Confederation Drive) from a report about outdoor rinks, based on a memo from Councillor Johnsen.",
-      "llm_label": "Remove Centennial Village from rinks report",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "41f7bdd5-d5f5-42ba-a6bb-fd6754390207",
-      "meeting_date": "2022-12-19",
-      "agenda_item": "",
-      "llm_summary": "Council is closing the unsupervised pond at Vale Community Centre and adding Vickers Park's skating path to the city's outdoor rink program, both effective for the 2022/2023 season.",
-      "llm_label": "Vale Community Centre pond closure; Vickers Park rink add...",
+      "llm_summary": "Council confirmed the official minutes from five meetings held between October and December 2022. This is a standard procedural step to verify that the recorded decisions and discussions are accurate.",
+      "llm_label": "Confirm meeting minutes Oct-Dec 2022",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -7907,44 +7907,17 @@
       "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
       "meeting_date": "2023-02-06",
       "agenda_item": "",
+      "llm_summary": "Council cut the Thunder Bay Police Services Board's honorarium budget by $44,000, bringing it down to $31,000 total. The board will now decide how to distribute this money among its members and chair.",
+      "llm_label": "Police Services Board honorarium budget reduced by $44,000",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
+      "meeting_date": "2023-02-06",
+      "agenda_item": "",
       "llm_summary": "Council postponed discussion of the Thunder Bay Police Services Board Budget to a later point in the meeting.",
       "llm_label": "Police Services Board Budget deferred",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
-      "meeting_date": "2023-02-06",
-      "agenda_item": "",
-      "llm_summary": "Council approved reducing hours at the Canada Games Complex indoor pools to close earlier, saving approximately $10,395 annually by reducing staffing by 0.2 full-time positions.",
-      "llm_label": "Canada Games Complex pool hours reduced",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
-      "meeting_date": "2023-02-06",
-      "agenda_item": "",
-      "llm_summary": "Council voted to reduce the Thunder Bay Police Services Board's 2023 budget by $25,000 as part of the overall budget approval process.",
-      "llm_label": "Police Services Board budget cut $25,000",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
-      "meeting_date": "2023-02-06",
-      "agenda_item": "",
-      "llm_summary": "Council approved $10,000 in the 2023 budget to close Jumbo Gardens Community Centre by the end of December.",
-      "llm_label": "Jumbo Gardens Community Centre closure approved",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
-      "meeting_date": "2023-02-06",
-      "agenda_item": "",
-      "llm_summary": "Council voted to delay the closure of Jumbo Gardens Community Centre from May to December, giving the facility several additional months of operation before it shuts down.",
-      "llm_label": "Jumbo Gardens Community Centre closure delayed to December",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -7961,17 +7934,8 @@
       "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
       "meeting_date": "2023-02-06",
       "agenda_item": "",
-      "llm_summary": "Council adopted meeting minutes from seven special committee sessions held in January 2023 and reviewed budget information for the 2023 operating and capital budget, including the Thunder Bay Police Services Board budget. Two councillors declared conflicts of interest and recused themselves from voting on police budget matters.",
-      "llm_label": "2023 Budget Adoption \u0026 Police Services Board",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
-      "meeting_date": "2023-02-06",
-      "agenda_item": "",
-      "llm_summary": "Council cut the Thunder Bay Police Services Board's honorarium budget by $44,000, bringing it down to $31,000 total. The board will now decide how to distribute this money among its members and chair.",
-      "llm_label": "Police Services Board honorarium budget reduced by $44,000",
+      "llm_summary": "Council proposed increasing the budget cut for the Police Services Board honorariums from $25,000 to $49,000 and setting new pay rates of $5,000 per board member and $6,000 for the board chair. The motion failed to pass.",
+      "llm_label": "Police Services Board honorarium budget cut proposal",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -7988,8 +7952,44 @@
       "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
       "meeting_date": "2023-02-06",
       "agenda_item": "",
-      "llm_summary": "Council proposed increasing the budget cut for the Police Services Board honorariums from $25,000 to $49,000 and setting new pay rates of $5,000 per board member and $6,000 for the board chair. The motion failed to pass.",
-      "llm_label": "Police Services Board honorarium budget cut proposal",
+      "llm_summary": "Council adopted meeting minutes from seven special committee sessions held in January 2023 and reviewed budget information for the 2023 operating and capital budget, including the Thunder Bay Police Services Board budget. Two councillors declared conflicts of interest and recused themselves from voting on police budget matters.",
+      "llm_label": "2023 Budget Adoption \u0026 Police Services Board",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
+      "meeting_date": "2023-02-06",
+      "agenda_item": "",
+      "llm_summary": "Council voted to reduce the Thunder Bay Police Services Board's 2023 budget by $25,000 as part of the overall budget approval process.",
+      "llm_label": "Police Services Board budget cut $25,000",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
+      "meeting_date": "2023-02-06",
+      "agenda_item": "",
+      "llm_summary": "Council voted to delay the closure of Jumbo Gardens Community Centre from May to December, giving the facility several additional months of operation before it shuts down.",
+      "llm_label": "Jumbo Gardens Community Centre closure delayed to December",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
+      "meeting_date": "2023-02-06",
+      "agenda_item": "",
+      "llm_summary": "Council approved $10,000 in the 2023 budget to close Jumbo Gardens Community Centre by the end of December.",
+      "llm_label": "Jumbo Gardens Community Centre closure approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "639dcdd5-4158-472d-8eb4-898738778358",
+      "meeting_date": "2023-02-06",
+      "agenda_item": "",
+      "llm_summary": "Council approved reducing hours at the Canada Games Complex indoor pools to close earlier, saving approximately $10,395 annually by reducing staffing by 0.2 full-time positions.",
+      "llm_label": "Canada Games Complex pool hours reduced",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8186,8 +8186,8 @@
       "meeting_id": "65930b04-1073-4ef2-9198-92265c9e6844",
       "meeting_date": "2023-03-27",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from three Committee of the Whole meetings held in March 2023, including one closed session meeting.",
-      "llm_label": "Adopt Committee meeting minutes (March 2023)",
+      "llm_summary": "Council directed city administration to create a list of city-owned lands (including parks) that could be sold, identify which parcels would generate the most revenue, and submit this report by September 18, 2023.",
+      "llm_label": "City land sales analysis",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8195,8 +8195,8 @@
       "meeting_id": "65930b04-1073-4ef2-9198-92265c9e6844",
       "meeting_date": "2023-03-27",
       "agenda_item": "",
-      "llm_summary": "Council directed city administration to create a list of city-owned lands (including parks) that could be sold, identify which parcels would generate the most revenue, and submit this report by September 18, 2023.",
-      "llm_label": "City land sales analysis",
+      "llm_summary": "Council approved the official minutes from three Committee of the Whole meetings held in March 2023, including one closed session meeting.",
+      "llm_label": "Adopt Committee meeting minutes (March 2023)",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8249,26 +8249,8 @@
       "meeting_id": "c47fa03a-8dfd-473a-b5b3-58461a303cfd",
       "meeting_date": "2023-04-03",
       "agenda_item": "",
-      "llm_summary": "Council approved changes to the Thunder Bay Public Library board composition by replacing two school board representative positions with two citizen representatives.",
-      "llm_label": "Library board replaces school reps with citizen positions",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "c47fa03a-8dfd-473a-b5b3-58461a303cfd",
-      "meeting_date": "2023-04-03",
-      "agenda_item": "",
-      "llm_summary": "Council will add one more member to the Library Board, keeping total membership at 10 people appointed by Council. The necessary bylaw changes will be presented for final approval on April 24, 2023.",
-      "llm_label": "Library Board composition amendment",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "c47fa03a-8dfd-473a-b5b3-58461a303cfd",
-      "meeting_date": "2023-04-03",
-      "agenda_item": "",
-      "llm_summary": "Council adopted the minutes from a March 27, 2023 committee meeting that included a discussion about changing the composition of the Thunder Bay Public Library's board of directors.",
-      "llm_label": "Library board composition amendment",
+      "llm_summary": "Council approved changes to the Thunder Bay Public Library Board composition, reducing citizen representatives to one person and setting the total board size at nine members, all appointed by City Council.",
+      "llm_label": "Library Board composition amended to 9 members",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8285,8 +8267,17 @@
       "meeting_id": "c47fa03a-8dfd-473a-b5b3-58461a303cfd",
       "meeting_date": "2023-04-03",
       "agenda_item": "",
-      "llm_summary": "Council approved changes to the Thunder Bay Public Library Board composition, reducing citizen representatives to one person and setting the total board size at nine members, all appointed by City Council.",
-      "llm_label": "Library Board composition amended to 9 members",
+      "llm_summary": "Council voted down a proposal to add two school board representatives to the Thunder Bay Public Library Board—one from Lakehead Public Schools and one from the Catholic school board.",
+      "llm_label": "Library Board composition proposal defeated",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "c47fa03a-8dfd-473a-b5b3-58461a303cfd",
+      "meeting_date": "2023-04-03",
+      "agenda_item": "",
+      "llm_summary": "Council adopted the minutes from a March 27, 2023 committee meeting that included a discussion about changing the composition of the Thunder Bay Public Library's board of directors.",
+      "llm_label": "Library board composition amendment",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8312,8 +8303,17 @@
       "meeting_id": "c47fa03a-8dfd-473a-b5b3-58461a303cfd",
       "meeting_date": "2023-04-03",
       "agenda_item": "",
-      "llm_summary": "Council voted down a proposal to add two school board representatives to the Thunder Bay Public Library Board—one from Lakehead Public Schools and one from the Catholic school board.",
-      "llm_label": "Library Board composition proposal defeated",
+      "llm_summary": "Council will add one more member to the Library Board, keeping total membership at 10 people appointed by Council. The necessary bylaw changes will be presented for final approval on April 24, 2023.",
+      "llm_label": "Library Board composition amendment",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "c47fa03a-8dfd-473a-b5b3-58461a303cfd",
+      "meeting_date": "2023-04-03",
+      "agenda_item": "",
+      "llm_summary": "Council approved changes to the Thunder Bay Public Library board composition by replacing two school board representative positions with two citizen representatives.",
+      "llm_label": "Library board replaces school reps with citizen positions",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8426,20 +8426,20 @@
       "media_url": ""
     },
     {
-      "meeting_id": "a38bcc02-d0f6-440c-8a51-442ca18c0af6",
-      "meeting_date": "2023-04-24",
-      "agenda_item": "Confirmation of Agenda",
-      "llm_summary": "Council approved the agenda for the April 24, 2023 meeting, including any additional items that came up.",
-      "llm_label": "April 24, 2023 agenda confirmed",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
       "meeting_id": "62df78ee-5f49-40f9-a052-c853cdad00e1",
       "meeting_date": "2023-04-24",
       "agenda_item": "Confirmation of Agenda",
       "llm_summary": "Council confirmed the April 24, 2023 meeting agenda as written, including any additional information and new business items. The motion passed.",
       "llm_label": "Agenda confirmation - April 24, 2023",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "a38bcc02-d0f6-440c-8a51-442ca18c0af6",
+      "meeting_date": "2023-04-24",
+      "agenda_item": "Confirmation of Agenda",
+      "llm_summary": "Council approved the agenda for the April 24, 2023 meeting, including any additional items that came up.",
+      "llm_label": "April 24, 2023 agenda confirmed",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8579,11 +8579,11 @@
       "media_url": ""
     },
     {
-      "meeting_id": "22e09c7c-65e7-4c20-8621-7074774077f4",
+      "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
       "meeting_date": "2023-05-15",
       "agenda_item": "",
-      "llm_summary": "Council voted down a proposal to exclude Frederica Street West (between Stanley and James) from the planned sidewalk and pedestrian crossover construction project. The street will remain included in the work.",
-      "llm_label": "Frederica St West sidewalk project – exclusion rejected",
+      "llm_summary": "Council rejected a proposal to exclude Frederica Street West (between Stanley and James Street South) from a sidewalk and pedestrian crossover construction project.",
+      "llm_label": "Frederica St W sidewalk project - exclusion rejected",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8597,11 +8597,11 @@
       "media_url": ""
     },
     {
-      "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
+      "meeting_id": "22e09c7c-65e7-4c20-8621-7074774077f4",
       "meeting_date": "2023-05-15",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to exclude Frederica Street West (between Stanley and James Street South) from a sidewalk and pedestrian crossover construction project.",
-      "llm_label": "Frederica St W sidewalk project - exclusion rejected",
+      "llm_summary": "Council voted down a proposal to exclude Frederica Street West (between Stanley and James) from the planned sidewalk and pedestrian crossover construction project. The street will remain included in the work.",
+      "llm_label": "Frederica St West sidewalk project – exclusion rejected",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8624,15 +8624,6 @@
       "media_url": ""
     },
     {
-      "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
-      "meeting_date": "2023-05-15",
-      "agenda_item": "City Council Minutes",
-      "llm_summary": "City Council approved the official minutes from their May 1, 2023 meeting. This is a standard procedural step to confirm that the recorded minutes accurately reflect what was discussed and decided.",
-      "llm_label": "Confirmed May 1, 2023 Council Minutes",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
       "meeting_id": "22e09c7c-65e7-4c20-8621-7074774077f4",
       "meeting_date": "2023-05-15",
       "agenda_item": "City Council Minutes",
@@ -8644,9 +8635,9 @@
     {
       "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
       "meeting_date": "2023-05-15",
-      "agenda_item": "Committee of the Whole Minutes",
-      "llm_summary": "Council approved the official minutes from two Committee of the Whole meetings held in May 2023. A separate vote was requested on a sidewalk and pedestrian crossover construction contract amendment.",
-      "llm_label": "Approve Committee minutes from May 2023",
+      "agenda_item": "City Council Minutes",
+      "llm_summary": "City Council approved the official minutes from their May 1, 2023 meeting. This is a standard procedural step to confirm that the recorded minutes accurately reflect what was discussed and decided.",
+      "llm_label": "Confirmed May 1, 2023 Council Minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8656,6 +8647,15 @@
       "agenda_item": "Committee of the Whole Minutes",
       "llm_summary": "Council adopted the minutes from two Committee of the Whole meetings held in May 2023. A separate vote was requested on a sidewalk and pedestrian crossover construction contract amendment from the May 1st meeting.",
       "llm_label": "Adopt Committee of the Whole Minutes (May 2023)",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
+      "meeting_date": "2023-05-15",
+      "agenda_item": "Committee of the Whole Minutes",
+      "llm_summary": "Council approved the official minutes from two Committee of the Whole meetings held in May 2023. A separate vote was requested on a sidewalk and pedestrian crossover construction contract amendment.",
+      "llm_label": "Approve Committee minutes from May 2023",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8678,15 +8678,6 @@
       "media_url": ""
     },
     {
-      "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
-      "meeting_date": "2023-05-15",
-      "agenda_item": "Confirming By-law Resolution",
-      "llm_summary": "Council formally confirmed and approved the official proceedings and decisions from the May 15, 2023 council meeting by passing and signing By-law 174/2023.",
-      "llm_label": "Confirmation of May 15, 2023 Council Meeting",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
       "meeting_id": "22e09c7c-65e7-4c20-8621-7074774077f4",
       "meeting_date": "2023-05-15",
       "agenda_item": "Confirming By-law Resolution",
@@ -8698,9 +8689,9 @@
     {
       "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
       "meeting_date": "2023-05-15",
-      "agenda_item": "Ratifying Resolution",
-      "llm_summary": "Council approved two financial matters: updating the city's investment policy for municipal funds, and authorizing additional implementation services related to a previous report from 2022.",
-      "llm_label": "Investment Policy Update \u0026 Implementation Services",
+      "agenda_item": "Confirming By-law Resolution",
+      "llm_summary": "Council formally confirmed and approved the official proceedings and decisions from the May 15, 2023 council meeting by passing and signing By-law 174/2023.",
+      "llm_label": "Confirmation of May 15, 2023 Council Meeting",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8710,6 +8701,15 @@
       "agenda_item": "Ratifying Resolution",
       "llm_summary": "Council approved updates to how the city invests its municipal funds and updated the investment policy statement. The motion also authorized additional implementation services related to a previous report.",
       "llm_label": "Municipal investment policy update",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "7b419d9f-2d1d-45e5-917c-834d5d1ee6fa",
+      "meeting_date": "2023-05-15",
+      "agenda_item": "Ratifying Resolution",
+      "llm_summary": "Council approved two financial matters: updating the city's investment policy for municipal funds, and authorizing additional implementation services related to a previous report from 2022.",
+      "llm_label": "Investment Policy Update \u0026 Implementation Services",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8726,8 +8726,8 @@
       "meeting_id": "031fec5a-d3ff-49d7-891d-b20f9011ec49",
       "meeting_date": "2023-06-05",
       "agenda_item": "By-law Resolution",
-      "llm_summary": "Council approved five new or amended by-laws covering 2023 tax policy, special services fees, sign regulations, closing part of Brighton Avenue, and parking enforcement officer appointments. The sign regulation amendment was voted on separately.",
-      "llm_label": "Multiple by-laws approved: taxes, signs, fees, street clo...",
+      "llm_summary": "Council approved four by-laws: setting 2023 tax rates and property tax classes, amending the special services by-law, closing a portion of Brighton Avenue, and updating rules for municipal law enforcement officers handling parking violations.",
+      "llm_label": "Four by-laws approved: taxes, services, street closure, p...",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8735,8 +8735,8 @@
       "meeting_id": "031fec5a-d3ff-49d7-891d-b20f9011ec49",
       "meeting_date": "2023-06-05",
       "agenda_item": "By-law Resolution",
-      "llm_summary": "Council approved four by-laws: setting 2023 tax rates and property tax classes, amending the special services by-law, closing a portion of Brighton Avenue, and updating rules for municipal law enforcement officers handling parking violations.",
-      "llm_label": "Four by-laws approved: taxes, services, street closure, p...",
+      "llm_summary": "Council approved five new or amended by-laws covering 2023 tax policy, special services fees, sign regulations, closing part of Brighton Avenue, and parking enforcement officer appointments. The sign regulation amendment was voted on separately.",
+      "llm_label": "Multiple by-laws approved: taxes, signs, fees, street clo...",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8861,8 +8861,8 @@
       "meeting_id": "c4a7dae3-0a9f-43a8-843b-ca9ec9172e78",
       "meeting_date": "2023-07-17",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on June 26, 2023, with some amendments made to the original record.",
-      "llm_label": "Approval of June 26, 2023 Committee Minutes",
+      "llm_summary": "Council approved $512,900 in budget adjustments for 2024, but excluded two items: driveway culvert replacements ($60,000) and transit route changes ($293,800). Any remaining budget difference will be handled in the overall 2024 budget direction rather than requiring a separate report.",
+      "llm_label": "2024 Budget Amendments - $512,900 approved",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8879,8 +8879,8 @@
       "meeting_id": "c4a7dae3-0a9f-43a8-843b-ca9ec9172e78",
       "meeting_date": "2023-07-17",
       "agenda_item": "",
-      "llm_summary": "Council approved $512,900 in budget adjustments for 2024, but excluded two items: driveway culvert replacements ($60,000) and transit route changes ($293,800). Any remaining budget difference will be handled in the overall 2024 budget direction rather than requiring a separate report.",
-      "llm_label": "2024 Budget Amendments - $512,900 approved",
+      "llm_summary": "Council is pausing decisions on five items—including the sister cities program, transit routes, Neebing Arena, outdoor rinks, and the heritage program (totaling $902,100)—and sending them back to city staff to consult with stakeholders before moving forward. Staff must report back by August 28, 2023.",
+      "llm_label": "Five budget items delayed for community input",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8897,8 +8897,8 @@
       "meeting_id": "c4a7dae3-0a9f-43a8-843b-ca9ec9172e78",
       "meeting_date": "2023-07-17",
       "agenda_item": "",
-      "llm_summary": "Council is pausing decisions on five items—including the sister cities program, transit routes, Neebing Arena, outdoor rinks, and the heritage program (totaling $902,100)—and sending them back to city staff to consult with stakeholders before moving forward. Staff must report back by August 28, 2023.",
-      "llm_label": "Five budget items delayed for community input",
+      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on June 26, 2023, with some amendments made to the original record.",
+      "llm_label": "Approval of June 26, 2023 Committee Minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8969,8 +8969,8 @@
       "meeting_id": "4ace546d-515e-4011-95b1-6de88165aa79",
       "meeting_date": "2023-07-24",
       "agenda_item": "",
-      "llm_summary": "Council adopted the minutes from the July 17, 2023 Committee of the Whole meeting, which included discussion of amendments to the City's Strategic Plan. A separate vote was held on the Strategic Plan resolution as requested.",
-      "llm_label": "Strategic Plan amendments approved",
+      "llm_summary": "Council approved updated Sustainability and Growth strategic pillars for the city's strategic plan, based on a director's memo from July 20, 2023.",
+      "llm_label": "Strategic Plan pillars updated",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -8978,8 +8978,8 @@
       "meeting_id": "4ace546d-515e-4011-95b1-6de88165aa79",
       "meeting_date": "2023-07-24",
       "agenda_item": "",
-      "llm_summary": "Council approved updated Sustainability and Growth strategic pillars for the city's strategic plan, based on a director's memo from July 20, 2023.",
-      "llm_label": "Strategic Plan pillars updated",
+      "llm_summary": "Council adopted the minutes from the July 17, 2023 Committee of the Whole meeting, which included discussion of amendments to the City's Strategic Plan. A separate vote was held on the Strategic Plan resolution as requested.",
+      "llm_label": "Strategic Plan amendments approved",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9302,44 +9302,17 @@
       "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
       "meeting_date": "2023-10-16",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on September 25, 2023, making them the permanent record of that meeting.",
-      "llm_label": "Adopt Committee of the Whole minutes - Sept 25, 2023",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
-      "meeting_date": "2023-10-16",
-      "agenda_item": "",
-      "llm_summary": "Council approved moving forward with building an urban skate plaza at Dease Park, subject to budget and external funding. The concept plan will guide detailed design work, which will incorporate public art and heritage elements, and includes plans for improved pedestrian crossing and street improvements on Dease Street.",
-      "llm_label": "Dease Park skate plaza approved for detailed design",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
-      "meeting_date": "2023-10-16",
-      "agenda_item": "",
-      "llm_summary": "Council approved moving forward with building an urban skate plaza at Dease Park, subject to budget availability and external funding. The project will include detailed design work with input from heritage and public art committees, plus improvements to pedestrian crossing and street design on Dease Street.",
-      "llm_label": "Dease Park skate plaza approved for design phase",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
-      "meeting_date": "2023-10-16",
-      "agenda_item": "",
-      "llm_summary": "Council approved closing 9 outdoor ice rinks starting December 2023 and downgrading 3 others to unstaffed boarded rinks. Staff will report back on cost savings and usage data to determine if more closures are needed.",
-      "llm_label": "9 outdoor rinks closed, 3 downgraded",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/council-cuts-9-outdoor-rinks-7599996"
-    },
-    {
-      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
-      "meeting_date": "2023-10-16",
-      "agenda_item": "",
       "llm_summary": "Council voted to keep John Kushnier Park's outdoor rink operating instead of closing it, based on a recommendation from Councillor Kasey Etreni.",
       "llm_label": "John Kushnier Park rink stays open",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
+      "meeting_date": "2023-10-16",
+      "agenda_item": "",
+      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on September 25, 2023, making them the permanent record of that meeting.",
+      "llm_label": "Adopt Committee of the Whole minutes - Sept 25, 2023",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9356,10 +9329,37 @@
       "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
       "meeting_date": "2023-10-16",
       "agenda_item": "",
+      "llm_summary": "Council approved moving forward with building an urban skate plaza at Dease Park, subject to budget availability and external funding. The project will include detailed design work with input from heritage and public art committees, plus improvements to pedestrian crossing and street design on Dease Street.",
+      "llm_label": "Dease Park skate plaza approved for design phase",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
+      "meeting_date": "2023-10-16",
+      "agenda_item": "",
       "llm_summary": "Council removed Item 2021-107-CS (Former Dease Pool Site - Detailed Design and Concept Plan) from the outstanding items list, meaning this project is no longer being tracked as pending business.",
       "llm_label": "Dease Pool site project removed from outstanding list",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
+    },
+    {
+      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
+      "meeting_date": "2023-10-16",
+      "agenda_item": "",
+      "llm_summary": "Council approved moving forward with building an urban skate plaza at Dease Park, subject to budget and external funding. The concept plan will guide detailed design work, which will incorporate public art and heritage elements, and includes plans for improved pedestrian crossing and street improvements on Dease Street.",
+      "llm_label": "Dease Park skate plaza approved for detailed design",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
+      "meeting_date": "2023-10-16",
+      "agenda_item": "",
+      "llm_summary": "Council approved closing 9 outdoor ice rinks starting December 2023 and downgrading 3 others to unstaffed boarded rinks. Staff will report back on cost savings and usage data to determine if more closures are needed.",
+      "llm_label": "9 outdoor rinks closed, 3 downgraded",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/council-cuts-9-outdoor-rinks-7599996"
     },
     {
       "meeting_id": "6e08778f-bce9-4a72-9d50-bac179b10d0b",
@@ -9572,24 +9572,6 @@
       "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
       "meeting_date": "2023-11-27",
       "agenda_item": "",
-      "llm_summary": "Council approved a $38 million budget for a multi-use indoor sports facility proposed by Soccer Northwest Ontario and hired Stantec Architecture to conduct studies and design work. Administration will report back by March 25, 2024 with recommendations on how to build and operate the facility before moving forward with contractor selection.",
-      "llm_label": "Multi-use indoor sports facility - $38M budget approved",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/proposed-indoor-turf-facility-gets-green-light-to-take-one-step-forward-1598933"
-    },
-    {
-      "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
-      "meeting_date": "2023-11-27",
-      "agenda_item": "",
-      "llm_summary": "Council voted on whether to delay a decision about a financing strategy for Soccer Northwest Ontario's proposed indoor sports facility until December 11, 2023. The motion failed, meaning the delay was not approved.",
-      "llm_label": "Indoor sports facility financing decision delayed",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
-      "meeting_date": "2023-11-27",
-      "agenda_item": "",
       "llm_summary": "Council approved a $38 million budget for a multi-use indoor sports facility proposed by Soccer Northwest Ontario and hired Stantec Architecture to conduct studies and design work. Administration must report back by March 25, 2024 with findings before moving forward with a competitive bidding process.",
       "llm_label": "Multi-use indoor sports facility - $38M project approved",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -9599,8 +9581,8 @@
       "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
       "meeting_date": "2023-11-27",
       "agenda_item": "",
-      "llm_summary": "Council approved amendments to a major facility project budget of $38 million, switching to Ontario Building Code compliance standards and requiring a report back by March 25, 2024 that includes a review of the operating business model.",
-      "llm_label": "$38M facility project budget approved with conditions",
+      "llm_summary": "City Council approved a financing strategy for a multi-use indoor sports facility proposed by Soccer Northwest Ontario and hired Stantec Architecture to conduct studies and preliminary design work. Administration will report back in early 2024 with study results, a project delivery plan, and public engagement findings before moving to a competitive bidding process.",
+      "llm_label": "Multi-use indoor sports facility - financing \u0026 design stu...",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9608,8 +9590,17 @@
       "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
       "meeting_date": "2023-11-27",
       "agenda_item": "",
-      "llm_summary": "City Council approved a financing strategy for a multi-use indoor sports facility proposed by Soccer Northwest Ontario and hired Stantec Architecture to conduct studies and preliminary design work. Administration will report back in early 2024 with study results, a project delivery plan, and public engagement findings before moving to a competitive bidding process.",
-      "llm_label": "Multi-use indoor sports facility - financing \u0026 design stu...",
+      "llm_summary": "Council approved a $38 million budget for a multi-use indoor sports facility proposed by Soccer Northwest Ontario and hired Stantec Architecture to conduct studies and design work. Administration will report back by March 25, 2024 with recommendations on how to build and operate the facility before moving forward with contractor selection.",
+      "llm_label": "Multi-use indoor sports facility - $38M budget approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/proposed-indoor-turf-facility-gets-green-light-to-take-one-step-forward-1598933"
+    },
+    {
+      "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
+      "meeting_date": "2023-11-27",
+      "agenda_item": "",
+      "llm_summary": "Council narrowly approved a list of cost-reduction options for a proposed indoor sports facility, including scaling back the project scope and amenities, but specifically excluded reducing the field size.",
+      "llm_label": "Indoor sports facility cost reduction options",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9626,8 +9617,8 @@
       "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
       "meeting_date": "2023-11-27",
       "agenda_item": "",
-      "llm_summary": "Council narrowly approved a list of cost-reduction options for a proposed indoor sports facility, including scaling back the project scope and amenities, but specifically excluded reducing the field size.",
-      "llm_label": "Indoor sports facility cost reduction options",
+      "llm_summary": "Council voted on whether to delay a decision about a financing strategy for Soccer Northwest Ontario's proposed indoor sports facility until December 11, 2023. The motion failed, meaning the delay was not approved.",
+      "llm_label": "Indoor sports facility financing decision delayed",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9637,6 +9628,15 @@
       "agenda_item": "",
       "llm_summary": "Council voted to continue its meeting past 11:00 p.m. to finish the business on that night's agenda.",
       "llm_label": "Meeting extended past 11:00 p.m.",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
+      "meeting_date": "2023-11-27",
+      "agenda_item": "",
+      "llm_summary": "Council approved amendments to a major facility project budget of $38 million, switching to Ontario Building Code compliance standards and requiring a report back by March 25, 2024 that includes a review of the operating business model.",
+      "llm_label": "$38M facility project budget approved with conditions",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9671,8 +9671,8 @@
       "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
       "meeting_date": "2023-11-27",
       "agenda_item": "Committee of the Whole Minutes",
-      "llm_summary": "Council is adopting the minutes from the November 20, 2023 Committee of the Whole meeting, which included discussion of a multi-use indoor sports facility. One motion from that meeting was separated out for individual voting.",
-      "llm_label": "Adopt Nov 20 Committee Minutes",
+      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on November 20, 2023, making them part of the official record.",
+      "llm_label": "Adopt Nov 20, 2023 Committee Minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9680,8 +9680,8 @@
       "meeting_id": "279414d4-bbf0-445f-85d8-51a040a89672",
       "meeting_date": "2023-11-27",
       "agenda_item": "Committee of the Whole Minutes",
-      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on November 20, 2023, making them part of the official record.",
-      "llm_label": "Adopt Nov 20, 2023 Committee Minutes",
+      "llm_summary": "Council is adopting the minutes from the November 20, 2023 Committee of the Whole meeting, which included discussion of a multi-use indoor sports facility. One motion from that meeting was separated out for individual voting.",
+      "llm_label": "Adopt Nov 20 Committee Minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9761,8 +9761,8 @@
       "meeting_id": "0f9b34b3-a8df-4f0e-8ac7-57ddb0e1e78b",
       "meeting_date": "2023-12-11",
       "agenda_item": "",
-      "llm_summary": "Council is asking city administration to develop new information technology policies and update the records management and privacy policies. Administration will bring these back to council by March 25, 2024 for approval.",
-      "llm_label": "IT and Privacy Policies Review",
+      "llm_summary": "Council rejected a motion to remove language about the CEDC Municipal Accommodation Tax from 2024 from a carousel funding discussion. The motion failed, meaning the tax reference remained in the documents.",
+      "llm_label": "Chippewa Park Carousel - Tax language removal rejected",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9770,8 +9770,8 @@
       "meeting_id": "0f9b34b3-a8df-4f0e-8ac7-57ddb0e1e78b",
       "meeting_date": "2023-12-11",
       "agenda_item": "",
-      "llm_summary": "Council rejected a motion to remove language about the CEDC Municipal Accommodation Tax from 2024 from a carousel funding discussion. The motion failed, meaning the tax reference remained in the documents.",
-      "llm_label": "Chippewa Park Carousel - Tax language removal rejected",
+      "llm_summary": "Council is asking city administration to develop new information technology policies and update the records management and privacy policies. Administration will bring these back to council by March 25, 2024 for approval.",
+      "llm_label": "IT and Privacy Policies Review",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -9995,15 +9995,6 @@
       "meeting_id": "f8a490d8-ae0d-44da-9e54-58274f6c3fec",
       "meeting_date": "2024-02-12",
       "agenda_item": "",
-      "llm_summary": "Council approved increases to golf course user fees for 2024, including adult season passes rising between 1.72% and 3.03%, and daily green fees increasing between 4.10% and 5.26% at city golf courses.",
-      "llm_label": "Golf course fees increase for 2024",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "f8a490d8-ae0d-44da-9e54-58274f6c3fec",
-      "meeting_date": "2024-02-12",
-      "agenda_item": "",
       "llm_summary": "Council approved the official meeting minutes from five budget planning sessions held in January and February 2024.",
       "llm_label": "Adoption of Budget Meeting Minutes",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -10022,8 +10013,8 @@
       "meeting_id": "f8a490d8-ae0d-44da-9e54-58274f6c3fec",
       "meeting_date": "2024-02-12",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to delay Victoria Parkade repairs by one year, which would have moved $1,029,300 in funding from 2024 to 2025.",
-      "llm_label": "Victoria Parkade repairs funding timeline",
+      "llm_summary": "Council approved the minutes from five budget planning meetings held in January and February 2024, and will consider changes to golf course user fees based on a manager's recommendation.",
+      "llm_label": "Budget meeting minutes approval \u0026 golf fees amendment",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10031,8 +10022,17 @@
       "meeting_id": "f8a490d8-ae0d-44da-9e54-58274f6c3fec",
       "meeting_date": "2024-02-12",
       "agenda_item": "",
-      "llm_summary": "Council approved the minutes from five budget planning meetings held in January and February 2024, and will consider changes to golf course user fees based on a manager's recommendation.",
-      "llm_label": "Budget meeting minutes approval \u0026 golf fees amendment",
+      "llm_summary": "Council approved increases to golf course user fees for 2024, including adult season passes rising between 1.72% and 3.03%, and daily green fees increasing between 4.10% and 5.26% at city golf courses.",
+      "llm_label": "Golf course fees increase for 2024",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "f8a490d8-ae0d-44da-9e54-58274f6c3fec",
+      "meeting_date": "2024-02-12",
+      "agenda_item": "",
+      "llm_summary": "Council rejected a proposal to delay Victoria Parkade repairs by one year, which would have moved $1,029,300 in funding from 2024 to 2025.",
+      "llm_label": "Victoria Parkade repairs funding timeline",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10166,35 +10166,17 @@
       "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
       "meeting_date": "2024-03-25",
       "agenda_item": "",
-      "llm_summary": "Council extended the deadline for selling city lands by one year, moving it from March 31, 2025 to March 31, 2026.",
-      "llm_label": "City land sale deadline pushed to 2026",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
-      "meeting_date": "2024-03-25",
-      "agenda_item": "",
-      "llm_summary": "Council has pushed back the decision on selling city-owned land at Hillcourt Estates by over a year, from March 2024 to March 2025. Any necessary bylaws related to this land sale will be presented to council later for approval.",
-      "llm_label": "Hillcourt Estates land sale delayed to 2025",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
-      "meeting_date": "2024-03-25",
-      "agenda_item": "",
-      "llm_summary": "Council rejected a request to delay the sale of city land at Hillcourt Estates until March 2025. The motion failed with no votes in favor and three against.",
-      "llm_label": "Hillcourt Estates land sale deferral rejected",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
-      "meeting_date": "2024-03-25",
-      "agenda_item": "",
       "llm_summary": "Council voted to remove a 2023 item about selling city land in Hillcourt Estates from the outstanding tasks list. The motion failed to pass.",
       "llm_label": "Hillcourt Estates land sale removal - FAILED",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
+      "meeting_date": "2024-03-25",
+      "agenda_item": "",
+      "llm_summary": "Council voted to delay approval of a land sale in Hillcourt Estates until a committee clarifies whether city rules need to be changed to fix confusion about how outstanding items are tracked. The vote was tied 6-6, blocking the motion.",
+      "llm_label": "Hillcourt Estates land sale delayed pending rule clarific...",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10211,8 +10193,26 @@
       "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
       "meeting_date": "2024-03-25",
       "agenda_item": "",
-      "llm_summary": "Council voted to delay approval of a land sale in Hillcourt Estates until a committee clarifies whether city rules need to be changed to fix confusion about how outstanding items are tracked. The vote was tied 6-6, blocking the motion.",
-      "llm_label": "Hillcourt Estates land sale delayed pending rule clarific...",
+      "llm_summary": "Council rejected a request to delay the sale of city land at Hillcourt Estates until March 2025. The motion failed with no votes in favor and three against.",
+      "llm_label": "Hillcourt Estates land sale deferral rejected",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
+      "meeting_date": "2024-03-25",
+      "agenda_item": "",
+      "llm_summary": "Council extended the deadline for selling city lands by one year, moving it from March 31, 2025 to March 31, 2026.",
+      "llm_label": "City land sale deadline pushed to 2026",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "0122a0da-550c-4639-a0af-fb2dabc06ca3",
+      "meeting_date": "2024-03-25",
+      "agenda_item": "",
+      "llm_summary": "Council has pushed back the decision on selling city-owned land at Hillcourt Estates by over a year, from March 2024 to March 2025. Any necessary bylaws related to this land sale will be presented to council later for approval.",
+      "llm_label": "Hillcourt Estates land sale delayed to 2025",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10454,17 +10454,8 @@
       "meeting_id": "1f50ccda-4236-43b0-bb51-664a8678265c",
       "meeting_date": "2024-05-27",
       "agenda_item": "",
-      "llm_summary": "Council amended the 2024 Tax Policy Report to repeal one by-law and extend sewage and drainage service areas in the city as detailed in a supporting document.",
-      "llm_label": "Sewage drainage areas expanded",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "1f50ccda-4236-43b0-bb51-664a8678265c",
-      "meeting_date": "2024-05-27",
-      "agenda_item": "",
-      "llm_summary": "Council approved the 2024 tax rates and ratios, set tax payment dates for August and October, granted a 10-year tax exemption to the Polish Combatants Association building, and updated sewage and drainage service areas.",
-      "llm_label": "2024 tax rates approved, exemption granted",
+      "llm_summary": "Council approved the official minutes from two meetings held on May 13, 2024: the Thunder Bay Hydro Corporation Annual General Meeting and a regular council session.",
+      "llm_label": "Approval of May 13, 2024 meeting minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10481,8 +10472,17 @@
       "meeting_id": "1f50ccda-4236-43b0-bb51-664a8678265c",
       "meeting_date": "2024-05-27",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from two meetings held on May 13, 2024: the Thunder Bay Hydro Corporation Annual General Meeting and a regular council session.",
-      "llm_label": "Approval of May 13, 2024 meeting minutes",
+      "llm_summary": "Council amended the 2024 Tax Policy Report to repeal one by-law and extend sewage and drainage service areas in the city as detailed in a supporting document.",
+      "llm_label": "Sewage drainage areas expanded",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "1f50ccda-4236-43b0-bb51-664a8678265c",
+      "meeting_date": "2024-05-27",
+      "agenda_item": "",
+      "llm_summary": "Council approved the 2024 tax rates and ratios, set tax payment dates for August and October, granted a 10-year tax exemption to the Polish Combatants Association building, and updated sewage and drainage service areas.",
+      "llm_label": "2024 tax rates approved, exemption granted",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10562,19 +10562,19 @@
       "meeting_id": "89d1f69d-9ef9-4bf2-ab05-fe7d2eb679a1",
       "meeting_date": "2024-06-03",
       "agenda_item": "",
-      "llm_summary": "Council approved moving forward with designing and building an indoor turf facility using a design-build process, with a maximum cost of $42.7 million. The city will need to budget for ongoing operating costs and maintenance starting in 2026.",
-      "llm_label": "Indoor turf facility approved at $42.7M cap",
+      "llm_summary": "Council postponed a decision on an infrastructure and engineering report to their June 24 meeting. The vote was close, with 10 councillors supporting the delay and 3 opposing it.",
+      "llm_label": "Infrastructure report decision delayed to June 24",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/indoor-turf-facility-scores-a-winning-goal-10717184"
+      "media_url": ""
     },
     {
       "meeting_id": "89d1f69d-9ef9-4bf2-ab05-fe7d2eb679a1",
       "meeting_date": "2024-06-03",
       "agenda_item": "",
-      "llm_summary": "Council postponed a decision on an infrastructure and engineering report to their June 24 meeting. The vote was close, with 10 councillors supporting the delay and 3 opposing it.",
-      "llm_label": "Infrastructure report decision delayed to June 24",
+      "llm_summary": "Council approved moving forward with designing and building an indoor turf facility using a design-build process, with a maximum cost of $42.7 million. The city will need to budget for ongoing operating costs and maintenance starting in 2026.",
+      "llm_label": "Indoor turf facility approved at $42.7M cap",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
+      "media_url": "https://www.tbnewswatch.com/local-news/indoor-turf-facility-scores-a-winning-goal-10717184"
     },
     {
       "meeting_id": "89d1f69d-9ef9-4bf2-ab05-fe7d2eb679a1",
@@ -10643,15 +10643,6 @@
       "meeting_id": "f66e447f-a592-455b-b1b5-86fda78e99d8",
       "meeting_date": "2024-06-24",
       "agenda_item": "",
-      "llm_summary": "Council voted to continue conducting business past 1:00 a.m. instead of adjourning for the night.",
-      "llm_label": "Extended session past 1:00 a.m.",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "f66e447f-a592-455b-b1b5-86fda78e99d8",
-      "meeting_date": "2024-06-24",
-      "agenda_item": "",
       "llm_summary": "Council approved the official minutes from three meetings held in June 2024: a regular council meeting on June 3rd, a special session on June 17th for the Community Economic Development Commission's annual general meeting, and a public meeting on June 17th.",
       "llm_label": "Approval of June 2024 meeting minutes",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -10672,6 +10663,15 @@
       "agenda_item": "",
       "llm_summary": "Council rejected a proposal to declare three small parkette properties (on Holly Crescent, Thistle Crescent, and Thornloe Drive) as surplus city land available for sale or disposal. The motion would have sent these properties to administration for processing and required public notice.",
       "llm_label": "Three parkette properties - surplus designation rejected",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "f66e447f-a592-455b-b1b5-86fda78e99d8",
+      "meeting_date": "2024-06-24",
+      "agenda_item": "",
+      "llm_summary": "Council voted to continue conducting business past 1:00 a.m. instead of adjourning for the night.",
+      "llm_label": "Extended session past 1:00 a.m.",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10742,19 +10742,10 @@
       "meeting_id": "9cecccd5-f3ce-4442-8d00-463542b7ebe1",
       "meeting_date": "2024-07-15",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on June 24, 2024.",
-      "llm_label": "June 24, 2024 Committee minutes adopted",
+      "llm_summary": "Council added an exception to distance guidelines for trails, sidewalks, parking lots, and bridges (within 5 metres), and asked staff to report back by August 12, 2024 on whether this distance can be increased to 10 metres.",
+      "llm_label": "Distance guidelines exception near trails and sidewalks",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
-    },
-    {
-      "meeting_id": "9cecccd5-f3ce-4442-8d00-463542b7ebe1",
-      "meeting_date": "2024-07-15",
-      "agenda_item": "",
-      "llm_summary": "Council adopted new rules for where homeless encampments can be located in Thunder Bay, with stricter distance requirements from trails and bridges to be reviewed. Council also asked the provincial and federal governments to increase funding for homelessness services and supports.",
-      "llm_label": "Encampment location rules adopted; requests provincial/fe...",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/council-ratifies-some-distance-guidelines-for-encampments-9225404"
     },
     {
       "meeting_id": "9cecccd5-f3ce-4442-8d00-463542b7ebe1",
@@ -10769,8 +10760,8 @@
       "meeting_id": "9cecccd5-f3ce-4442-8d00-463542b7ebe1",
       "meeting_date": "2024-07-15",
       "agenda_item": "",
-      "llm_summary": "Council added an exception to distance guidelines for trails, sidewalks, parking lots, and bridges (within 5 metres), and asked staff to report back by August 12, 2024 on whether this distance can be increased to 10 metres.",
-      "llm_label": "Distance guidelines exception near trails and sidewalks",
+      "llm_summary": "Council approved the official minutes from the Committee of the Whole meeting held on June 24, 2024.",
+      "llm_label": "June 24, 2024 Committee minutes adopted",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -10778,8 +10769,8 @@
       "meeting_id": "9cecccd5-f3ce-4442-8d00-463542b7ebe1",
       "meeting_date": "2024-07-15",
       "agenda_item": "",
-      "llm_summary": "Council adopted updated distance guidelines for designated encampments in Thunder Bay as a framework for managing unsheltered homelessness, subject to ongoing review.",
-      "llm_label": "Encampment distance guidelines adopted",
+      "llm_summary": "Council adopted distance guidelines for encampments and is seeking funding for a shelter pilot project. Council also asked Ontario and federal governments to increase social assistance, fund mental health crisis spaces, and create a national plan to address homelessness and unsheltered encampments.",
+      "llm_label": "Homelessness response framework and government advocacy",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": "https://www.tbnewswatch.com/local-news/council-ratifies-some-distance-guidelines-for-encampments-9225404"
     },
@@ -10787,8 +10778,17 @@
       "meeting_id": "9cecccd5-f3ce-4442-8d00-463542b7ebe1",
       "meeting_date": "2024-07-15",
       "agenda_item": "",
-      "llm_summary": "Council adopted distance guidelines for encampments and is seeking funding for a shelter pilot project. Council also asked Ontario and federal governments to increase social assistance, fund mental health crisis spaces, and create a national plan to address homelessness and unsheltered encampments.",
-      "llm_label": "Homelessness response framework and government advocacy",
+      "llm_summary": "Council adopted new rules for where homeless encampments can be located in Thunder Bay, with stricter distance requirements from trails and bridges to be reviewed. Council also asked the provincial and federal governments to increase funding for homelessness services and supports.",
+      "llm_label": "Encampment location rules adopted; requests provincial/fe...",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/council-ratifies-some-distance-guidelines-for-encampments-9225404"
+    },
+    {
+      "meeting_id": "9cecccd5-f3ce-4442-8d00-463542b7ebe1",
+      "meeting_date": "2024-07-15",
+      "agenda_item": "",
+      "llm_summary": "Council adopted updated distance guidelines for designated encampments in Thunder Bay as a framework for managing unsheltered homelessness, subject to ongoing review.",
+      "llm_label": "Encampment distance guidelines adopted",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": "https://www.tbnewswatch.com/local-news/council-ratifies-some-distance-guidelines-for-encampments-9225404"
     },
@@ -10994,15 +10994,6 @@
       "meeting_id": "e9284e36-05e0-47b2-8c85-5e2d09beeaaf",
       "meeting_date": "2024-09-09",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from the August 26, 2024 Committee of the Whole meeting, making them part of the permanent record.",
-      "llm_label": "Adopt Committee minutes - August 26, 2024",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "e9284e36-05e0-47b2-8c85-5e2d09beeaaf",
-      "meeting_date": "2024-09-09",
-      "agenda_item": "",
       "llm_summary": "Council will review whether Thunder Bay's hazardous materials route can be changed, and will formally ask the Nuclear Waste Management Organization to keep used nuclear fuel stored near where it's generated rather than transporting it through the city. The city will also send this request to federal and provincial officials.",
       "llm_label": "Nuclear waste transport through Thunder Bay",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -11032,6 +11023,15 @@
       "agenda_item": "",
       "llm_summary": "Council is asking Administration to review the routes that hazardous materials trucks can take through Thunder Bay and propose any changes needed. If changes are recommended, they'll come back to Council for approval.",
       "llm_label": "Dangerous goods truck routes review",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "e9284e36-05e0-47b2-8c85-5e2d09beeaaf",
+      "meeting_date": "2024-09-09",
+      "agenda_item": "",
+      "llm_summary": "Council approved the official minutes from the August 26, 2024 Committee of the Whole meeting, making them part of the permanent record.",
+      "llm_label": "Adopt Committee minutes - August 26, 2024",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11102,8 +11102,8 @@
       "meeting_id": "397a91e0-8c22-4993-9fc8-7137b1f74432",
       "meeting_date": "2024-09-23",
       "agenda_item": "",
-      "llm_summary": "Council amended a report about infrastructure and operations to remove a specific requirement for a historical artifact display site, and instead asked administration to come back later with options for displaying preserved items.",
-      "llm_label": "Historical artifacts display site - decision deferred",
+      "llm_summary": "Council approved the official minutes from two Committee of the Whole meetings held on September 9 and September 16, 2024.",
+      "llm_label": "Committee minutes adoption",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11120,8 +11120,8 @@
       "meeting_id": "397a91e0-8c22-4993-9fc8-7137b1f74432",
       "meeting_date": "2024-09-23",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from two Committee of the Whole meetings held on September 9 and September 16, 2024.",
-      "llm_label": "Committee minutes adoption",
+      "llm_summary": "Council amended a report about infrastructure and operations to remove a specific requirement for a historical artifact display site, and instead asked administration to come back later with options for displaying preserved items.",
+      "llm_label": "Historical artifacts display site - decision deferred",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11255,17 +11255,8 @@
       "meeting_id": "0f687ed2-7cca-424d-96ab-e850a7a08068",
       "meeting_date": "2024-10-28",
       "agenda_item": "",
-      "llm_summary": "Council adjusted the budget review timeline so the 2025 Capital Budget will be presented to Committee of the Whole twice: first on November 4, 2024 for initial review, then on November 25, 2024 for discussion and decisions.",
-      "llm_label": "2025 Capital Budget presentation schedule",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "0f687ed2-7cca-424d-96ab-e850a7a08068",
-      "meeting_date": "2024-10-28",
-      "agenda_item": "",
-      "llm_summary": "Council approved the meeting schedule for deliberating the 2025 operating and capital budgets, with the capital budget to be presented November 4 and 25, 2024. Council also approved Option 3 for community engagement on the budget.",
-      "llm_label": "2025 Budget meeting schedule approved",
+      "llm_summary": "Council rejected a proposed Human Rights-Based Community Action Plan that would have been sent to federal and provincial housing ministers for consideration. The motion failed 5-3, meaning most councillors did not support approving this plan at this time.",
+      "llm_label": "Human Rights Community Action Plan - REJECTED",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11282,8 +11273,17 @@
       "meeting_id": "0f687ed2-7cca-424d-96ab-e850a7a08068",
       "meeting_date": "2024-10-28",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposed Human Rights-Based Community Action Plan that would have been sent to federal and provincial housing ministers for consideration. The motion failed 5-3, meaning most councillors did not support approving this plan at this time.",
-      "llm_label": "Human Rights Community Action Plan - REJECTED",
+      "llm_summary": "Council adjusted the budget review timeline so the 2025 Capital Budget will be presented to Committee of the Whole twice: first on November 4, 2024 for initial review, then on November 25, 2024 for discussion and decisions.",
+      "llm_label": "2025 Capital Budget presentation schedule",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "0f687ed2-7cca-424d-96ab-e850a7a08068",
+      "meeting_date": "2024-10-28",
+      "agenda_item": "",
+      "llm_summary": "Council approved the meeting schedule for deliberating the 2025 operating and capital budgets, with the capital budget to be presented November 4 and 25, 2024. Council also approved Option 3 for community engagement on the budget.",
+      "llm_label": "2025 Budget meeting schedule approved",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11426,8 +11426,8 @@
       "meeting_id": "a01e2a04-a2ea-4f83-9f8a-ba4d428b1f41",
       "meeting_date": "2024-11-26",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from two Committee of the Whole meetings held in November 2024. This is a standard procedural step to formally document what was discussed and decided at those meetings.",
-      "llm_label": "Approval of November Committee Minutes",
+      "llm_summary": "Council rejected a proposal to have Councillor Foulds' September memo reviewed during the 2025 budget meeting for Infrastructure \u0026 Operations, along with the administration's budget presentation.",
+      "llm_label": "Foulds memo referral to budget meeting - DEFEATED",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11444,8 +11444,8 @@
       "meeting_id": "a01e2a04-a2ea-4f83-9f8a-ba4d428b1f41",
       "meeting_date": "2024-11-26",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to have Councillor Foulds' September memo reviewed during the 2025 budget meeting for Infrastructure \u0026 Operations, along with the administration's budget presentation.",
-      "llm_label": "Foulds memo referral to budget meeting - DEFEATED",
+      "llm_summary": "Council approved the official minutes from two Committee of the Whole meetings held in November 2024. This is a standard procedural step to formally document what was discussed and decided at those meetings.",
+      "llm_label": "Approval of November Committee Minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11723,8 +11723,8 @@
       "meeting_id": "39e81d0c-798e-4474-9bef-922fade4e1be",
       "meeting_date": "2025-02-10",
       "agenda_item": "",
-      "llm_summary": "Council formally approved the official minutes from three budget-focused Committee of the Whole meetings held in late January and early February 2025.",
-      "llm_label": "Adoption of Committee meeting minutes (Jan-Feb 2025)",
+      "llm_summary": "Council approved the official meeting minutes from three budget committee meetings held in January and early February 2025.",
+      "llm_label": "Committee meeting minutes adoption",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11741,8 +11741,8 @@
       "meeting_id": "39e81d0c-798e-4474-9bef-922fade4e1be",
       "meeting_date": "2025-02-10",
       "agenda_item": "",
-      "llm_summary": "Council approved the official meeting minutes from three budget committee meetings held in January and early February 2025.",
-      "llm_label": "Committee meeting minutes adoption",
+      "llm_summary": "Council formally approved the official minutes from three budget-focused Committee of the Whole meetings held in late January and early February 2025.",
+      "llm_label": "Adoption of Committee meeting minutes (Jan-Feb 2025)",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11867,8 +11867,8 @@
       "meeting_id": "5ff81e18-5d1b-4858-ae0e-a2071ab67a22",
       "meeting_date": "2025-03-10",
       "agenda_item": "",
-      "llm_summary": "Council voted on whether to speed up the timeline for reporting back on surplus land at 172 and 168 Woodside Street, moving the deadline from March 2027 to October 2025. The motion failed to pass.",
-      "llm_label": "Woodside St surplus land - report deadline vote failed",
+      "llm_summary": "Council approved the official meeting minutes from two Committee of the Whole meetings held on February 24 and March 3, 2025.",
+      "llm_label": "Approve Committee of the Whole minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -11876,8 +11876,8 @@
       "meeting_id": "5ff81e18-5d1b-4858-ae0e-a2071ab67a22",
       "meeting_date": "2025-03-10",
       "agenda_item": "",
-      "llm_summary": "Council approved the official meeting minutes from two Committee of the Whole meetings held on February 24 and March 3, 2025.",
-      "llm_label": "Approve Committee of the Whole minutes",
+      "llm_summary": "Council voted on whether to speed up the timeline for reporting back on surplus land at 172 and 168 Woodside Street, moving the deadline from March 2027 to October 2025. The motion failed to pass.",
+      "llm_label": "Woodside St surplus land - report deadline vote failed",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12020,8 +12020,26 @@
       "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
       "meeting_date": "2025-04-14",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to change how the city's government is structured by eliminating the four wards and having all councillors elected city-wide instead, plus adding a Deputy Mayor position.",
-      "llm_label": "Council composition restructuring proposal defeated",
+      "llm_summary": "Council rejected a proposal to reduce city council from 12 to 11 members by eliminating one ward and creating a new structure with a mayor, 2 at-large councillors, and 8 ward councillors across 4 wards. The motion failed with only 2 councillors supporting it.",
+      "llm_label": "Council composition restructuring proposal rejected",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
+      "meeting_date": "2025-04-14",
+      "agenda_item": "",
+      "llm_summary": "Council dissolved the Council Composition Review Committee and thanked them for their work. The committee's task is now complete.",
+      "llm_label": "Council Composition Review Committee dissolved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
+      "meeting_date": "2025-04-14",
+      "agenda_item": "",
+      "llm_summary": "Council is adopting the meeting minutes from two Committee of the Whole meetings held in March and April 2025, and will separately vote on a final report about council composition.",
+      "llm_label": "Adopt Committee Minutes and Council Composition Review",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12038,8 +12056,8 @@
       "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
       "meeting_date": "2025-04-14",
       "agenda_item": "",
-      "llm_summary": "Council is adopting the meeting minutes from two Committee of the Whole meetings held in March and April 2025, and will separately vote on a final report about council composition.",
-      "llm_label": "Adopt Committee Minutes and Council Composition Review",
+      "llm_summary": "Council rejected a proposal to change how councillors are elected. The motion would have increased At-Large councillors from 2 to 6 and reduced ward-elected councillors from 8 to 4, but the vote failed to pass.",
+      "llm_label": "Council composition restructuring proposal defeated",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12047,8 +12065,8 @@
       "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
       "meeting_date": "2025-04-14",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to reduce city council from 12 to 11 members by eliminating one ward and creating a new structure with a mayor, 2 at-large councillors, and 8 ward councillors across 4 wards. The motion failed with only 2 councillors supporting it.",
-      "llm_label": "Council composition restructuring proposal rejected",
+      "llm_summary": "Council rejected a proposal to change how the city's government is structured by eliminating the four wards and having all councillors elected city-wide instead, plus adding a Deputy Mayor position.",
+      "llm_label": "Council composition restructuring proposal defeated",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12056,8 +12074,26 @@
       "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
       "meeting_date": "2025-04-14",
       "agenda_item": "",
-      "llm_summary": "City Council approved the official minutes from two Committee of the Whole meetings held on March 24 and April 7, 2025. This is a standard procedural step to formally record these committee discussions.",
-      "llm_label": "Committee minutes adopted",
+      "llm_summary": "Council rejected a proposal to restructure the city council from its current composition to 11 members (1 mayor, 2 at-large councillors, and 8 ward councillors across 4 wards), which would have required new ward boundaries and been implemented before the 2026 election.",
+      "llm_label": "Council composition restructuring rejected",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/council-and-ward-reforms-defeated-again-10527545"
+    },
+    {
+      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
+      "meeting_date": "2025-04-14",
+      "agenda_item": "",
+      "llm_summary": "Council approved a municipally-owned site north of the Salvation Army on Cumberland Street for a Temporary Shelter Village. The Director of Strategy \u0026 Engagement is given authority to make operational decisions and sign agreements needed to set up and run the project.",
+      "llm_label": "Temporary shelter village approved at Cumberland St site",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
+    },
+    {
+      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
+      "meeting_date": "2025-04-14",
+      "agenda_item": "",
+      "llm_summary": "Council voted on whether to continue meeting past 11:00 p.m. to finish business. The motion failed, so the meeting ended at that time.",
+      "llm_label": "Meeting continuation vote at 11 p.m. — FAILED",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12065,7 +12101,25 @@
       "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
       "meeting_date": "2025-04-14",
       "agenda_item": "",
-      "llm_summary": "Council asked Administration to compare two potential sites (LRCA and Kam River Heritage Park) for a temporary village and provide a recommendation by April 28, 2025. Any new bylaws needed will come back to Council for approval.",
+      "llm_summary": "Council rejected a proposal to use city-owned land north of the Salvation Army on Cumberland Street as a site for a temporary shelter village. The motion would have given the Director of Strategy \u0026 Engagement authority to operate the project and sign agreements.",
+      "llm_label": "Temporary shelter village site - REJECTED",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
+    },
+    {
+      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
+      "meeting_date": "2025-04-14",
+      "agenda_item": "",
+      "llm_summary": "Council approved using land at 1111 Fort William Rd. (owned by the Lakehead Region Conservation Authority) as the site for a temporary shelter village. The city will negotiate a lease agreement and the Director of Strategy \u0026 Engagement has authority to make decisions about setting up and running the shelter village.",
+      "llm_label": "Temporary shelter village approved at Fort William Rd.",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
+    },
+    {
+      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
+      "meeting_date": "2025-04-14",
+      "agenda_item": "",
+      "llm_summary": "Council is asking city staff to compare two potential sites—the LRCA site and Kam River Heritage Park—for a temporary village location, with a final recommendation due April 28, 2025. Any related bylaw changes will come back to council for approval.",
       "llm_label": "Temporary village site comparison study",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
@@ -12083,7 +12137,7 @@
       "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
       "meeting_date": "2025-04-14",
       "agenda_item": "",
-      "llm_summary": "Council is asking city staff to compare two potential sites—the LRCA site and Kam River Heritage Park—for a temporary village location, with a final recommendation due April 28, 2025. Any related bylaw changes will come back to council for approval.",
+      "llm_summary": "Council asked Administration to compare two potential sites (LRCA and Kam River Heritage Park) for a temporary village and provide a recommendation by April 28, 2025. Any new bylaws needed will come back to Council for approval.",
       "llm_label": "Temporary village site comparison study",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
@@ -12092,62 +12146,8 @@
       "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
       "meeting_date": "2025-04-14",
       "agenda_item": "",
-      "llm_summary": "Council approved using land at 1111 Fort William Rd. (owned by the Lakehead Region Conservation Authority) as the site for a temporary shelter village. The city will negotiate a lease agreement and the Director of Strategy \u0026 Engagement has authority to make decisions about setting up and running the shelter village.",
-      "llm_label": "Temporary shelter village approved at Fort William Rd.",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
-    },
-    {
-      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
-      "meeting_date": "2025-04-14",
-      "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to use city-owned land north of the Salvation Army on Cumberland Street as a site for a temporary shelter village. The motion would have given the Director of Strategy \u0026 Engagement authority to operate the project and sign agreements.",
-      "llm_label": "Temporary shelter village site - REJECTED",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
-    },
-    {
-      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
-      "meeting_date": "2025-04-14",
-      "agenda_item": "",
-      "llm_summary": "Council voted on whether to continue meeting past 11:00 p.m. to finish business. The motion failed, so the meeting ended at that time.",
-      "llm_label": "Meeting continuation vote at 11 p.m. — FAILED",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
-      "meeting_date": "2025-04-14",
-      "agenda_item": "",
-      "llm_summary": "Council approved a municipally-owned site north of the Salvation Army on Cumberland Street for a Temporary Shelter Village. The Director of Strategy \u0026 Engagement is given authority to make operational decisions and sign agreements needed to set up and run the project.",
-      "llm_label": "Temporary shelter village approved at Cumberland St site",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
-    },
-    {
-      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
-      "meeting_date": "2025-04-14",
-      "agenda_item": "",
-      "llm_summary": "Council dissolved the Council Composition Review Committee and thanked them for their work. The committee's task is now complete.",
-      "llm_label": "Council Composition Review Committee dissolved",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
-      "meeting_date": "2025-04-14",
-      "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to restructure the city council from its current composition to 11 members (1 mayor, 2 at-large councillors, and 8 ward councillors across 4 wards), which would have required new ward boundaries and been implemented before the 2026 election.",
-      "llm_label": "Council composition restructuring rejected",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/council-and-ward-reforms-defeated-again-10527545"
-    },
-    {
-      "meeting_id": "cdd5d232-ff78-484c-acb0-4c2cce200ef6",
-      "meeting_date": "2025-04-14",
-      "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to change how councillors are elected. The motion would have increased At-Large councillors from 2 to 6 and reduced ward-elected councillors from 8 to 4, but the vote failed to pass.",
-      "llm_label": "Council composition restructuring proposal defeated",
+      "llm_summary": "City Council approved the official minutes from two Committee of the Whole meetings held on March 24 and April 7, 2025. This is a standard procedural step to formally record these committee discussions.",
+      "llm_label": "Committee minutes adopted",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12263,19 +12263,10 @@
       "meeting_id": "3bf2730b-2d69-4f2b-ae89-d7705bd497b7",
       "meeting_date": "2025-05-05",
       "agenda_item": "",
-      "llm_summary": "Council approved the official minutes from the April 28, 2025 Committee of the Whole meeting, making them the official record of that meeting's decisions and discussions.",
-      "llm_label": "Adopted April 28, 2025 Committee minutes",
+      "llm_summary": "Council approved Kam River Heritage Park as the location for a temporary shelter village and gave the Director of Strategy \u0026 Engagement authority to manage the project, including signing necessary agreements and presenting any required by-laws back to council.",
+      "llm_label": "Temporary shelter village approved at Kam River Heritage ...",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "3bf2730b-2d69-4f2b-ae89-d7705bd497b7",
-      "meeting_date": "2025-05-05",
-      "agenda_item": "",
-      "llm_summary": "Council is formally adopting the minutes from the April 28, 2025 Committee of the Whole meeting, which included a report comparing potential locations for a temporary village initiative.",
-      "llm_label": "Temporary Village Initiative – Site Location Comparison",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
+      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
     },
     {
       "meeting_id": "3bf2730b-2d69-4f2b-ae89-d7705bd497b7",
@@ -12299,10 +12290,19 @@
       "meeting_id": "3bf2730b-2d69-4f2b-ae89-d7705bd497b7",
       "meeting_date": "2025-05-05",
       "agenda_item": "",
-      "llm_summary": "Council approved Kam River Heritage Park as the location for a temporary shelter village and gave the Director of Strategy \u0026 Engagement authority to manage the project, including signing necessary agreements and presenting any required by-laws back to council.",
-      "llm_label": "Temporary shelter village approved at Kam River Heritage ...",
+      "llm_summary": "Council approved the official minutes from the April 28, 2025 Committee of the Whole meeting, making them the official record of that meeting's decisions and discussions.",
+      "llm_label": "Adopted April 28, 2025 Committee minutes",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/council-selects-north-side-shelter-village-site-10491729"
+      "media_url": ""
+    },
+    {
+      "meeting_id": "3bf2730b-2d69-4f2b-ae89-d7705bd497b7",
+      "meeting_date": "2025-05-05",
+      "agenda_item": "",
+      "llm_summary": "Council is formally adopting the minutes from the April 28, 2025 Committee of the Whole meeting, which included a report comparing potential locations for a temporary village initiative.",
+      "llm_label": "Temporary Village Initiative – Site Location Comparison",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
     },
     {
       "meeting_id": "3bf2730b-2d69-4f2b-ae89-d7705bd497b7",
@@ -12407,8 +12407,8 @@
       "meeting_id": "5c1c5d38-3dbd-4cf8-9f5a-10ff23b441e7",
       "meeting_date": "2025-06-02",
       "agenda_item": "",
-      "llm_summary": "Council approved a new parking financial plan for 2024 that increases rates across the city, closes five underutilized parking lots by June 1, and introduces paid parking at the marina and Market Square. Parking enforcement will run Monday to Saturday, 9am to 6pm.",
-      "llm_label": "Parking rates increase, five lots closing in 2024",
+      "llm_summary": "Council approved a free parking pilot program: 4 hours free at the Marina/Waterfront and Market Square (with paid extension options), and 2 hours free at on-street meters (with paid extension options) running until December 31, 2027.",
+      "llm_label": "Free parking pilot program through 2027",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12425,8 +12425,8 @@
       "meeting_id": "5c1c5d38-3dbd-4cf8-9f5a-10ff23b441e7",
       "meeting_date": "2025-06-02",
       "agenda_item": "",
-      "llm_summary": "Council approved a free parking pilot program: 4 hours free at the Marina/Waterfront and Market Square (with paid extension options), and 2 hours free at on-street meters (with paid extension options) running until December 31, 2027.",
-      "llm_label": "Free parking pilot program through 2027",
+      "llm_summary": "Council approved a new parking financial plan for 2024 that increases rates across the city, closes five underutilized parking lots by June 1, and introduces paid parking at the marina and Market Square. Parking enforcement will run Monday to Saturday, 9am to 6pm.",
+      "llm_label": "Parking rates increase, five lots closing in 2024",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12488,10 +12488,10 @@
       "meeting_id": "d238e5f4-07aa-45fa-9e72-2147ba0d88d1",
       "meeting_date": "2025-06-23",
       "agenda_item": "",
-      "llm_summary": "Council approved Kam River Heritage Park as the location for a temporary shelter village and gave the Director of Strategy \u0026 Engagement authority to manage the project, including signing agreements and documents needed to get it operational.",
-      "llm_label": "Temporary shelter village approved at Kam River Heritage ...",
+      "llm_summary": "Council voted to continue conducting business past midnight. This is a procedural motion allowing the meeting to continue beyond the normal end time.",
+      "llm_label": "Meeting extended past midnight",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/city-identifies-a-new-site-for-shelter-village-10461294"
+      "media_url": ""
     },
     {
       "meeting_id": "d238e5f4-07aa-45fa-9e72-2147ba0d88d1",
@@ -12506,8 +12506,8 @@
       "meeting_id": "d238e5f4-07aa-45fa-9e72-2147ba0d88d1",
       "meeting_date": "2025-06-23",
       "agenda_item": "",
-      "llm_summary": "Council asked administration to reconsider where to build the temporary village for people experiencing homelessness, including sites previously discussed. Any bylaw changes needed will come back to council for approval.",
-      "llm_label": "Temporary village location review requested",
+      "llm_summary": "Council suspended a procedural rule to allow immediate debate on Report 143-2025 at the same meeting it was presented, rather than waiting until the next meeting as normally required.",
+      "llm_label": "Rule suspension for Report 143-2025 debate",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12515,8 +12515,17 @@
       "meeting_id": "d238e5f4-07aa-45fa-9e72-2147ba0d88d1",
       "meeting_date": "2025-06-23",
       "agenda_item": "",
-      "llm_summary": "Council proposed asking the province and local MPPs to make safety improvements to the Thunder Bay Expressway—including warning lights for trucks and better traffic signal timing—before allowing a new truck route to go into effect. The motion failed 4-2.",
-      "llm_label": "Truck route safety upgrades — FAILED",
+      "llm_summary": "Council approved Kam River Heritage Park as the location for a temporary shelter village and gave the Director of Strategy \u0026 Engagement authority to manage the project, including signing agreements and documents needed to get it operational.",
+      "llm_label": "Temporary shelter village approved at Kam River Heritage ...",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-news/city-identifies-a-new-site-for-shelter-village-10461294"
+    },
+    {
+      "meeting_id": "d238e5f4-07aa-45fa-9e72-2147ba0d88d1",
+      "meeting_date": "2025-06-23",
+      "agenda_item": "",
+      "llm_summary": "Council asked administration to reconsider where to build the temporary village for people experiencing homelessness, including sites previously discussed. Any bylaw changes needed will come back to council for approval.",
+      "llm_label": "Temporary village location review requested",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12533,17 +12542,8 @@
       "meeting_id": "d238e5f4-07aa-45fa-9e72-2147ba0d88d1",
       "meeting_date": "2025-06-23",
       "agenda_item": "",
-      "llm_summary": "Council voted to continue conducting business past midnight. This is a procedural motion allowing the meeting to continue beyond the normal end time.",
-      "llm_label": "Meeting extended past midnight",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "d238e5f4-07aa-45fa-9e72-2147ba0d88d1",
-      "meeting_date": "2025-06-23",
-      "agenda_item": "",
-      "llm_summary": "Council suspended a procedural rule to allow immediate debate on Report 143-2025 at the same meeting it was presented, rather than waiting until the next meeting as normally required.",
-      "llm_label": "Rule suspension for Report 143-2025 debate",
+      "llm_summary": "Council proposed asking the province and local MPPs to make safety improvements to the Thunder Bay Expressway—including warning lights for trucks and better traffic signal timing—before allowing a new truck route to go into effect. The motion failed 4-2.",
+      "llm_label": "Truck route safety upgrades — FAILED",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -12695,10 +12695,10 @@
       "meeting_id": "7dcf65f6-61c1-4d48-a2f9-2faf27c4467f",
       "meeting_date": "2025-07-21",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to require an administration update on the temporary village's operations by mid-2027, which would have allowed Council to decide whether to continue or change direction on the project afterward.",
-      "llm_label": "Temporary village operations update rejected",
+      "llm_summary": "Council rejected a proposal to establish a temporary shelter village at 114 Miles Street East, which would have included $125,000 in annual funding for the Fort William BIA and restrictions on future encampment locations.",
+      "llm_label": "Shelter village proposal defeated",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
+      "media_url": "https://www.tbnewswatch.com/local-news/miles-street-moved-forward-as-a-temporary-village-site-10943699"
     },
     {
       "meeting_id": "7dcf65f6-61c1-4d48-a2f9-2faf27c4467f",
@@ -12731,10 +12731,10 @@
       "meeting_id": "7dcf65f6-61c1-4d48-a2f9-2faf27c4467f",
       "meeting_date": "2025-07-21",
       "agenda_item": "",
-      "llm_summary": "Council rejected a proposal to establish a temporary shelter village at 114 Miles Street East, which would have included $125,000 in annual funding for the Fort William BIA and restrictions on future encampment locations.",
-      "llm_label": "Shelter village proposal defeated",
+      "llm_summary": "Council rejected a proposal to require an administration update on the temporary village's operations by mid-2027, which would have allowed Council to decide whether to continue or change direction on the project afterward.",
+      "llm_label": "Temporary village operations update rejected",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/miles-street-moved-forward-as-a-temporary-village-site-10943699"
+      "media_url": ""
     },
     {
       "meeting_id": "7dcf65f6-61c1-4d48-a2f9-2faf27c4467f",
@@ -12884,19 +12884,19 @@
       "meeting_id": "e3b2c316-c7f5-4eab-ae8a-40666ddfdb72",
       "meeting_date": "2025-08-25",
       "agenda_item": "",
-      "llm_summary": "Council delayed a decision on where tent encampments are allowed in Thunder Bay. The vote to approve this policy has been pushed back to the September 2 council meeting.",
-      "llm_label": "Tent encampment policy decision delayed to September",
+      "llm_summary": "Council is directing administration to develop criteria for where tent encampments can be legally set up in Thunder Bay, then work with partner agencies and residents to identify specific locations. Administration will report back to council for approval and continue updating the public on this work.",
+      "llm_label": "Tent encampment criteria and locations",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
+      "media_url": "https://www.tbnewswatch.com/local-news/city-council-rejects-developing-criteria-for-allowable-tent-encampments-11067170"
     },
     {
       "meeting_id": "e3b2c316-c7f5-4eab-ae8a-40666ddfdb72",
       "meeting_date": "2025-08-25",
       "agenda_item": "",
-      "llm_summary": "Council is directing administration to develop criteria for where tent encampments can be legally set up in Thunder Bay, then work with partner agencies and residents to identify specific locations. Administration will report back to council for approval and continue updating the public on this work.",
-      "llm_label": "Tent encampment criteria and locations",
+      "llm_summary": "Council delayed a decision on where tent encampments are allowed in Thunder Bay. The vote to approve this policy has been pushed back to the September 2 council meeting.",
+      "llm_label": "Tent encampment policy decision delayed to September",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-news/city-council-rejects-developing-criteria-for-allowable-tent-encampments-11067170"
+      "media_url": ""
     },
     {
       "meeting_id": "e3b2c316-c7f5-4eab-ae8a-40666ddfdb72",
@@ -13361,10 +13361,10 @@
       "meeting_id": "c466e713-ae88-4aeb-b7cb-a105a0516ce6",
       "meeting_date": "2025-12-02",
       "agenda_item": "",
-      "llm_summary": "Council approved the Smart Growth Action Plan and will receive progress reports twice yearly. The plan includes renewed focus on developing Thunder Bay's Waterfront Trail, with any required bylaw changes to come back to council for approval.",
-      "llm_label": "Smart Growth Action Plan adopted",
+      "llm_summary": "Council approved the Smart Growth Action Plan and added a commitment to continue developing Thunder Bay's waterfront area according to a previous 2016 engineering plan.",
+      "llm_label": "Smart Growth Action Plan adopted with waterfront developm...",
       "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-journalism-initiative-lji/smart-growth-plan-passes-with-one-amendment-11575903"
+      "media_url": ""
     },
     {
       "meeting_id": "c466e713-ae88-4aeb-b7cb-a105a0516ce6",
@@ -13397,8 +13397,17 @@
       "meeting_id": "c466e713-ae88-4aeb-b7cb-a105a0516ce6",
       "meeting_date": "2025-12-02",
       "agenda_item": "",
-      "llm_summary": "Council approved the Smart Growth Action Plan and added a commitment to continue developing Thunder Bay's waterfront area according to a previous 2016 engineering plan.",
-      "llm_label": "Smart Growth Action Plan adopted with waterfront developm...",
+      "llm_summary": "Council approved the Smart Growth Action Plan and will receive progress reports twice yearly. The plan includes renewed focus on developing Thunder Bay's Waterfront Trail, with any required bylaw changes to come back to council for approval.",
+      "llm_label": "Smart Growth Action Plan adopted",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-journalism-initiative-lji/smart-growth-plan-passes-with-one-amendment-11575903"
+    },
+    {
+      "meeting_id": "c466e713-ae88-4aeb-b7cb-a105a0516ce6",
+      "meeting_date": "2025-12-02",
+      "agenda_item": "",
+      "llm_summary": "Council approved $650,000 in additional funding for the Thunder Bay Community Tennis Centre's new indoor facility, split equally between a loan and a grant, both funded from the Renew Thunder Bay Reserve Fund.",
+      "llm_label": "Tennis Centre funding: $650K loan and grant",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13408,15 +13417,6 @@
       "agenda_item": "",
       "llm_summary": "Council voted to shift $130,000 from a loan to a grant in a corporate services funding proposal, but the motion failed 6-7. The narrow vote split council nearly evenly on this financing approach.",
       "llm_label": "Grant vs. loan funding split ($130K) — FAILED",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "c466e713-ae88-4aeb-b7cb-a105a0516ce6",
-      "meeting_date": "2025-12-02",
-      "agenda_item": "",
-      "llm_summary": "Council approved $650,000 in additional funding for the Thunder Bay Community Tennis Centre's new indoor facility, split equally between a loan and a grant, both funded from the Renew Thunder Bay Reserve Fund.",
-      "llm_label": "Tennis Centre funding: $650K loan and grant",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13550,8 +13550,8 @@
       "meeting_id": "6fc31dd0-4f2f-4b18-86fd-c4c006112b12",
       "meeting_date": "2026-01-13",
       "agenda_item": "",
-      "llm_summary": "Council declared the vacant property at 791 Arundel Street as surplus to city needs and designated it for site plan control, allowing the city to potentially sell or develop it. The motion passed with strong support, with only one councillor voting against.",
-      "llm_label": "791 Arundel Street property declared surplus",
+      "llm_summary": "Council declared four vacant properties at 211-223 Tupper Street and 224 Camelot Street as surplus to city needs and designated them for site plan control, allowing potential redevelopment or sale.",
+      "llm_label": "Tupper \u0026 Camelot Streets properties declared surplus",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13559,8 +13559,8 @@
       "meeting_id": "6fc31dd0-4f2f-4b18-86fd-c4c006112b12",
       "meeting_date": "2026-01-13",
       "agenda_item": "",
-      "llm_summary": "Council declared four vacant properties at 211-223 Tupper Street and 224 Camelot Street as surplus to city needs and designated them for site plan control, allowing potential redevelopment or sale.",
-      "llm_label": "Tupper \u0026 Camelot Streets properties declared surplus",
+      "llm_summary": "Council declared the vacant property at 791 Arundel Street as surplus to city needs and designated it for site plan control, allowing the city to potentially sell or develop it. The motion passed with strong support, with only one councillor voting against.",
+      "llm_label": "791 Arundel Street property declared surplus",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13676,6 +13676,15 @@
       "meeting_id": "bd9d764c-5b16-48f2-a952-8900a4062ef2",
       "meeting_date": "2026-02-03",
       "agenda_item": "",
+      "llm_summary": "Council approved a consent agenda containing routine administrative items including committee meeting minutes, reports on housing infrastructure funding, 311 implementation, the fire rescue by-law, and policy updates. All items passed unanimously with 11 councillors in favor.",
+      "llm_label": "Consent agenda approval - multiple routine items",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "bd9d764c-5b16-48f2-a952-8900a4062ef2",
+      "meeting_date": "2026-02-03",
+      "agenda_item": "",
       "llm_summary": "City Council confirmed multiple meeting minutes, committee reports, and administrative items from recent meetings. This includes approval of the 311 customer service implementation, housing infrastructure funding for water projects, and various advisory committee minutes. One councillor declared a conflict of interest and abstained from voting on youth and cultural funding.",
       "llm_label": "Consent agenda approval - minutes and reports",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -13696,15 +13705,6 @@
       "agenda_item": "",
       "llm_summary": "Council confirmed the minutes from three budget review meetings held in January 2026 and called for a revote on a previous amendment regarding the Thunder Bay Police Service budget.",
       "llm_label": "2026 Budget Minutes Confirmation \u0026 Police Budget Revote",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "bd9d764c-5b16-48f2-a952-8900a4062ef2",
-      "meeting_date": "2026-02-03",
-      "agenda_item": "",
-      "llm_summary": "Council approved a consent agenda containing routine administrative items including committee meeting minutes, reports on housing infrastructure funding, 311 implementation, the fire rescue by-law, and policy updates. All items passed unanimously with 11 councillors in favor.",
-      "llm_label": "Consent agenda approval - multiple routine items",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13766,24 +13766,6 @@
       "meeting_id": "582c177f-7675-49db-a2f7-b8c7b4a6220d",
       "meeting_date": "2026-02-17",
       "agenda_item": "",
-      "llm_summary": "Council approved guiding criteria for designated encampment sites and directed administration to find three potential locations that meet distance and other guidelines, then report back before final council approval.",
-      "llm_label": "Designated encampment sites - criteria and site selection",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-journalism-initiative-lji/councilors-argue-over-process-not-policy-for-encampment-sites-11891638"
-    },
-    {
-      "meeting_id": "582c177f-7675-49db-a2f7-b8c7b4a6220d",
-      "meeting_date": "2026-02-17",
-      "agenda_item": "",
-      "llm_summary": "Council voted to change how Report 110-2026 will be reviewed by replacing the Quality of Life Standing Committee with a Special Committee of the Whole meeting, with the City Clerk to set the meeting date. The motion passed 8-4.",
-      "llm_label": "Report 110-2026 review process changed",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "582c177f-7675-49db-a2f7-b8c7b4a6220d",
-      "meeting_date": "2026-02-17",
-      "agenda_item": "",
       "llm_summary": "Council approved the consent agenda for the February 17, 2026 meeting, which confirms previously approved meeting minutes from various committees and boards, plus a delegated authority memorandum regarding Superior North EMS.",
       "llm_label": "Consent Agenda Approval - February 17, 2026",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -13806,6 +13788,24 @@
       "llm_label": "Homelessness declared humanitarian crisis",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": "https://www.tbnewswatch.com/local-news/city-council-gives-homelessness-action-plan-the-green-light-9692082"
+    },
+    {
+      "meeting_id": "582c177f-7675-49db-a2f7-b8c7b4a6220d",
+      "meeting_date": "2026-02-17",
+      "agenda_item": "",
+      "llm_summary": "Council approved guiding criteria for designated encampment sites and directed administration to find three potential locations that meet distance and other guidelines, then report back before final council approval.",
+      "llm_label": "Designated encampment sites - criteria and site selection",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-journalism-initiative-lji/councilors-argue-over-process-not-policy-for-encampment-sites-11891638"
+    },
+    {
+      "meeting_id": "582c177f-7675-49db-a2f7-b8c7b4a6220d",
+      "meeting_date": "2026-02-17",
+      "agenda_item": "",
+      "llm_summary": "Council voted to change how Report 110-2026 will be reviewed by replacing the Quality of Life Standing Committee with a Special Committee of the Whole meeting, with the City Clerk to set the meeting date. The motion passed 8-4.",
+      "llm_label": "Report 110-2026 review process changed",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
     },
     {
       "meeting_id": "582c177f-7675-49db-a2f7-b8c7b4a6220d",
@@ -13874,8 +13874,8 @@
       "meeting_id": "c1b9a28a-7bf4-43f3-b4d8-feded883542b",
       "meeting_date": "2026-03-03",
       "agenda_item": "",
-      "llm_summary": "Council voted on allowing ball pythons as pets in Thunder Bay by amending the Animal Keeping By-law. The motion failed 4-6, so ball pythons remain prohibited.",
-      "llm_label": "Ball python pet exemption rejected",
+      "llm_summary": "Council rejected a plan to temporarily adjust transit bus schedules starting May 2026 to reduce cancelled buses and improve reliability. The motion would have allowed the city to gradually increase service levels as staffing recovered over summer and fall.",
+      "llm_label": "Transit schedule changes rejected",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13883,8 +13883,8 @@
       "meeting_id": "c1b9a28a-7bf4-43f3-b4d8-feded883542b",
       "meeting_date": "2026-03-03",
       "agenda_item": "",
-      "llm_summary": "Council rejected a plan to temporarily adjust transit bus schedules starting May 2026 to reduce cancelled buses and improve reliability. The motion would have allowed the city to gradually increase service levels as staffing recovered over summer and fall.",
-      "llm_label": "Transit schedule changes rejected",
+      "llm_summary": "Council voted on allowing ball pythons as pets in Thunder Bay by amending the Animal Keeping By-law. The motion failed 4-6, so ball pythons remain prohibited.",
+      "llm_label": "Ball python pet exemption rejected",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13919,8 +13919,8 @@
       "meeting_id": "c1b9a28a-7bf4-43f3-b4d8-feded883542b",
       "meeting_date": "2026-03-03",
       "agenda_item": "Consent Agenda Resolution",
-      "llm_summary": "Council confirmed routine administrative items from their March 3, 2026 meeting including previous meeting minutes, committee reports, and board updates. Council also separated the Municipal Alcohol Policy Proposed Updates from this consent agenda to vote on it independently.",
-      "llm_label": "Consent Agenda Confirmation \u0026 Municipal Alcohol Policy Se...",
+      "llm_summary": "Council confirmed the agenda and approved the minutes from previous meetings and committee boards held in February and March 2026.",
+      "llm_label": "Confirmation of Agenda and Meeting Minutes",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13928,8 +13928,8 @@
       "meeting_id": "c1b9a28a-7bf4-43f3-b4d8-feded883542b",
       "meeting_date": "2026-03-03",
       "agenda_item": "Consent Agenda Resolution",
-      "llm_summary": "Council confirmed the agenda and approved the minutes from previous meetings and committee boards held in February and March 2026.",
-      "llm_label": "Confirmation of Agenda and Meeting Minutes",
+      "llm_summary": "Council confirmed routine administrative items from their March 3, 2026 meeting including previous meeting minutes, committee reports, and board updates. Council also separated the Municipal Alcohol Policy Proposed Updates from this consent agenda to vote on it independently.",
+      "llm_label": "Consent Agenda Confirmation \u0026 Municipal Alcohol Policy Se...",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13946,8 +13946,8 @@
       "meeting_id": "b30ed21f-ef4e-4596-b7d3-361ee0a252cf",
       "meeting_date": "2026-03-17",
       "agenda_item": "",
-      "llm_summary": "Council scheduled two special meetings in late March and early April 2026 to discuss personnel matters involving city employees. The April 7 meeting will be closed to the public as it involves confidential information about identifiable individuals.",
-      "llm_label": "Special Committee meetings scheduled for personnel matters",
+      "llm_summary": "Council approved $70,000 to purchase a cargo van for the Temporary Shelter Village to help with transportation operations. The money comes from a federal grant through Health Canada's Emergency Treatment Fund.",
+      "llm_label": "Cargo van for shelter village operations",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -13955,8 +13955,8 @@
       "meeting_id": "b30ed21f-ef4e-4596-b7d3-361ee0a252cf",
       "meeting_date": "2026-03-17",
       "agenda_item": "",
-      "llm_summary": "Council approved $70,000 to purchase a cargo van for the Temporary Shelter Village to help with transportation operations. The money comes from a federal grant through Health Canada's Emergency Treatment Fund.",
-      "llm_label": "Cargo van for shelter village operations",
+      "llm_summary": "Council scheduled two special meetings in late March and early April 2026 to discuss personnel matters involving city employees. The April 7 meeting will be closed to the public as it involves confidential information about identifiable individuals.",
+      "llm_label": "Special Committee meetings scheduled for personnel matters",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -14009,17 +14009,8 @@
       "meeting_id": "2a8fc920-9a60-4ab1-99c0-e27ee2ef884f",
       "meeting_date": "2026-04-07",
       "agenda_item": "",
-      "llm_summary": "Council is selling three city-owned properties to Terralux General Contractors for a combined $5.27 million to develop multi-residential buildings. The sales include 144 Fanshaw Street ($969,000), 300 Tokio Street ($2.14 million), and 791 Arundel Street ($2.16 million), subject to zoning approvals and agreements with the city.",
-      "llm_label": "Sell 3 properties to Terralux for $5.27M development",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": "https://www.tbnewswatch.com/local-journalism-initiative-lji/city-council-approves-sale-of-lots-for-major-housing-projects-12115929"
-    },
-    {
-      "meeting_id": "2a8fc920-9a60-4ab1-99c0-e27ee2ef884f",
-      "meeting_date": "2026-04-07",
-      "agenda_item": "",
-      "llm_summary": "Council approved the sale of city-owned land at 791 Arundel Street to Terralux General Contractors for $2.16 million to build a multi-residential development. The sale requires the developer to obtain zoning approval and sign agreements with the city before the deal closes.",
-      "llm_label": "Sell Arundel Street property for $2.16M residential devel...",
+      "llm_summary": "City Council approved the sale of a large city-owned property at 300 Tokio Street to Terralux General Contractors and Development Limited for $2.1 million. The developer plans to build a multi-residential development on the site, subject to a site plan agreement and a repurchase clause protecting the city's interests.",
+      "llm_label": "Sell 300 Tokio Street for $2.1M residential development",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -14027,8 +14018,8 @@
       "meeting_id": "2a8fc920-9a60-4ab1-99c0-e27ee2ef884f",
       "meeting_date": "2026-04-07",
       "agenda_item": "",
-      "llm_summary": "City Council approved the sale of a large city-owned property at 300 Tokio Street to Terralux General Contractors and Development Limited for $2.1 million. The developer plans to build a multi-residential development on the site, subject to a site plan agreement and a repurchase clause protecting the city's interests.",
-      "llm_label": "Sell 300 Tokio Street for $2.1M residential development",
+      "llm_summary": "Council approved a new Emergency Management Program By-law that replaces the old 2021 emergency plan. The new program includes an updated Emergency Management Plan and Strategy to guide how the city prepares for and responds to emergencies.",
+      "llm_label": "New Emergency Management Program By-law approved",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -14045,8 +14036,17 @@
       "meeting_id": "2a8fc920-9a60-4ab1-99c0-e27ee2ef884f",
       "meeting_date": "2026-04-07",
       "agenda_item": "",
-      "llm_summary": "Council approved a new Emergency Management Program By-law that replaces the old 2021 emergency plan. The new program includes an updated Emergency Management Plan and Strategy to guide how the city prepares for and responds to emergencies.",
-      "llm_label": "New Emergency Management Program By-law approved",
+      "llm_summary": "Council is selling three city-owned properties to Terralux General Contractors for a combined $5.27 million to develop multi-residential buildings. The sales include 144 Fanshaw Street ($969,000), 300 Tokio Street ($2.14 million), and 791 Arundel Street ($2.16 million), subject to zoning approvals and agreements with the city.",
+      "llm_label": "Sell 3 properties to Terralux for $5.27M development",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": "https://www.tbnewswatch.com/local-journalism-initiative-lji/city-council-approves-sale-of-lots-for-major-housing-projects-12115929"
+    },
+    {
+      "meeting_id": "2a8fc920-9a60-4ab1-99c0-e27ee2ef884f",
+      "meeting_date": "2026-04-07",
+      "agenda_item": "",
+      "llm_summary": "Council approved the sale of city-owned land at 791 Arundel Street to Terralux General Contractors for $2.16 million to build a multi-residential development. The sale requires the developer to obtain zoning approval and sign agreements with the city before the deal closes.",
+      "llm_label": "Sell Arundel Street property for $2.16M residential devel...",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -14261,24 +14261,6 @@
       "meeting_id": "887c56e8-b190-43de-98b1-4e62a04420fd",
       "meeting_date": "2026-05-05",
       "agenda_item": "",
-      "llm_summary": "Council approved changes to the rules that govern election signs in Thunder Bay. The amendment updates By-law 56-2022, which controls how election signs are managed and regulated throughout the city.",
-      "llm_label": "Election Sign By-law Amendment Approved",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "887c56e8-b190-43de-98b1-4e62a04420fd",
-      "meeting_date": "2026-05-05",
-      "agenda_item": "",
-      "llm_summary": "A councillor proposed changing how the city handles revenue options in Report 116-2026, specifically wanting to use Option 1 instead of Option 2. The motion was rejected with only 1 vote in favour and 10 against, so the original Option 2 remains in place.",
-      "llm_label": "Revenue options in Corporate Services report (rejected)",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "887c56e8-b190-43de-98b1-4e62a04420fd",
-      "meeting_date": "2026-05-05",
-      "agenda_item": "",
       "llm_summary": "Council voted on whether to keep the current size limits for election signs in Thunder Bay. The motion to keep these restrictions failed, with 5 councillors voting in favor and 6 voting against.",
       "llm_label": "Election sign size limits rejected",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -14290,6 +14272,24 @@
       "agenda_item": "",
       "llm_summary": "Council approved changes to the rules that govern election signs in Thunder Bay. The amended by-law will update how election signs are managed and regulated throughout the city.",
       "llm_label": "Election Sign By-law Amendment",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "887c56e8-b190-43de-98b1-4e62a04420fd",
+      "meeting_date": "2026-05-05",
+      "agenda_item": "",
+      "llm_summary": "Council approved changes to the rules that govern election signs in Thunder Bay. The amendment updates By-law 56-2022, which controls how election signs are managed and regulated throughout the city.",
+      "llm_label": "Election Sign By-law Amendment Approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "887c56e8-b190-43de-98b1-4e62a04420fd",
+      "meeting_date": "2026-05-05",
+      "agenda_item": "",
+      "llm_summary": "A councillor proposed changing how the city handles revenue options in Report 116-2026, specifically wanting to use Option 1 instead of Option 2. The motion was rejected with only 1 vote in favour and 10 against, so the original Option 2 remains in place.",
+      "llm_label": "Revenue options in Corporate Services report (rejected)",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -14360,8 +14360,26 @@
       "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
       "meeting_date": "2026-05-19",
       "agenda_item": "",
+      "llm_summary": "Council took a 10-minute break during the meeting. Nine councillors voted in favour while the mayor and one councillor voted against.",
+      "llm_label": "10-minute recess during meeting",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
+      "meeting_date": "2026-05-19",
+      "agenda_item": "",
       "llm_summary": "The council approved adding a condition to the Growth Strategy report stating that Site A will only be developed once Site B and Site F reach 80% occupancy combined. The motion passed 7-4.",
       "llm_label": "Site A development tied to 80% occupancy threshold",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
+      "meeting_date": "2026-05-19",
+      "agenda_item": "",
+      "llm_summary": "Council approved Site F at Simpson Street as an official encampment site. This designates the location as a recognized area where people experiencing homelessness can set up temporary shelters.",
+      "llm_label": "Simpson Street designated as encampment site",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -14378,24 +14396,6 @@
       "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
       "meeting_date": "2026-05-19",
       "agenda_item": "",
-      "llm_summary": "Council took a 10-minute break during the meeting. Nine councillors voted in favour while the mayor and one councillor voted against.",
-      "llm_label": "10-minute recess during meeting",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
-      "meeting_date": "2026-05-19",
-      "agenda_item": "",
-      "llm_summary": "Council approved $208,500 to build and install fencing around a designated encampment area. The project will move forward pending any necessary bylaw updates.",
-      "llm_label": "Designated Encampment Fencing - $208,500",
-      "llm_model": "claude-haiku-4-5-20251001",
-      "media_url": ""
-    },
-    {
-      "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
-      "meeting_date": "2026-05-19",
-      "agenda_item": "",
       "llm_summary": "Council has designated Freedom Park (Site B) as an official encampment site in Thunder Bay. This means the city is formally recognizing this location as a designated area where people experiencing homelessness can set up camp.",
       "llm_label": "Freedom Park designated as encampment site",
       "llm_model": "claude-haiku-4-5-20251001",
@@ -14405,8 +14405,8 @@
       "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
       "meeting_date": "2026-05-19",
       "agenda_item": "",
-      "llm_summary": "Council approved Site F at Simpson Street as an official encampment site. This designates the location as a recognized area where people experiencing homelessness can set up temporary shelters.",
-      "llm_label": "Simpson Street designated as encampment site",
+      "llm_summary": "Council approved $208,500 to build and install fencing around a designated encampment area. The project will move forward pending any necessary bylaw updates.",
+      "llm_label": "Designated Encampment Fencing - $208,500",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
     },
@@ -14517,6 +14517,159 @@
       "llm_label": "Use of Public Spaces By-law approved",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": "https://www.tbnewswatch.com/local-journalism-initiative-lji/new-bylaw-provides-framework-for-managing-encampments-and-public-safety-12305179"
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "",
+      "llm_summary": "City Council approved a 5-year exemption that allows Syncor Contracting Limited and Di Gregorio Developments Inc. to create up to 17 new lots in the area covered by Registered Plan 55M-643 (Blocks 44, 45, and 46). This exemption from Part Lot Control rules under the Planning Act will enable the subdivision of these properties.",
+      "llm_label": "Part Lot Control exemption for 17 lots in Plan 55M-643",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "",
+      "llm_summary": "Council approved $20,000 in funding from the Municipal Accommodation Tax reserve to purchase water barricades for the Southcore Roar Festival. The city will own and retain the barricades for future use.",
+      "llm_label": "Water barricades for Southcore Roar Festival - $20,000",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "",
+      "llm_summary": "Council approved spending up to $20,000 to buy water barricades for the Southcore Roar Festival. The city will own and keep these barricades for future use, with funding coming from the Municipal Accommodation Tax reserve.",
+      "llm_label": "Water barricades for Southcore Roar Festival ($20K)",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "",
+      "llm_summary": "City Council approved a one-time $40,000 grant to the Fort William BIA to help pay for the Southcore Roar Festival, with funding coming from the hotel tax reserve fund to support downtown revitalization and event safety.",
+      "llm_label": "Southcore Roar Festival funding - $40,000",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "",
+      "llm_summary": "Council took a 5-minute break during the meeting. All 12 councillors present voted in favour.",
+      "llm_label": "Meeting recess (5 minutes)",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "By-law Resolution",
+      "llm_summary": "Council approved seven new bylaws covering heritage property designations, planning exemptions, supply management updates, and enforcement officer appointments. The changes affect property protections, development permissions, parking enforcement, and smoking regulations at the regional health sciences centre.",
+      "llm_label": "Seven bylaws approved: heritage, planning, enforcement up...",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "CEDC Board Appointments",
+      "llm_summary": "Council appointed three people to the Thunder Bay Community Economic Development Commission as Community Directors: Samantha Finelli (starting her first 4-year term), and Michael Fox and Roger Souckey (both starting their second 4-year terms). All three appointments were approved unanimously.",
+      "llm_label": "CEDC Board Appointments - 3 Community Directors",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Confirmation of Agenda",
+      "llm_summary": "Council approved the agenda for the June 23, 2026 meeting, including any additional items that were added. All 12 councillors present voted in favor.",
+      "llm_label": "June 23, 2026 meeting agenda confirmed",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Confirming By-law Resolution",
+      "llm_summary": "Council formally approved and recorded the official proceedings from their June 23, 2026 meeting by passing By-law 271-2026. This is a standard housekeeping measure that confirms all decisions made that day are valid and properly documented.",
+      "llm_label": "Confirmed June 23 council meeting proceedings",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Consent Agenda Resolution",
+      "llm_summary": "Council approved a consent agenda that confirmed meeting minutes from June, approved sign variance applications, updated procurement thresholds and incident response policies, authorized a communication tower at 1580 Arthur Street West, and approved external funding for various capital projects.",
+      "llm_label": "Consent Agenda Approval - June 23, 2026",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Establishment of Special Committee of the Whole - Closed Session",
+      "llm_summary": "Council scheduled a closed-door meeting for July 7, 2026 at 6:00 p.m. to discuss private personnel matters about city employees, as permitted under the Municipal Act. All 12 councillors present voted in favor.",
+      "llm_label": "Closed session scheduled for personnel matters",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Investment of Municipal Funds and Investment Policy Statement",
+      "llm_summary": "Council approved a new Investment Policy Statement that will guide how the city invests its municipal funds. This policy has been added to the city's official policy manual, and any necessary bylaws will be brought back to council for final approval.",
+      "llm_label": "Investment Policy Statement approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "of the Supply Management By-law 359-2024, be approved to",
+      "llm_summary": "Council approved a direct negotiation to hire Granicus, LLC to implement and provide software licensing for the City's Property Information System (AMANDA). The Commissioner of Corporate Services is authorized to sign related contracts.",
+      "llm_label": "Property Information System software contract approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Operating Budget be amended to remove the $780,000 contribution",
+      "llm_summary": "Council redirected $780,000 that was planned to go into a reserve fund for Thunder Bay's renewal efforts. Instead, this money will now be used to pay the city's share of the Lakehead Region Conservation Authority's budget.",
+      "llm_label": "Redirect $780K from renewal reserve to conservation autho...",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Thunder Bay Community Foundation Board Appointment",
+      "llm_summary": "Council voted unanimously to appoint Justin McConnell to the Thunder Bay Community Foundation Board of Trustees. All 12 councillors present supported the appointment.",
+      "llm_label": "Justin McConnell appointed to Community Foundation Board",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Thunder Bay Hydro Corporation and Synergy North Corporation -",
+      "llm_summary": "Council voted to approve administration's plan regarding Thunder Bay Hydro Corporation and Synergy North Corporation, as discussed in a closed session meeting. The specific details of what was decided are not public information.",
+      "llm_label": "Thunder Bay Hydro \u0026 Synergy North - Closed Session Direction",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "meeting_date": "2026-06-23",
+      "agenda_item": "Various Board Appointments",
+      "llm_summary": "Council appointed two people to city advisory committees: Pamela Kaartinen to the Accessibility Advisory Committee as a parent/guardian representative, and Jasmin Fisher to the Heritage Advisory Committee as a citizen representative. Both will serve until November 2028.",
+      "llm_label": "Board appointments: Accessibility and Heritage committees",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
     }
   ],
   "meetings": [
@@ -15652,6 +15805,12 @@
       "meeting_id": "21b1c92e-7f13-49fc-89a5-71c142512755",
       "date": "2026-05-19",
       "llm_summary": "Council took major steps on homelessness and heritage preservation, designating three parks—Current River, Freedom, and Simpson Street—as official encampment sites with $208,500 approved for fencing, though Current River's opening is contingent on the other two sites reaching 80% combined occupancy. The city also protected five historic buildings as heritage properties including the Bank of Montreal on Cumberland Street and the District Court House on Camelot Street, and approved an updated waterfront master plan for Pool 6 and Tug Boat Basin. Council streamlined development decisions by delegating planning authority citywide through Official Plan Amendment 22, and Thunder Bay was unanimously selected as a pilot site for Ontario's Immigration Nominee Program to attract skilled workers to the region.",
+      "llm_model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
+      "date": "2026-06-23",
+      "llm_summary": "Council approved $60,000 in hotel tax funding for the Southcore Roar Festival downtown, including $40,000 for the event itself and $20,000 for permanent water barricades the city will retain for future use. They also redirected $780,000 from a renewal reserve to cover Thunder Bay's share of the Lakehead Region Conservation Authority's budget, and greenlit a Part Lot Control exemption allowing up to 17 new residential lots to be created in the Plan 55M-643 area by Syncor Contracting and Di Gregorio Developments. Seven bylaws covering heritage designations, planning rules, and enforcement changes were also passed.",
       "llm_model": "claude-haiku-4-5-20251001"
     }
   ]
