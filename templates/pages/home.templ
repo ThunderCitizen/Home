@@ -34,6 +34,12 @@ templ Home(vm views.HomeViewModel) {
 			@components.Card(components.CardProps{Title: "Notice Board"}) {
 				<div class="notice-welcome">
 					<div class="notice-item">
+						<strong>Council minutes — missing June 2</strong>
+						<time class="notice-date" datetime="2026-07-09">Posted July 9, 2026</time>
+						<p>Data Gap: We have processed the minutes from the June 23 meeting. However the June 2nd meeting official minutes haven't been posted yet.</p>
+						<p>We are checking the official <a href="https://pub-thunderbay.escribemeetings.com/?Expanded=City%20Council&Year=2026">eScribe</a> portal regularly and will backfill when available.</p>
+					</div>
+					<div class="notice-item">
 						<strong>Council minutes — caught up</strong>
 						<time class="notice-date" datetime="2026-06-03">Posted June 3, 2026</time>
 						<p>eSCRIBE posted the backlog and we&rsquo;ve processed it — minutes, motions, and recorded votes are now current through May 19, 2026.</p>
@@ -48,11 +54,6 @@ templ Home(vm views.HomeViewModel) {
 						<time class="notice-date" datetime="2026-05-07">Posted May 7, 2026</time>
 						<p>The latest minutes we&rsquo;ve processed are from March 17, 2026. Last we checked, minutes for the council meetings since haven&rsquo;t been posted on <a href="https://pub-thunderbay.escribemeetings.com/?Year=2026&amp;Expanded=City%20Council" target="_blank" rel="noopener">eSCRIBE</a> — though full meeting recordings are available there in the meantime.</p>
 						<p>We check regularly and will process the official minutes as soon as they&rsquo;re posted.</p>
-					</div>
-					<div class="notice-item">
-						<strong>Welcome</strong>
-						<p>Inspired by <a href="https://justthemenu.ca" target="_blank" rel="noopener">Just The Menu</a>, we want to aggregate public data so people can be informed about their community.</p>
-						<p>We&rsquo;re still getting set up. More data and features are coming soon.</p>
 					</div>
 				</div>
 			}

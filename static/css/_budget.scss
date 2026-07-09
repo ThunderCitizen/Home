@@ -510,22 +510,32 @@ button.capital-filter-btn {
   width: 100%;
   min-width: 0;
   margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
 
   th,
   td {
     vertical-align: top;
     padding: var(--space-1) 0.45rem;
-    border-bottom: 1px solid var(--thunder-100);
+    border-bottom: 1px solid var(--term-border);
+  }
+
+  thead {
+    position: sticky;
+    top: var(--year-selector-h, 0px);
+    z-index: 5;
   }
 
   thead th {
+    @extend %frosted-glass;
     color: var(--heading);
     font-size: var(--text-2xs);
     font-weight: var(--weight-heavy);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    background: var(--thunder-50);
+    border-bottom-color: var(--glass-border);
+    white-space: nowrap;
   }
 
   .capital-table-sort {
