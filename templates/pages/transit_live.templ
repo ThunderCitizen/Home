@@ -135,7 +135,7 @@ templ TransitLive(vm transit.LiveViewModel) {
 									if a.Description != nil {
 										for _, seg := range segmentAlertText(*a.Description) {
 											if seg.Href != "" {
-												<a href={ templ.SafeURL(seg.Href) }>{ seg.Text }</a>
+												<a href={ templ.SafeURL(seg.Href) } target="_blank" rel="noopener noreferrer">{ seg.Text }</a>
 											} else {
 												{ seg.Text }
 											}
