@@ -63,34 +63,23 @@ func cleanAlertText(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-// alertSegment is one piece of an alert description, optionally a link.
-// Links are only emitted for recognised first-party URLs so we never
-// inject markup from arbitrary upstream feed text.
 type alertSegment struct {
 	Text string
-	Href string // empty for plain text
+	Href string
 }
 
-// alertLinks maps the bare URL substrings we recognise in upstream alert
-// descriptions to safe destinations on our own site. Anything not in this
-// table renders as plain text — we don't try to autolink arbitrary URLs
-// from the feed.
-var alertLinks = []struct {
-	Needle string
-	Href   string
-}{
-	{"thunderbay.ca/transit", "/transit"},
-}
+const (
+	alertTransitURL     = "thunderbay.ca/transit"
+	alertTransitURLHref = "https://thunderbay.ca/transit"
+)
 
 func segmentAlertText(s string) []alertSegment {
 	s = cleanAlertText(s)
-	for _, l := range alertLinks {
-		if i := strings.Index(s, l.Needle); i >= 0 {
-			return []alertSegment{
-				{Text: s[:i]},
-				{Text: l.Needle, Href: l.Href},
-				{Text: s[i+len(l.Needle):]},
-			}
+	if i := strings.Index(s, alertTransitURL); i >= 0 {
+		return []alertSegment{
+			{Text: s[:i]},
+			{Text: alertTransitURL, Href: alertTransitURLHref},
+			{Text: s[i+len(alertTransitURL):]},
 		}
 	}
 	return []alertSegment{{Text: s}}
