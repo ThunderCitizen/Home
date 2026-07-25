@@ -23,20 +23,4 @@ type PendingMeeting struct {
 // PendingCouncilMeetings is the hand-curated list of upcoming / awaiting-minutes
 // meetings, rendered above the parsed recent meetings on the home page.
 // Remove entries once the fetcher ingests the PostMinutes PDF for each.
-var PendingCouncilMeetings = []PendingMeeting{
-	{
-		DateISO:   "2026-06-02",
-		Date:      "Tuesday, June 2, 2026",
-		Status:    "Pending minutes",
-		AgendaURL: "https://pub-thunderbay.escribemeetings.com/Meeting.aspx?Id=51c8071e-5815-4a20-b831-418f4439c55e&Agenda=Agenda&lang=English",
-		Summary:   "Still awaiting the official PostMinutes PDF for June 2. The agenda included a NOHFC funding bid for the Canada Games Complex, Microsoft 365 licensing, a centralized customer service update, and an Indigenous data governance presentation.",
-		KeyItems: []string{
-			"Canada Games Complex capital enhancements — Stage 2 NOHFC funding application for sport-event hosting (Report 251-2026)",
-			"Microsoft 365 licensing & digitization — single-source procurement (Report 188-2026)",
-			"Centralized Customer Service update (Report 217-2026)",
-			"Indigenous Data Governance presentation",
-			"Holding Symbol removal at 2019 Almira Avenue (By-law 259-2026)",
-		},
-		MinutesETA: "Not yet posted on eSCRIBE; June 23 is processed",
-	},
-}
+var PendingCouncilMeetings = []PendingMeeting{}
