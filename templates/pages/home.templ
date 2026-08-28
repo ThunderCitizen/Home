@@ -10,7 +10,7 @@ import (
 templ Home(vm views.HomeViewModel) {
 	@templates.Layout(templates.SocialMeta{
 		Title:       "Home",
-		Description: "Thunder Bay's civic data in one place — transit tracking, council votes, the budget and more.",
+		Description: "Thunder Bay's civic data in one place — transit tracking, council votes, elections, the budget and more.",
 		OGImage:     "/static/og/home.png",
 	}) {
 		<div class="home">
@@ -23,7 +23,7 @@ templ Home(vm views.HomeViewModel) {
 
 		<section class="home-section">
 			<h2>Explore</h2>
-			<div class="grid cols-3">
+			<div class="grid cols-4">
 				for _, link := range vm.QuickLinks {
 					@components.LinkedCard(link)
 				}

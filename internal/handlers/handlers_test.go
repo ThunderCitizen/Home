@@ -2,16 +2,19 @@ package handlers
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"thundercitizen/internal/cache"
 	"thundercitizen/internal/council"
 	"thundercitizen/internal/httperr"
 )
@@ -77,6 +80,76 @@ func assertUnavailable(t *testing.T, rr *httptest.ResponseRecorder) {
 	}
 	if resp.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503 in body, got %d", resp.Code)
+	}
+}
+
+func TestElection2026RendersStaticGuide(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/election/2026", nil)
+	rr := httptest.NewRecorder()
+
+	(&Handlers{}).Election2026(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+	if got := rr.Header().Get("Cache-Control"); got != cache.Page {
+		t.Errorf("Cache-Control = %q, want %q", got, cache.Page)
+	}
+	if got := rr.Header().Get("Content-Type"); !strings.HasPrefix(got, "text/html") {
+		t.Errorf("Content-Type = %q, want HTML", got)
+	}
+	if !strings.Contains(rr.Body.String(), "2026 Municipal Election") {
+		t.Error("response does not contain the election heading")
+	}
+}
+
+func TestElection2026CandidatesCSV(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/election/2026/candidates.csv", nil)
+	rr := httptest.NewRecorder()
+
+	(&Handlers{}).Election2026CandidatesCSV(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+	if got := rr.Header().Get("Content-Type"); got != "text/csv; charset=utf-8" {
+		t.Errorf("Content-Type = %q", got)
+	}
+	if got := rr.Header().Get("Content-Disposition"); got != `attachment; filename="thunder-bay-2026-candidates.csv"` {
+		t.Errorf("Content-Disposition = %q", got)
+	}
+
+	rows, err := csv.NewReader(strings.NewReader(rr.Body.String())).ReadAll()
+	if err != nil {
+		t.Fatalf("read CSV: %v", err)
+	}
+	if got, want := len(rows), 73; got != want { // header plus every candidate card
+		t.Errorf("CSV rows = %d, want %d", got, want)
+	}
+	if got := rows[0][0]; got != "contest" {
+		t.Errorf("first header = %q, want contest", got)
+	}
+	for _, header := range rows[0] {
+		if header == "city_profile_url" || header == "candidate_page_note" || header == "vote_instruction" {
+			t.Errorf("CSV must not include %s", header)
+		}
+	}
+	if got := rows[1][3]; got != "Maureen (Moe) Comuzzi" {
+		t.Errorf("first candidate = %q", got)
+	}
+}
+
+func TestElectionAliasRedirectsTemporarily(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/election", nil)
+	rr := httptest.NewRecorder()
+
+	(&Handlers{}).Election(rr, req)
+
+	if rr.Code != http.StatusFound {
+		t.Fatalf("status = %d, want 302", rr.Code)
+	}
+	if got := rr.Header().Get("Location"); got != "/election/2026" {
+		t.Errorf("Location = %q, want /election/2026", got)
 	}
 }
 

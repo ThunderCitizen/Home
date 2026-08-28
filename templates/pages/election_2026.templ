@@ -1,0 +1,320 @@
+package pages
+
+import (
+	"fmt"
+	"strings"
+
+	"thundercitizen/internal/views"
+	"thundercitizen/templates"
+	"thundercitizen/templates/components"
+)
+
+func electionWardLayerGroups() []components.MapLayerGroup {
+	return []components.MapLayerGroup{{
+		Label: "Layers",
+		Layers: []components.MapLayer{
+			{Key: "wards", Label: "Wards", Active: true, Icon: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>`},
+		},
+	}}
+}
+
+templ electionSocialIcon(platform string) {
+	switch platform {
+		case "Facebook":
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.69.24 2.69.24v2.96h-1.51c-1.49 0-1.96.93-1.96 1.89v2.27h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07Z"/></svg>
+		case "Instagram":
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".75" fill="currentColor" stroke="none"/></svg>
+		case "YouTube":
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.19a3.01 3.01 0 0 0-2.12-2.13C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.01 3.01 0 0 0 .5 6.19C0 8.08 0 12 0 12s0 3.92.5 5.81a3.01 3.01 0 0 0 2.12 2.13c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.01 3.01 0 0 0 2.12-2.13C24 15.92 24 12 24 12s0-3.92-.5-5.81ZM9.6 15.57V8.43L15.87 12 9.6 15.57Z"/></svg>
+		case "X":
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-6.77 7.74L23.2 22h-6.24l-4.89-7.54L5.47 22H2.36l7.24-8.28L1.96 2h6.4l4.42 6.88L18.9 2Zm-1.09 18h1.72L7.42 3.9H5.57L17.81 20Z"/></svg>
+	}
+}
+
+templ electionWebsiteIcon() {
+	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9s-1.2 6.5-3.6 9c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z"/></svg>
+}
+
+templ Election2026(vm views.Election2026ViewModel) {
+	@templates.Layout(templates.SocialMeta{
+		Title:       "2026 Municipal Election",
+		Description: "A resident-first guide to Thunder Bay's certified 2026 mayor, at-large, ward and school-board trustee candidates.",
+		OGImage:     "/static/og/councillors.png",
+	}) {
+		<div id="election-2026-content">
+			@Election2026Partial(vm)
+		</div>
+	}
+}
+
+templ Election2026Partial(vm views.Election2026ViewModel) {
+	<div class="election-page">
+		@components.PageHeader(components.PageHeaderProps{
+			Title: "2026 Municipal Election",
+		})
+
+		<section class="election-status" aria-label="Ballot and voting overview">
+			<div class="election-status-copy">
+				<p class="election-ballot-summary-label">Candidate details &amp; local coverage</p>
+				<div class="election-ballot-summary">
+					<table>
+						<thead>
+							<tr><th scope="col">Race</th><th scope="col">Candidates</th><th scope="col">Your vote</th></tr>
+						</thead>
+						<tbody>
+							<tr><th scope="row">Mayor</th><td>{ fmt.Sprintf("%d", len(vm.Mayor.Candidates)) }</td><td>Choose 1</td></tr>
+							<tr><th scope="row">At-Large</th><td>{ fmt.Sprintf("%d", len(vm.AtLarge.Candidates)) }</td><td>Choose up to 5</td></tr>
+							<tr><th scope="row">Wards</th><td>{ fmt.Sprintf("%d", vm.MunicipalCandidateCount() - len(vm.Mayor.Candidates) - len(vm.AtLarge.Candidates)) }</td><td>Choose 1 in your ward</td></tr>
+							<tr><th scope="row">School board</th><td>{ fmt.Sprintf("%d", vm.TrusteeCandidateCount()) }</td><td>Varies by board</td></tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="election-date-grid" aria-label="Voting dates">
+				<div>
+					<span>Election Day</span>
+					<time>{ vm.ElectionDayDate }</time>
+					<small>{ vm.ElectionDayHours }</small>
+				</div>
+				<div>
+					<span>Advance voting</span>
+					<time>{ vm.AdvanceVoteDates }</time>
+					<small>{ vm.AdvanceVoteHours }</small>
+				</div>
+			</div>
+			@components.SourceFooter(vm.OfficialSource)
+		</section>
+
+		<section class="election-browser" id="ballot-browser" aria-labelledby="ballot-browser-title">
+			<div class="election-category-panel">
+				<div class="election-section-heading">
+					<div>
+						<span class="election-section-kicker">Candidate guide</span>
+						<h2 id="ballot-browser-title">Explore the 2026 ballot</h2>
+						<p>Choose a race to see who's running for mayor, council or school board.</p>
+					</div>
+				</div>
+				<fieldset class="election-category-picker">
+					<legend class="sr-only">Select a ballot category</legend>
+					<div class="election-radio-grid election-radio-grid-primary">
+						<input class="election-radio-input election-category-input" type="radio" name="election-category" id="election-category-mayor" value="mayor" aria-controls="election-panel-mayor" checked/>
+						<label class="election-radio-card election-radio-card-primary election-radio-card-mayor" for="election-category-mayor">
+							<span class="election-radio-copy"><strong>Mayor</strong><small>{ fmt.Sprintf("%d candidates", len(vm.Mayor.Candidates)) }</small></span>
+						</label>
+						<input class="election-radio-input election-category-input" type="radio" name="election-category" id="election-category-atlarge" value="atlarge" aria-controls="election-panel-atlarge"/>
+						<label class="election-radio-card election-radio-card-primary election-radio-card-atlarge" for="election-category-atlarge">
+							<span class="election-radio-copy"><strong>At-Large</strong><small>{ fmt.Sprintf("%d candidates", len(vm.AtLarge.Candidates)) }</small></span>
+						</label>
+						<input class="election-radio-input election-category-input" type="radio" name="election-category" id="election-category-ward" value="ward" aria-controls="election-panel-ward"/>
+						<label class="election-radio-card election-radio-card-primary election-radio-card-ward" for="election-category-ward">
+							<span class="election-radio-copy"><strong>Wards</strong><small>{ fmt.Sprintf("%d wards", len(vm.Wards)) }</small></span>
+						</label>
+						<input class="election-radio-input election-category-input" type="radio" name="election-category" id="election-category-trustee" value="trustee" aria-controls="election-panel-trustee"/>
+						<label class="election-radio-card election-radio-card-primary election-radio-card-trustee" for="election-category-trustee">
+							<span class="election-radio-copy"><strong>School board</strong><small>{ fmt.Sprintf("%d boards", len(vm.Trustees)) }</small></span>
+						</label>
+					</div>
+				</fieldset>
+			</div>
+
+			<div class="election-view-panels">
+				<div class="election-view-panel election-view-panel-mayor" id="election-panel-mayor" data-election-view="mayor">
+					@electionContest(vm.Mayor, "badge-mayor")
+				</div>
+				<div class="election-view-panel election-view-panel-atlarge" id="election-panel-atlarge" data-election-view="atlarge">
+					@electionContest(vm.AtLarge, "badge-atlarge")
+				</div>
+				<section class="election-view-panel election-view-panel-ward" id="election-panel-ward" data-election-view="ward" aria-labelledby="ward-candidates-title">
+					<div class="election-section-heading">
+						<div>
+							<h2 id="ward-candidates-title">Wards</h2>
+						</div>
+					</div>
+					@electionWardBrowser(vm.Wards)
+				</section>
+				<section class="election-view-panel election-view-panel-trustee" id="election-panel-trustee" data-election-view="trustee" aria-labelledby="trustee-candidates-title">
+					<div class="election-section-heading">
+						<div>
+							<h2 id="trustee-candidates-title">School board</h2>
+						</div>
+						<a class="election-context-link" href="https://www.mpac.ca/en/MakingChangesUpdates/SchoolSupportDesignation" target="_blank" rel="noopener">About school support</a>
+					</div>
+					@electionSubcontestBrowser("trustee", "Select a supported school board", vm.Trustees)
+				</section>
+			</div>
+		</section>
+
+		<div class="election-guide-links">
+			<a class="election-city-profiles-link" href={ templ.SafeURL(views.Election2026CandidateProfilesURL) } target="_blank" rel="noopener">City-submitted candidate profiles <span aria-hidden="true">↗</span></a>
+			<a class="election-city-profiles-link election-csv-download-link" href="/election/2026/candidates.csv" download>Download candidate information (CSV) <span aria-hidden="true">↓</span></a>
+		</div>
+
+	</div>
+}
+
+templ electionWardBrowser(contests []views.ElectionContestView) {
+	<div class="election-subcontest-browser election-subcontest-browser-ward">
+		<fieldset class="election-subcontest-picker">
+			<legend class="sr-only">Select a ward</legend>
+			<div class="election-radio-grid election-radio-grid-subcontest">
+				for _, contest := range contests {
+					<input class="election-radio-input election-subcontest-input election-subcontest-input-ward" type="radio" name="election-ward" id={ "election-choice-" + contest.ID } value={ contest.ID } aria-controls={ "election-panel-" + contest.ID }/>
+					<label class="election-radio-card election-radio-card-primary election-radio-card-ward-choice" data-ward-name={ contest.Name } for={ "election-choice-" + contest.ID }>
+						<span class="election-radio-copy"><strong>{ contest.Name }</strong><small>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</small></span>
+					</label>
+				}
+			</div>
+		</fieldset>
+		<details class="election-ward-map-details">
+			<summary>
+				<span class="election-ward-map-summary-icon" aria-hidden="true">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path>
+						<circle cx="12" cy="10" r="2.5"></circle>
+					</svg>
+				</span>
+				<span class="election-ward-map-summary-copy">
+					<strong>Ward map</strong>
+					<small>Find and select your ward on the interactive map.</small>
+				</span>
+			</summary>
+			<div class="terminal-map-header election-ward-map-header">
+				<span class="terminal-map-title">Map display</span>
+				@components.MapLayerBar(electionWardLayerGroups())
+			</div>
+			@components.LeafletMap(components.MapProps{
+				ID:        "election-ward-map",
+				AriaLabel: "Map of Thunder Bay wards. Select a ward to view its candidates.",
+				Class:     "election-ward-map-wrap",
+				Scripts:   []string{"/static/councillors/ward-colors.js", "/static/election/ward-picker-map.js"},
+			})
+		</details>
+		<p class="election-subcontest-empty">Select a ward to view its candidates.</p>
+		<div class="election-subcontest-panels">
+			for _, contest := range contests {
+				@electionSubcontestPanel(contest)
+			}
+		</div>
+	</div>
+}
+
+templ electionSubcontestBrowser(kind, legend string, contests []views.ElectionContestView) {
+	<div class={ "election-subcontest-browser", "election-subcontest-browser-" + kind }>
+		<fieldset class="election-subcontest-picker">
+			<legend class="sr-only">{ legend }</legend>
+			<div class="election-radio-grid election-radio-grid-subcontest">
+				for _, contest := range contests {
+					<input
+						class={ "election-radio-input", "election-subcontest-input", "election-subcontest-input-" + kind }
+						type="radio"
+						name={ "election-" + kind }
+						id={ "election-choice-" + contest.ID }
+						value={ contest.ID }
+						aria-controls={ "election-panel-" + contest.ID }
+					/>
+					<label class="election-radio-card election-radio-card-primary election-radio-card-trustee" for={ "election-choice-" + contest.ID }>
+						<span class="election-radio-copy">
+							<strong>{ strings.TrimSuffix(contest.Name, " School Board Trustee") }</strong>
+							<small>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</small>
+						</span>
+					</label>
+				}
+			</div>
+		</fieldset>
+		if kind == "trustee" {
+			<p class="election-subcontest-empty">Choose a different board above to view its candidates. English Public is the default school-board designation.</p>
+		} else {
+			<p class="election-subcontest-empty">Make a selection above to show that contest.</p>
+		}
+		<div class="election-subcontest-panels">
+			for _, contest := range contests {
+				@electionSubcontestPanel(contest)
+			}
+		</div>
+	</div>
+}
+
+templ electionSubcontestPanel(contest views.ElectionContestView) {
+	<section class="election-subcontest-panel" id={ "election-panel-" + contest.ID } data-contest-id={ contest.ID } aria-labelledby={ "election-title-" + contest.ID }>
+		<div class="election-section-heading election-subcontest-heading">
+			<div>
+				<h3 id={ "election-title-" + contest.ID }>{ contest.Name }</h3>
+				if contest.Intro != "" {
+					<p>{ contest.Intro }</p>
+				}
+			</div>
+			<div class="election-contest-meta" aria-label={ contest.Name + " contest details" }>
+				if contest.Acclaimed {
+					<span class="badge badge-status-ok">Acclaimed</span>
+				}
+				<span class="badge badge-status-info">{ contest.Choice }</span>
+				<span>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</span>
+			</div>
+		</div>
+		<div class="election-candidate-grid">
+			for _, candidate := range contest.Candidates {
+				@electionCandidateCard(candidate, true)
+			}
+		</div>
+	</section>
+}
+
+templ electionContest(contest views.ElectionContestView, roleClass string) {
+	<section class="election-section" id={ contest.ID } aria-labelledby={ contest.ID + "-title" }>
+		<div class="election-section-heading">
+			<div>
+				<h2 id={ contest.ID + "-title" }>{ contest.Name }</h2>
+				if contest.Intro != "" {
+					<p>{ contest.Intro }</p>
+				}
+			</div>
+			<div class="election-contest-meta" aria-label={ contest.Name + " contest details" }>
+				<span class={ "badge", roleClass }>{ contest.Choice }</span>
+				<span>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</span>
+			</div>
+		</div>
+		<div class="election-candidate-grid">
+			for _, candidate := range contest.Candidates {
+				@electionCandidateCard(candidate, false)
+			}
+		</div>
+	</section>
+}
+
+templ electionCandidateCard(candidate views.ElectionCandidateView, nested bool) {
+	<article class="election-candidate-card" data-candidate-name={ candidate.Name }>
+		<header class="election-candidate-head">
+			if nested {
+				<h4>{ candidate.Name }</h4>
+			} else {
+				<h3>{ candidate.Name }</h3>
+			}
+			if candidate.OfficeStatus != "" {
+				<span class="badge badge-status-info">{ candidate.OfficeStatus }</span>
+			}
+		</header>
+		<div class="election-candidate-body">
+			<p class="election-candidate-summary">{ candidate.Summary }</p>
+			if len(candidate.Sources) > 0 {
+				<section class="election-candidate-media" aria-label={ "Links for " + candidate.Name }>
+					<p class="election-candidate-media-label">Links</p>
+					<ul>
+						for _, source := range candidate.Sources {
+							<li>@components.SourceLink(source)</li>
+						}
+					</ul>
+				</section>
+			}
+		</div>
+		if candidate.Page != nil || len(candidate.Socials) > 0 {
+			<div class="election-candidate-links" aria-label={ "Links for " + candidate.Name }>
+				for _, social := range candidate.Socials {
+					<a class="election-candidate-link" href={ templ.SafeURL(social.URL) } target="_blank" rel="noopener" aria-label={ social.DisplayLabel() + " for " + candidate.Name } title={ social.DisplayLabel() }>@electionSocialIcon(social.Platform)</a>
+				}
+				if candidate.Page != nil {
+					<a class="election-candidate-page-link" href={ templ.SafeURL(candidate.Page.URL) } target="_blank" rel="noopener" aria-label={ candidate.Page.DisplayLabel() + " for " + candidate.Name } title={ string(candidate.Page.Kind) }>@electionWebsiteIcon()<span>{ candidate.Page.DisplayLabel() }</span></a>
+				}
+			</div>
+		}
+	</article>
+}

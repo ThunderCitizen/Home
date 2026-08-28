@@ -221,19 +221,7 @@ func main() {
 	// App routes. Grouped under a PageCache middleware so every top-level
 	// page sends a sensible default Cache-Control. Handlers can override
 	// by setting their own header (e.g. for pages that must revalidate).
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.PageCache(cache.Page))
-		r.Get("/", h.Home)
-		r.Get("/budget", h.Budget)
-		r.Get("/capital", h.Capital)
-		r.Get("/councillors", h.Councillors)
-		r.Get("/minutes", h.Council)
-		r.Get("/minutes/{id}", h.CouncilMeeting)
-		r.Get("/motions", h.Motions)
-		r.Get("/about", h.About)
-		r.Get("/data", h.DataPacks)
-		r.Get("/👻/clerk-9f3a4b", h.Mascot)
-	})
+	registerPageRoutes(r, h)
 	// Accept HEAD on /health too — Docker's wget --spider probe uses HEAD
 	// and was getting a 405 from a GET-only route, which made the container
 	// look permanently unhealthy. Go's stdlib strips the body on HEAD
@@ -316,6 +304,27 @@ func main() {
 	analyticsCancel()
 	analyticsClient.Wait()
 	log.Info("stopped")
+}
+
+// registerPageRoutes keeps the human-facing route table testable without
+// booting the database, transit recorder, or background services.
+func registerPageRoutes(r chi.Router, h *handlers.Handlers) {
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.PageCache(cache.Page))
+		r.Get("/", h.Home)
+		r.Get("/budget", h.Budget)
+		r.Get("/capital", h.Capital)
+		r.Get("/councillors", h.Councillors)
+		r.Get("/election", h.Election)
+		r.Get("/election/2026", h.Election2026)
+		r.Get("/election/2026/candidates.csv", h.Election2026CandidatesCSV)
+		r.Get("/minutes", h.Council)
+		r.Get("/minutes/{id}", h.CouncilMeeting)
+		r.Get("/motions", h.Motions)
+		r.Get("/about", h.About)
+		r.Get("/data", h.DataPacks)
+		r.Get("/👻/clerk-9f3a4b", h.Mascot)
+	})
 }
 
 // applyMuniBundle resolves the bundle (local dir in dev, DO Spaces in

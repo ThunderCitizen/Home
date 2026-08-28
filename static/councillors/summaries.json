@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-07-25T02:38:00Z",
+  "exported_at": "2026-08-26T00:54:49Z",
   "motions": [
     {
       "meeting_id": "d79ca8a7-84c8-41d4-a058-5a23fc93507e",
@@ -14751,6 +14751,186 @@
       "llm_label": "Board appointments: Accessibility and Heritage committees",
       "llm_model": "claude-haiku-4-5-20251001",
       "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "",
+      "llm_summary": "Council approved changes to the zoning rules for the property at the northwest corner of 15th Side Road and 1655 Mountain Road. The vote passed 9-0, with one councillor declaring a conflict of interest and two absent.",
+      "llm_label": "Zoning amendment - 15th Side Road \u0026 1655 Mountain Road",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "",
+      "llm_summary": "City Council approved a zoning change and subdivision plan for a 41-lot residential development on rural land near Lot 16 CON 3 SKR. Part of the land will be protected as environmental zone, while the rest will allow new homes with specific lot size requirements and a buffer zone next to existing homes.",
+      "llm_label": "41-lot residential subdivision zoning approval",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "",
+      "llm_summary": "Council voted to take a 5-minute break during the meeting. Nine councillors supported the recess while Mayor Boshcoff voted against it.",
+      "llm_label": "Meeting recess - 5 minutes",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "",
+      "llm_summary": "Council approved restoring a $55,000 annual contribution to the McKellar Mall Reserve Fund that was cut from the 2025 budget, and created a new Health and Safety Water Stream Reserve Fund to manage water-related health and safety initiatives. The city will update its reserve fund policies to reflect these changes.",
+      "llm_label": "Restore McKellar Mall funding, create water safety reserve",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "",
+      "llm_summary": "Council approved changes to the zoning rules for a property at 1655 Mountain Road. The council decided that the modifications made during the public meeting were sufficient and no additional public notice is needed to move forward.",
+      "llm_label": "1655 Mountain Road zoning amendment approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "",
+      "llm_summary": "Council approved $1.46 million in funding to create a new program that will rehabilitate vacant and dilapidated buildings in Thunder Bay. The money comes from a reserve fund designated for property rehabilitation, and the Realty Services manager is authorized to handle the related paperwork.",
+      "llm_label": "Vacant \u0026 Dilapidated Building Program - $1.46M",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "11:00 p.m. Resolution",
+      "llm_summary": "Council voted to continue their meeting past 11:00 p.m. to finish the business they were discussing. The motion passed with 10 councillors in favour and 1 against, while 2 councillors were absent.",
+      "llm_label": "Extended meeting past 11:00 p.m.",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Advocacy Priorities",
+      "llm_summary": "Council approved a list of top priorities to guide staff when asking the provincial and federal governments for funding and support. These include land development, industrial parks, housing infrastructure, affordable housing, a bridge, road improvements, and continued efforts to address homelessness and the opioid crisis.",
+      "llm_label": "Advocacy priorities for provincial and federal funding",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Board Appointments - Waterfront BIA Board of Directors",
+      "llm_summary": "Council appointed Jim Comuzzi, Nikos Mantis, and Sarah Boyechko to the Waterfront District BIA Board of Directors for the remainder of their terms, which expire in November 2026.",
+      "llm_label": "Waterfront BIA Board appointments",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Budget Consideration for Granite Road",
+      "llm_summary": "Council approved moving forward with planning the Granite Road surface treatment project. Administration will include it in the 2027 budget planning process and report back to council with details.",
+      "llm_label": "Granite Road surface treatment added to 2027 budget consi...",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "By-law Resolution",
+      "llm_summary": "Council approved 12 new by-laws covering various municipal matters, including delegating authority to restrict certain acts, updating pension participation rules, applying for provincial infrastructure financing for 6 different capital projects, updating parking enforcement officer appointments, removing a development restriction on Onion Lake Road, authorizing document execution, and updating municipal officer appointments.",
+      "llm_label": "Approval of 12 municipal by-laws and infrastructure finan...",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Confirmation of Agenda",
+      "llm_summary": "Council confirmed the agenda for the July 7, 2026 meeting, approving all items listed for discussion that day. The vote passed unanimously with 11 councillors in favor.",
+      "llm_label": "Confirmed July 7, 2026 council agenda",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Confirming By-law Resolution",
+      "llm_summary": "Council formally approved and finalized all decisions made at their July 7, 2026 meeting by passing By-law 291-2026. This is a routine administrative step that officially confirms the council's proceedings from that date.",
+      "llm_label": "Confirm July 7 council meeting proceedings",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Consent Agenda Resolution",
+      "llm_summary": "Council approved the consent agenda for the July 7, 2026 meeting, which confirmed the meeting agenda and approved minutes from previous council meetings and various advisory committees and health/social services boards.",
+      "llm_label": "Consent Agenda Approved - July 7, 2026",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Establishment of Special Committee of the Whole - Closed Session",
+      "llm_summary": "Council scheduled a private meeting for Tuesday, August 11, 2026 at 6:00 p.m. to discuss confidential personnel matters involving city employees, as permitted under provincial law.",
+      "llm_label": "Closed session scheduled for personnel matters",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Naming Rights – Current River Arena",
+      "llm_summary": "City Council approved renaming Current River Arena to Itec Community Arena through a 10-year naming rights agreement. The arena will use the new name for the duration of the agreement, after which it may revert to its original name.",
+      "llm_label": "Current River Arena renamed to Itec Community Arena",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Operating Budget and 2027–2028 Capital Budgets was distributed",
+      "llm_summary": "Council approved the meeting schedule for deliberating Thunder Bay's 2027 operating budget and 2027-2028 capital budgets. The specific dates are outlined in a table within the report, and any necessary bylaws will be presented to council for final approval.",
+      "llm_label": "2027 Budget meeting schedule approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Request for Approval – Repeal and Replace OMERS Participation By-",
+      "llm_summary": "Council approved updating Thunder Bay's retirement benefits rules for municipal employees by replacing two old by-laws with a new one that follows current Ontario Municipal Employees' Retirement System (OMERS) requirements. The changes take effect July 19, 2026.",
+      "llm_label": "Update OMERS retirement by-laws for municipal staff",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Restricted Acts (Lame Duck) Provisions",
+      "llm_summary": "Council approved a temporary transfer of certain decision-making powers to the City Manager during the 2026 election period when council members are considered \"lame duck\" (transitional). This prevents important decisions from being delayed while an election is underway.",
+      "llm_label": "Lame duck powers delegated to City Manager",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "meeting_date": "2026-07-07",
+      "agenda_item": "Signing Authority By-law – Execution of Documents on Behalf of The",
+      "llm_summary": "Council approved a new signing authority bylaw that clarifies which city officials can sign documents on behalf of Thunder Bay. This bylaw sets out the rules for who has the power to execute contracts and agreements for the city.",
+      "llm_label": "Signing Authority By-law Approved",
+      "llm_model": "claude-haiku-4-5-20251001",
+      "media_url": ""
     }
   ],
   "meetings": [
@@ -15898,6 +16078,12 @@
       "meeting_id": "762dbe20-9e6e-4358-93b0-31f12ac04b62",
       "date": "2026-06-23",
       "llm_summary": "Council approved $60,000 in hotel tax funding for the Southcore Roar Festival downtown, including $40,000 for the event itself and $20,000 for permanent water barricades the city will retain for future use. They also redirected $780,000 from a renewal reserve to cover Thunder Bay's share of the Lakehead Region Conservation Authority's budget, and greenlit a Part Lot Control exemption allowing up to 17 new residential lots to be created in the Plan 55M-643 area by Syncor Contracting and Di Gregorio Developments. Seven bylaws covering heritage designations, planning rules, and enforcement changes were also passed.",
+      "llm_model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "meeting_id": "2e830734-8741-4a87-9a52-2ef27d1e6c09",
+      "date": "2026-07-07",
+      "llm_summary": "Council approved $1.46 million to rehabilitate vacant and dilapidated buildings across Thunder Bay and restored $55,000 in annual funding to the McKellar Mall Reserve Fund that had been cut in 2025. The city also greenlit a 41-lot residential subdivision on rural land near Lot 16 CON 3 SKR with environmental protections and buffer zones, renamed Current River Arena to Itec Community Arena under a 10-year naming rights deal, and set advocacy priorities for requesting provincial and federal funding that include affordable housing, bridge construction, and ongoing efforts to address homelessness and the opioid crisis. Council additionally updated pension rules for municipal employees and approved a surface treatment project for Granite Road to move into 2027 budget planning.",
       "llm_model": "claude-haiku-4-5-20251001"
     }
   ]

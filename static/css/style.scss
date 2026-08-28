@@ -15,6 +15,7 @@
 @use "budget";
 @use "transit";
 @use "council" as council;
+@use "election";
 @use "pages";
 @use "mascot"; // TEMP — remove once mascot is integrated into real pages
 
@@ -392,7 +393,8 @@ article > header {
   }
 
   // ---- Nav link animations ----
-  .nav-links a {
+  .nav-links a,
+  .nav-election-feature {
     -webkit-text-fill-color: transparent;
     background-color: var(--term-accent);
     background-image: linear-gradient(90deg,
@@ -424,6 +426,49 @@ article > header {
     }
   }
 
+  .nav-election-feature {
+    padding: 0.35rem var(--space-3);
+    border: 1px solid color-mix(in srgb, var(--term-accent) 38%, var(--term-border));
+    border-radius: var(--radius-sm);
+    box-shadow:
+      inset 0 0 8px color-mix(in srgb, var(--term-accent) 8%, transparent),
+      0 0 8px color-mix(in srgb, var(--term-accent) 18%, transparent);
+    transition: background-position 0.15s ease, filter 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      border-color: color-mix(in srgb, var(--term-accent) 72%, var(--term-border));
+      box-shadow:
+        inset 0 0 10px color-mix(in srgb, var(--term-accent) 13%, transparent),
+        0 0 12px color-mix(in srgb, var(--term-accent) 32%, transparent);
+    }
+
+    &[aria-current="page"] {
+      border-color: var(--term-accent);
+      background: color-mix(in srgb, var(--term-accent) 24%, var(--term-bg-deep));
+      -webkit-text-fill-color: color-mix(in srgb, var(--term-accent) 78%, white);
+      background-clip: border-box;
+      box-shadow:
+        inset 0 0 12px color-mix(in srgb, var(--term-accent) 24%, transparent),
+        0 0 16px color-mix(in srgb, var(--term-accent) 45%, transparent);
+    }
+  }
+
+  // Give the featured Election link the same ambient sweep as the home title.
+  .nav-election-feature:not([aria-current="page"]) {
+    background:
+      linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent)
+        no-repeat -50% 0 / 50% 100%,
+      var(--term-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: title-sweep 5s ease-in-out infinite;
+  }
+
+  .nav-election-menu {
+    display: none;
+  }
+
   // ---- Site title / logo ----
   .site-title {
     display: inline-flex;
@@ -433,7 +478,6 @@ article > header {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-right: auto;
     color: var(--term-accent);
     -webkit-text-fill-color: transparent;
     background-color: var(--term-accent);
@@ -534,6 +578,10 @@ article > header {
     &:hover { border-color: var(--term-accent); }
   }
 
+  .site-header .nav-election-feature {
+    display: none;
+  }
+
   .nav-toggle-bar {
     display: block;
     width: 14px;
@@ -580,6 +628,8 @@ article > header {
     }
 
     li { width: 100%; }
+
+    .nav-election-menu { display: block; }
 
     a {
       display: block;

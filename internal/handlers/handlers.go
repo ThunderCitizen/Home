@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -119,6 +120,97 @@ func (h *Handlers) Home(w http.ResponseWriter, r *http.Request) {
 
 	vm := views.NewHomeViewModel(recent)
 	pages.Home(vm).Render(r.Context(), w)
+}
+
+// Election is the short seasonal alias. It remains temporary so a future
+// election can move the destination without leaving a stale permanent redirect
+// in browser and search-engine caches.
+func (h *Handlers) Election(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/election/2026", http.StatusFound)
+}
+
+// Election2026 renders the compiled, server-side candidate guide. The roster
+// and research links are static on purpose: this page has no database or
+// campaign-controlled feed in its request path.
+func (h *Handlers) Election2026(w http.ResponseWriter, r *http.Request) {
+	vm := views.NewElection2026ViewModel()
+	renderPage(w, r, pages.Election2026Partial(vm), pages.Election2026(vm))
+}
+
+// Election2026CandidatesCSV exports the same compiled candidate information
+// shown in the election guide. It deliberately shares the view model with the
+// page so an editor cannot update one representation without the other.
+func (h *Handlers) Election2026CandidatesCSV(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", cache.Page)
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="thunder-bay-2026-candidates.csv"`)
+
+	csvw := csv.NewWriter(w)
+	if err := csvw.Write([]string{
+		"contest", "seats", "acclaimed",
+		"candidate", "office_status", "summary",
+		"candidate_page_url", "candidate_page_kind", "candidate_page_label",
+		"social_profiles", "media_sources",
+	}); err != nil {
+		return
+	}
+
+	vm := views.NewElection2026ViewModel()
+	for _, contest := range election2026Contests(vm) {
+		for _, candidate := range contest.Candidates {
+			row := []string{
+				contest.Name, strconv.Itoa(contest.Seats),
+				strconv.FormatBool(contest.Acclaimed),
+				candidate.Name, candidate.OfficeStatus, candidate.Summary,
+				candidatePageURL(candidate), candidatePageKind(candidate), candidatePageLabel(candidate),
+				electionSocialProfiles(candidate), electionSources(candidate),
+			}
+			if err := csvw.Write(row); err != nil {
+				return
+			}
+		}
+	}
+	csvw.Flush()
+}
+
+func election2026Contests(vm views.Election2026ViewModel) []views.ElectionContestView {
+	contests := []views.ElectionContestView{vm.Mayor, vm.AtLarge}
+	contests = append(contests, vm.Wards...)
+	return append(contests, vm.Trustees...)
+}
+
+func candidatePageURL(c views.ElectionCandidateView) string {
+	if c.Page != nil {
+		return c.Page.URL
+	}
+	return ""
+}
+func candidatePageKind(c views.ElectionCandidateView) string {
+	if c.Page != nil {
+		return string(c.Page.Kind)
+	}
+	return ""
+}
+func candidatePageLabel(c views.ElectionCandidateView) string {
+	if c.Page != nil {
+		return c.Page.DisplayLabel()
+	}
+	return ""
+}
+func electionSocialProfiles(c views.ElectionCandidateView) string {
+	profiles := make([]string, len(c.Socials))
+	for i, social := range c.Socials {
+		profiles[i] = social.Platform + ": " + social.URL
+	}
+	return strings.Join(profiles, "; ")
+}
+
+func electionSources(c views.ElectionCandidateView) string {
+	sources := make([]string, len(c.Sources))
+	for i, source := range c.Sources {
+		sources[i] = source.Label + ": " + source.URL
+	}
+	return strings.Join(sources, "; ")
 }
 
 func (h *Handlers) Budget(w http.ResponseWriter, r *http.Request) {

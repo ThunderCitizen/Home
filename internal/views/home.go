@@ -92,9 +92,15 @@ func NewHomeViewModel(recentMeetings []council.MeetingSummary) HomeViewModel {
 		Hero: components.HeroProps{
 			Title:    "Thunder Citizen",
 			Lead:     "Thunder\u00a0Bay's public data, in one\u00a0place.",
-			Subtitle: "Transit, council, and the budget — made clear.",
+			Subtitle: "Transit, council, elections, and the budget — made clear.",
 		},
 		QuickLinks: []components.LinkedCardProps{
+			{
+				Title:  "Election 2026",
+				Href:   "/election/2026",
+				Desc:   "See the certified Mayor, At-Large and ward candidates—organized around what appears on your ballot.",
+				Footer: "Candidate guide · Voting dates",
+			},
 			{
 				Title:  "Budget",
 				Href:   "/budget",

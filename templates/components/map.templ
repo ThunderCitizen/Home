@@ -95,7 +95,10 @@ templ mapScrollZoomScript(id string) {
 		}
 		var poll = setInterval(function(){
 			var m = getMap();
-			if (!m) return;
+			// A map may live in a radio-controlled panel that starts out of view. Leaflet
+			// cannot calculate bounds from a zero-size container, so defer setup
+			// until the panel becomes visible.
+			if (!m || !el.offsetWidth || !el.offsetHeight) return;
 			clearInterval(poll);
 			m.scrollWheelZoom.disable();
 			if (m.zoomControl) { m.zoomControl.setPosition("bottomleft"); }

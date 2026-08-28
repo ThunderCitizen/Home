@@ -3,15 +3,7 @@
 
   const tc = ThemeColors();
 
-  const WARD_COLORS = {
-    "Current River": "#60a5fa",
-    "McIntyre":      "#4ade80",
-    "McKellar":      "#fbbf24",
-    "Westfort":      "#f87171",
-    "Neebing":       "#c084fc",
-    "Northwood":     "#22d3ee",
-    "Red River":     "#f472b6",
-  };
+  const WARD_COLORS = window.ThunderWardColors || {};
 
   const el = document.getElementById("ward-map");
   const map = L.map("ward-map");

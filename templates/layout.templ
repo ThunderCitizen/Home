@@ -52,6 +52,8 @@ func fallbackImageForPath(path string) string {
 		return "/static/og/minutes.png"
 	case strings.HasPrefix(path, "/councillors"):
 		return "/static/og/councillors.png"
+	case strings.HasPrefix(path, "/election"):
+		return "/static/og/councillors.png"
 	case strings.HasPrefix(path, "/budget"):
 		return "/static/og/budget.png"
 	default:
@@ -237,7 +239,9 @@ document.documentElement.classList.remove('no-js');
 						@navLink("/minutes", "Minutes", meta.Title)
 						@navLink("/transit", "Transit", meta.Title)
 						@navLink("/about", "About", meta.Title)
+						@mobileElectionLink(meta.Title)
 					</ul>
+					@desktopElectionLink(meta.Title)
 				</nav>
 				<script>
 				(function(){
@@ -263,6 +267,7 @@ document.documentElement.classList.remove('no-js');
 						<ul>
 							@footerLink("/budget", "Budget", meta.Title)
 							@footerLink("/councillors", "Councillors", meta.Title)
+							@footerLink("/election/2026", "Election", meta.Title)
 							@footerLink("/minutes", "Minutes", meta.Title)
 							@footerLink("/transit", "Transit", meta.Title)
 							@footerLink("/about", "About", meta.Title)
@@ -275,6 +280,24 @@ document.documentElement.classList.remove('no-js');
 			<script src={ assets.URL("/static/vendor/htmx.min.js") }></script>
 		</body>
 	</html>
+}
+
+templ desktopElectionLink(currentTitle string) {
+	if isCurrentPage("Election", currentTitle) {
+		<a class="nav-election-feature" href="/election/2026" aria-current="page">Election</a>
+	} else {
+		<a class="nav-election-feature" href="/election/2026">Election</a>
+	}
+}
+
+templ mobileElectionLink(currentTitle string) {
+	<li class="nav-election-menu">
+		if isCurrentPage("Election", currentTitle) {
+			<a href="/election/2026" aria-current="page">Election</a>
+		} else {
+			<a href="/election/2026">Election</a>
+		}
+	</li>
 }
 
 templ navLink(href, label, currentTitle string) {

@@ -137,7 +137,7 @@ templ CouncillorsPartial(vm views.CouncillorsViewModel) {
 			ID:        "ward-map",
 			AriaLabel: "Map of Thunder Bay ward boundaries",
 			Class:     "ward-map-wrap",
-			Scripts:   []string{"/static/councillors/ward-map.js"},
+			Scripts:   []string{"/static/councillors/ward-colors.js", "/static/councillors/ward-map.js"},
 		}) {
 			@templ.JSONScript("ward-councillors", wardCouncillorMap(vm.WardCouncillors))
 		}
