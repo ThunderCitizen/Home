@@ -23,7 +23,7 @@ templ Home(vm views.HomeViewModel) {
 
 		<section class="home-section">
 			<h2>Explore</h2>
-			<div class="grid cols-4">
+			<div class="grid cols-3">
 				for _, link := range vm.QuickLinks {
 					@components.LinkedCard(link)
 				}
@@ -33,6 +33,11 @@ templ Home(vm views.HomeViewModel) {
 		<div class="home-bottom grid cols-2">
 			@components.Card(components.CardProps{Title: "Notice Board"}) {
 				<div class="notice-welcome">
+					<div class="notice-item">
+						<strong>Election 2026 nominations</strong>
+						<time class="notice-date" datetime="2026-08-29">Posted August 29, 2026</time>
+						<p>Nominations are out for the 2026 municipal election. <a href="/election/2026">Explore the candidate guide.</a></p>
+					</div>
 					<div class="notice-item">
 						<strong>Council minutes — June 2nd</strong>
 						<time class="notice-date" datetime="2026-07-24">Posted July 24, 2026</time>

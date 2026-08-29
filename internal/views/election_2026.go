@@ -242,7 +242,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		Name:   "At-Large Councillor",
 		Seats:  5,
 		Choice: "Choose up to 5",
-		Intro:  "Every voter sees this race. Three of the 14 candidates are current at-large councillors; incumbency is marked only on those three cards.",
+		Intro:  "All voters. Incumbents are marked.",
 		Candidates: []ElectionCandidateView{
 			electionCandidate("Rajni Agarwal", "Agarwal, Rajni", "A current at-large councillor and local business owner.", "At-Large Councillor", nil, electionSource("https://www.tbnewswatch.com/local-news/rajni-agarwal-running-to-keep-at-large-council-seat-12688979", "TBNewsWatch candidate profile")),
 			electionCandidate("Mark Bentz", "Bentz, Mark", "A current at-large councillor who has also served as Northwood councillor and a school trustee.", "At-Large Councillor", nil),
@@ -324,7 +324,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 	trustees := []ElectionContestView{
 		{
 			ID: "trustee-english-public", Name: "English Public School Board Trustee", Seats: 8, Choice: "Choose up to 8",
-			Intro: "This contest appears for voters assigned to the English Public school board.",
+			Intro: "For English Public voters.",
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Susan Frattaroli", "Frattaroli, Susan", "A human-resources and payroll professional with community-board experience.", "", nil),
 				electionCandidate("CJ Goater", "Goater, CJ", "A local broadcaster and journalist.", "", nil),
@@ -342,7 +342,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "trustee-english-separate", Name: "English Separate School Board Trustee", Seats: 6, Choice: "Choose up to 6",
-			Intro: "This contest appears for voters assigned to the English Separate school board.",
+			Intro: "For English Separate voters.",
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Eleanor Ashe", "Ashe, Eleanor", "A current Thunder Bay Catholic trustee.", "Trustee", nil),
 				electionCandidate("Lawrence Badanai", "Badanai, Lawrence", "A current Thunder Bay Catholic trustee and Lakehead University communications professional.", "Trustee", nil, electionSource("https://www.lakeheadu.ca/users/B/lmbadana", "Lakehead University profile")),
@@ -356,14 +356,14 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "trustee-french-public", Name: "French Public School Board Trustee", Seats: 1, Choice: "Choose 1", Acclaimed: true,
-			Intro: "This contest appears for eligible voters assigned to the French Public school board.",
+			Intro: "All seats acclaimed.",
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Anne-Marie Gélineault", "Gélineault, Anne-Marie", "The current local trustee for Conseil scolaire public du Grand Nord.", "Trustee", nil),
 			},
 		},
 		{
 			ID: "trustee-french-separate", Name: "French Separate School Board Trustee", Seats: 5, Choice: "Acclaimed", Acclaimed: true,
-			Intro: "All five seats were acclaimed.",
+			Intro: "All seats acclaimed.",
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Angele Desbiens", "Desbiens, Angele", "A current Conseil scolaire catholique des Aurores boréales trustee.", "Trustee", nil),
 				electionCandidate("Claudette Gleeson", "Gleeson, Claudette", "A current Conseil scolaire catholique des Aurores boréales trustee.", "Trustee", nil),

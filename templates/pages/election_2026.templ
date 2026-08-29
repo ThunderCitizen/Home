@@ -246,8 +246,9 @@ templ electionSubcontestPanel(contest views.ElectionContestView) {
 			<div class="election-contest-meta" aria-label={ contest.Name + " contest details" }>
 				if contest.Acclaimed {
 					<span class="badge badge-status-ok">Acclaimed</span>
+				} else {
+					<span class="badge badge-status-info">{ contest.Choice }</span>
 				}
-				<span class="badge badge-status-info">{ contest.Choice }</span>
 				<span>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</span>
 			</div>
 		</div>

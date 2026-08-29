@@ -91,6 +91,35 @@ func TestElection2026RenderedStructure(t *testing.T) {
 	body := renderElection2026(t)
 	doc := parseElectionHTML(t, body)
 
+	var frenchSeparate *html.Node
+	walkNodes(doc, func(n *html.Node) {
+		if id, ok := nodeAttr(n, "id"); ok && id == "election-panel-trustee-french-separate" {
+			frenchSeparate = n
+		}
+	})
+	if frenchSeparate == nil {
+		t.Fatal("French Separate trustee panel is missing")
+	}
+	acclaimedBadges := 0
+	choiceBadges := 0
+	walkNodes(frenchSeparate, func(n *html.Node) {
+		if n.Data != "span" {
+			return
+		}
+		if hasClass(n, "badge") && nodeText(n) == "Acclaimed" {
+			acclaimedBadges++
+		}
+		if hasClass(n, "badge-status-info") && n.Parent != nil && hasClass(n.Parent, "election-contest-meta") {
+			choiceBadges++
+		}
+	})
+	if acclaimedBadges != 1 {
+		t.Errorf("French Separate acclaimed badges = %d, want 1", acclaimedBadges)
+	}
+	if choiceBadges != 0 {
+		t.Errorf("French Separate choice badges = %d, want 0", choiceBadges)
+	}
+
 	h1Count := 0
 	candidateCards := 0
 	categoryRadios := 0
@@ -308,10 +337,10 @@ func TestElection2026RenderedStructure(t *testing.T) {
 		"Find and select your ward on the interactive map.",
 		"School board",
 		"Acclaimed",
-		"All five seats were acclaimed.",
+		"All seats acclaimed.",
 		"Donald Pelletier",
 		"English Public is the default school-board designation.",
-		"Three of the 14 candidates are current at-large councillors",
+		"All voters. Incumbents are marked.",
 	} {
 		if !strings.Contains(body, required) {
 			t.Errorf("rendered page does not contain %q", required)

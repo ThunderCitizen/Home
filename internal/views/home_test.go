@@ -29,3 +29,15 @@ func TestBuildCouncilActivitySortsByCalendarDate(t *testing.T) {
 		t.Fatal("June 2 row should remain marked pending")
 	}
 }
+
+func TestHomeQuickLinksExcludeElection(t *testing.T) {
+	vm := NewHomeViewModel(nil)
+	if len(vm.QuickLinks) != 3 {
+		t.Fatalf("Explore links = %d, want 3", len(vm.QuickLinks))
+	}
+	for _, link := range vm.QuickLinks {
+		if link.Href == "/election/2026" {
+			t.Error("home Explore links must not include Election")
+		}
+	}
+}

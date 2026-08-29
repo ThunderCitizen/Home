@@ -96,12 +96,6 @@ func NewHomeViewModel(recentMeetings []council.MeetingSummary) HomeViewModel {
 		},
 		QuickLinks: []components.LinkedCardProps{
 			{
-				Title:  "Election 2026",
-				Href:   "/election/2026",
-				Desc:   "See the certified Mayor, At-Large and ward candidates—organized around what appears on your ballot.",
-				Footer: "Candidate guide · Voting dates",
-			},
-			{
 				Title:  "Budget",
 				Href:   "/budget",
 				Desc:   "Explore how your property taxes are allocated across city services.",
