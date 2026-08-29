@@ -180,4 +180,9 @@ func TestElection2026CandidatePageProvenance(t *testing.T) {
 			t.Error("Tyler Goode must not link to the unrelated aerospace website")
 		}
 	}
+	for _, candidate := range vm.Mayor.Candidates {
+		if candidate.Name == "Aldo Ruberto" && (candidate.Page == nil || candidate.Page.URL != "https://rubertoformayor.com/" || candidate.Page.Kind != ElectionPageCampaign) {
+			t.Errorf("Aldo Ruberto campaign page = %#v, want https://rubertoformayor.com/", candidate.Page)
+		}
+	}
 }
