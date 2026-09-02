@@ -249,9 +249,10 @@ templ electionSubcontestPanel(contest views.ElectionContestView) {
 				} else {
 					<span class="badge badge-status-info">{ contest.Choice }</span>
 				}
-				<span>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</span>
-			</div>
+			<span>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</span>
 		</div>
+		</div>
+		@electionCandidateEvent(contest)
 		<div class="election-candidate-grid">
 			for _, candidate := range contest.Candidates {
 				@electionCandidateCard(candidate, true)
@@ -274,12 +275,29 @@ templ electionContest(contest views.ElectionContestView, roleClass string) {
 				<span>{ fmt.Sprintf("%d candidates", len(contest.Candidates)) }</span>
 			</div>
 		</div>
+		@electionCandidateEvent(contest)
 		<div class="election-candidate-grid">
 			for _, candidate := range contest.Candidates {
 				@electionCandidateCard(candidate, false)
 			}
 		</div>
 	</section>
+}
+
+templ electionCandidateEvent(contest views.ElectionContestView) {
+	if contest.CandidateEvent != nil {
+		<aside class="election-candidate-event" aria-label={ contest.Name + " candidate event" }>
+			<div class="election-candidate-event-icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+			</div>
+			<div class="election-candidate-event-copy">
+				<span>Candidate event</span>
+				<strong>{ contest.CandidateEvent.Title }</strong>
+				<p>{ contest.CandidateEvent.DateTime } · { contest.CandidateEvent.Location }</p>
+			</div>
+			<a href={ templ.SafeURL(contest.CandidateEvent.Source.URL) } target="_blank" rel="noopener">Event details <span aria-hidden="true">↗</span></a>
+		</aside>
+	}
 }
 
 templ electionCandidateCard(candidate views.ElectionCandidateView, nested bool) {

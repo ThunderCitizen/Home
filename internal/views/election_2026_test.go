@@ -50,6 +50,34 @@ func TestElection2026MunicipalRoster(t *testing.T) {
 		if len(ward.Candidates) != wardCounts[i] {
 			t.Errorf("%s candidates = %d, want %d", ward.Name, len(ward.Candidates), wardCounts[i])
 		}
+		if ward.CandidateEvent == nil {
+			t.Errorf("%s is missing its candidate event", ward.Name)
+		} else if ward.CandidateEvent.Source.URL != Election2026EventsURL {
+			t.Errorf("%s event source = %q, want %q", ward.Name, ward.CandidateEvent.Source.URL, Election2026EventsURL)
+		}
+	}
+	eventByWard := make(map[string]ElectionCandidateEventView)
+	for _, ward := range vm.Wards {
+		eventByWard[ward.Name] = *ward.CandidateEvent
+	}
+	if got := eventByWard["Northwood"]; got.DateTime != "Thursday, September 17, 2026, 6 p.m." || got.Location != "Mary JL Black Library" {
+		t.Errorf("Northwood event = %#v", got)
+	}
+	if got := eventByWard["Current River"]; got.Title != "Current River and McIntyre Ward Panel" || got.DateTime != "Wednesday, September 16, 2026, 6 p.m." || got.Location != "Waverley Library" {
+		t.Errorf("Current River event = %#v", got)
+	}
+	for _, tc := range []struct {
+		name  string
+		event *ElectionCandidateEventView
+		title string
+		date  string
+	}{
+		{"Mayor", vm.Mayor.CandidateEvent, "Mayoral Candidates' Forum", "Thursday, October 15, 2026, 6 p.m."},
+		{"At-Large", vm.AtLarge.CandidateEvent, "At-Large Candidates' Meet & Greet", "Wednesday, October 14, 2026, 6 p.m."},
+	} {
+		if tc.event == nil || tc.event.Title != tc.title || tc.event.DateTime != tc.date || tc.event.Location != "Waverley Library" || tc.event.Source.URL != Election2026EventsURL {
+			t.Errorf("%s event = %#v", tc.name, tc.event)
+		}
 	}
 
 	for _, tc := range tests {

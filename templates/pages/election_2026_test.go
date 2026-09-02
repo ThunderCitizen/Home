@@ -140,6 +140,8 @@ func TestElection2026RenderedStructure(t *testing.T) {
 	mediaLists := 0
 	mediaLabels := 0
 	mediaDetails := 0
+	candidateEventNotices := 0
+	candidateEventDetailLinks := 0
 
 	walkNodes(doc, func(n *html.Node) {
 		if n.Type != html.ElementNode {
@@ -230,6 +232,18 @@ func TestElection2026RenderedStructure(t *testing.T) {
 		if n.Data == "details" && hasClass(n, "election-candidate-media") {
 			mediaDetails++
 		}
+		if n.Data == "aside" && hasClass(n, "election-candidate-event") {
+			candidateEventNotices++
+			walkNodes(n, func(child *html.Node) {
+				if child.Type != html.ElementNode || child.Data != "a" || nodeText(child) != "Event details ↗" {
+					return
+				}
+				href, _ := nodeAttr(child, "href")
+				if href == views.Election2026EventsURL {
+					candidateEventDetailLinks++
+				}
+			})
+		}
 	})
 
 	if h1Count != 1 {
@@ -255,6 +269,9 @@ func TestElection2026RenderedStructure(t *testing.T) {
 	}
 	if mediaDetails != 0 {
 		t.Errorf("candidate Links lists use %d disclosure elements, want none", mediaDetails)
+	}
+	if candidateEventNotices != 9 || candidateEventDetailLinks != 9 {
+		t.Errorf("candidate event notices = %d with %d schedule links, want 9 each", candidateEventNotices, candidateEventDetailLinks)
 	}
 	if strings.Contains(body, "Sources (") {
 		t.Error("candidate cards must label their source lists Links, not Sources with a count")
@@ -341,13 +358,18 @@ func TestElection2026RenderedStructure(t *testing.T) {
 		"Donald Pelletier",
 		"English Public is the default school-board designation.",
 		"All voters. Incumbents are marked.",
+		"Northwood Ward Panel",
+		"Thursday, September 17, 2026, 6 p.m. · Mary JL Black Library",
+		"At-Large Candidates",
+		"Wednesday, October 14, 2026, 6 p.m. · Waverley Library",
+		"Mayoral Candidates",
+		"Thursday, October 15, 2026, 6 p.m. · Waverley Library",
 	} {
 		if !strings.Contains(body, required) {
 			t.Errorf("rendered page does not contain %q", required)
 		}
 	}
 }
-
 
 func TestElection2026MetadataAndExternalLinks(t *testing.T) {
 	body := renderElection2026(t)

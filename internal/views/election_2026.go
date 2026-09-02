@@ -5,6 +5,7 @@ import "thundercitizen/internal/models"
 const (
 	Election2026OfficialURL          = "https://www.thunderbay.ca/en/city-hall/2026-municipal-election.aspx"
 	Election2026CandidateProfilesURL = "https://www.thunderbay.ca/en/city-hall/2026-election-candidate-profiles.aspx"
+	Election2026EventsURL            = "https://www.tbpl.ca/2026-municipal-election-events/"
 )
 
 // ElectionPageKind describes what a candidate-owned link actually is. Keeping
@@ -63,13 +64,23 @@ type ElectionCandidateView struct {
 
 // ElectionContestView represents one choice on a voter's ballot.
 type ElectionContestView struct {
-	ID         string
-	Name       string
-	Seats      int
-	Choice     string
-	Intro      string
-	Acclaimed  bool
-	Candidates []ElectionCandidateView
+	ID             string
+	Name           string
+	Seats          int
+	Choice         string
+	Intro          string
+	Acclaimed      bool
+	Candidates     []ElectionCandidateView
+	CandidateEvent *ElectionCandidateEventView
+}
+
+// ElectionCandidateEventView describes a candidate event supplied by the
+// Thunder Bay Public Library.
+type ElectionCandidateEventView struct {
+	Title    string
+	DateTime string
+	Location string
+	Source   models.SourceRef
 }
 
 // Election2026ViewModel contains the certified municipal slate and the
@@ -223,6 +234,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		Seats:  1,
 		Choice: "Choose 1",
 		Intro:  "",
+		CandidateEvent: &ElectionCandidateEventView{
+			Title:    "Mayoral Candidates' Forum",
+			DateTime: "Thursday, October 15, 2026, 6 p.m.",
+			Location: "Waverley Library",
+			Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+		},
 		Candidates: []ElectionCandidateView{
 			electionCandidate("Maureen (Moe) Comuzzi", "Comuzzi, Maureen", "A Thunder Bay business and real-estate professional who launched her mayoral campaign in August.", "", electionPage("https://moeformayor.ca/", ElectionPageCampaign), electionSource("https://acadiabroadcasting.ca/the-mayors-race-begins-moe-comuzzi-announces-her-bid/", "Acadia News campaign launch")),
 			electionCandidate("Peter Diedrich", "Diedrich, Peter", "An engineer, venture-capital executive and former Tbaytel chief executive.", "", electionPage("https://peterdiedrich4mayor.com/", ElectionPageCampaign), electionSource("https://yourthunderbay.ca/thunder-bay-elections-our-interview-with-peter-diedrich/", "Your Thunder Bay interview")),
@@ -243,6 +260,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		Seats:  5,
 		Choice: "Choose up to 5",
 		Intro:  "All voters. Incumbents are marked.",
+		CandidateEvent: &ElectionCandidateEventView{
+			Title:    "At-Large Candidates' Meet & Greet",
+			DateTime: "Wednesday, October 14, 2026, 6 p.m.",
+			Location: "Waverley Library",
+			Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+		},
 		Candidates: []ElectionCandidateView{
 			electionCandidate("Rajni Agarwal", "Agarwal, Rajni", "A current at-large councillor and local business owner.", "At-Large Councillor", nil, electionSource("https://www.tbnewswatch.com/local-news/rajni-agarwal-running-to-keep-at-large-council-seat-12688979", "TBNewsWatch candidate profile")),
 			electionCandidate("Mark Bentz", "Bentz, Mark", "A current at-large councillor who has also served as Northwood councillor and a school trustee.", "At-Large Councillor", nil),
@@ -264,6 +287,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 	wards := []ElectionContestView{
 		{
 			ID: "ward-current-river", Name: "Current River", Seats: 1, Choice: "Choose 1",
+			CandidateEvent: &ElectionCandidateEventView{
+				Title:    "Current River and McIntyre Ward Panel",
+				DateTime: "Wednesday, September 16, 2026, 6 p.m.",
+				Location: "Waverley Library",
+				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Andrew Foulds", "Foulds, Andrew", "A teacher and fifth-term Current River councillor.", "Ward Councillor", nil),
 				electionCandidate("Stéphane Léonard Kuziora", "Kuziora, Stéphane Léonard", "A Current River candidate who returned to Thunder Bay after studying in Norway and advocates evidence-informed, cost-effective action on homelessness and municipal priorities.", "", nil),
@@ -271,6 +300,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "ward-red-river", Name: "Red River", Seats: 1, Choice: "Choose 1",
+			CandidateEvent: &ElectionCandidateEventView{
+				Title:    "Red River Ward Panel",
+				DateTime: "Tuesday, September 15, 2026, 6 p.m.",
+				Location: "Waverley Library",
+				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Cory Bagdon", "Bagdon, Cory", "A teacher, furniture maker and previous council candidate who has served on the library board.", "", electionLabeledPage("https://pawoodcraft.ca/", ElectionPageProfessional, "Pine + Alder Woodcraft")),
 				electionCandidate("Dino Cicchitano", "Cicchitano, Dino", "A local financial-services professional and business owner.", "", nil, electionSource("https://vote.chroniclejournal.com/the-co-operators", "Chronicle-Journal business profile"), electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/dino-cicchitano-runs-for-red-river-ward-seat-12693448", "TBNewsWatch candidate profile")),
@@ -281,6 +316,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "ward-mcintyre", Name: "McIntyre", Seats: 1, Choice: "Choose 1",
+			CandidateEvent: &ElectionCandidateEventView{
+				Title:    "Current River and McIntyre Ward Panel",
+				DateTime: "Wednesday, September 16, 2026, 6 p.m.",
+				Location: "Waverley Library",
+				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Albert Aiello", "Aiello, Albert", "The current McIntyre councillor and executive director of BGC Thunder Bay.", "Ward Councillor", electionPage("https://www.albertaiello.com/", ElectionPageCandidate)),
 				electionCandidate("Brian Phillips", "Phillips, Brian", "Manager of Arthur Street Medical Health Centre (Spence Clinic) and a previous at-large council candidate.", "", nil, electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/brian-phillips-enters-race-for-mcintyre-ward-seat-12693575", "TBNewsWatch candidate profile")),
@@ -288,6 +329,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "ward-mckellar", Name: "McKellar", Seats: 1, Choice: "Choose 1",
+			CandidateEvent: &ElectionCandidateEventView{
+				Title:    "McKellar Ward Panel",
+				DateTime: "Wednesday, September 23, 2026, 6 p.m.",
+				Location: "Waverley Library",
+				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Marco Cupelli", "Cupelli, Marco", "A local property manager who has written publicly about municipal leadership and housing.", "", nil, electionSource("https://www.thewalleye.ca/stories/thunder-bay-doesnt-need-another-politicianit-needs-leadership", "The Walleye civic-leadership essay"), electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/third-candidate-files-to-run-in-mckellar-12687123", "TBNewsWatch candidate profile")),
 				electionCandidate("Tony DiPaolo", "DiPaolo, Tony", "Chief executive of the Thunder Bay Border Cats and a former business-improvement-area chair.", "", nil, electionSource("https://northwoodsleague.com/thunder-bay-border-cats/2019/03/09/ceo/", "Thunder Bay Border Cats announcement")),
@@ -298,6 +345,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "ward-northwood", Name: "Northwood", Seats: 1, Choice: "Choose 1",
+			CandidateEvent: &ElectionCandidateEventView{
+				Title:    "Northwood Ward Panel",
+				DateTime: "Thursday, September 17, 2026, 6 p.m.",
+				Location: "Mary JL Black Library",
+				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("André Gagné", "Gagné, André", "A logistics and business-development professional involved in local construction projects.", "", nil),
 				electionCandidate("Syed Kabir", "Kabir, Syed", "His campaign site describes a background in business, media and community organizations.", "", electionPage("https://syedkabir.ca/", ElectionPageCampaign)),
@@ -306,6 +359,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "ward-westfort", Name: "Westfort", Seats: 1, Choice: "Choose 1",
+			CandidateEvent: &ElectionCandidateEventView{
+				Title:    "Neebing and Westfort Ward Panel",
+				DateTime: "Monday, September 21, 2026, 6 p.m.",
+				Location: "Mary JL Black Library",
+				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Angel Gamble", "Gamble, Angel", "A First Nations business owner in Westfort and first-time municipal candidate with prior union political-action experience in Alberta.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/candidate-for-westfort-ward-wants-to-bring-people-together-12710446", "TBNewsWatch candidate profile")),
 				electionCandidate("Clinton Harris", "Harris, Clinton", "A former publisher and teacher who has served on community boards and ran for mayor in 2022.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/harris-shifts-from-mayoral-race-to-ward-councillor-bid-12689527", "TBNewsWatch candidate profile")),
@@ -314,6 +373,12 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		{
 			ID: "ward-neebing", Name: "Neebing", Seats: 1, Choice: "Choose 1",
+			CandidateEvent: &ElectionCandidateEventView{
+				Title:    "Neebing and Westfort Ward Panel",
+				DateTime: "Monday, September 21, 2026, 6 p.m.",
+				Location: "Mary JL Black Library",
+				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
+			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("John Warren Beals", "Beals, John Warren", "A former local business owner who operated the Neebing Roadhouse and Best Western Plus Nor'Wester Hotel and Conference Centre.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/john-beals-enters-race-for-neebing-ward-12693862", "TBNewsWatch candidate profile")),
 				electionCandidate("Greg Johnsen", "Johnsen, Greg", "The current Neebing councillor, with a professional background in education and history.", "Ward Councillor", nil),
