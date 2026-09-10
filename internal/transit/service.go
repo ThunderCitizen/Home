@@ -2,7 +2,6 @@ package transit
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,27 +9,12 @@ import (
 	"thundercitizen/internal/transit/chunk"
 )
 
-// Service owns transit business state: the ChunkCache for metric data,
-// the auxiliary RepoCache for everything else, the reporter, and the
-// vehicle stream. Handlers delegate all data access here.
-//
-// Metrics flow through the ChunkCache. Everything else — live dashboard,
-// route metadata, stats reports, stop analytics — flows through the
-// legacy RepoCache. The ChunkCache is the only thing that talks to
-// transit.route_band_chunk; everything in RepoCache reads other tables.
-//
-// ChunkCache is exported so handlers can call it directly:
-//
-//	chunks,    err := h.svc.ChunkCache.Range(ctx, from, to)
-//	one,  ok,  err := h.svc.ChunkCache.One(ctx, "3", today, "morning")
-//	earliest      := h.svc.ChunkCache.EarliestDate()
+// Service loads transit data for each request and owns the live feed clients.
 type Service struct {
-	db         *pgxpool.Pool
-	reporter   *Reporter
-	stream     *VehicleStream
-	recorder   *Recorder
-	cache      *RepoCache
-	ChunkCache *ChunkCache
+	db       *pgxpool.Pool
+	reporter *Reporter
+	stream   *VehicleStream
+	recorder *Recorder
 
 	// Testability hooks — override in tests to avoid hitting the DB.
 	getRoute             func(ctx context.Context, routeID string) (*RouteInfo, error)
@@ -51,36 +35,19 @@ func NewService(db *pgxpool.Pool, recorder *Recorder) *Service {
 	client := NewClient()
 	reporter := NewReporter(db, client)
 	return &Service{
-		db:         db,
-		reporter:   reporter,
-		stream:     NewVehicleStream(client, db, 6*time.Second),
-		recorder:   recorder,
-		cache:      NewRepoCache(reporter),
-		ChunkCache: NewChunkCache(db),
+		db:       db,
+		reporter: reporter,
+		stream:   NewVehicleStream(client, db, 6*time.Second),
+		recorder: recorder,
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Cache readers — every accessor lazy-loads on miss via RepoCache.
-//
-// There are no background warmers. The first caller after boot pays the
-// compute cost; every subsequent caller hits the cache. The `live` slot
-// has a TTL (30s) so dashboard data stays fresh; every other slot caches
-// forever until the key changes (e.g. date range rolls at midnight).
-//
-// All accessors return nil/zero on loader error — handlers map that to a
-// 503 or an empty render as they see fit.
-// ---------------------------------------------------------------------------
-
-func newCacheCtx() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 30*time.Second)
-}
-
-// RouteMeta returns route metadata (lazy-loaded on first call).
-func (s *Service) RouteMeta() []RouteMetaAPI {
-	ctx, cancel := newCacheCtx()
+// RouteMeta reads metadata for routes with service in the past week.
+func (s *Service) RouteMeta(ctx context.Context) []RouteMetaAPI {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	v, err := s.cache.routeMeta.Get(ctx)
+	to := ServiceDate()
+	v, err := s.reporter.repo.AllRouteMeta(ctx, to.AddDate(0, 0, -6), to)
 	if err != nil {
 		return nil
 	}
@@ -91,26 +58,35 @@ func (s *Service) RouteMeta() []RouteMetaAPI {
 // formatted as YYYY-MM-DD, or "" if the table is empty. Used by the
 // date selector to disable the prev arrow at the data boundary.
 func (s *Service) SinceDate(ctx context.Context) string {
-	d := s.ChunkCache.EarliestDate(ctx)
-	if d.IsZero() {
+	d, err := s.reporter.repo.EarliestChunkDate(ctx)
+	if err != nil || d.IsZero() {
 		return ""
 	}
 	return d.Format("2006-01-02")
 }
 
-// Chunks returns the chunks in [from, to] inclusive. Thin wrapper over
-// ChunkCache.Range — handlers can call either, this exists so existing
-// call sites that read like "give me the metrics" stay readable.
+// Chunks reads the existing rollup rows in [from, to] inclusive.
 func (s *Service) Chunks(ctx context.Context, from, to time.Time) ([]chunk.ChunkView, error) {
-	return s.ChunkCache.Range(ctx, from, to)
+	return s.reporter.repo.Chunks(ctx, from, to)
 }
 
 // Stats returns a stats report by variant ("day", "week", "percentiles").
-func (s *Service) Stats(variant string) *StatsReport {
-	ctx, cancel := newCacheCtx()
+func (s *Service) Stats(ctx context.Context, variant string) *StatsReport {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	report, err := s.cache.stats.Get(ctx, variant)
-	if err != nil {
+	var report *StatsReport
+	var err error
+	switch variant {
+	case "day":
+		report, err = s.reporter.DayStats(ctx)
+	case "percentiles":
+		report, err = s.reporter.Percentiles(ctx)
+	case "week":
+		report, err = s.reporter.WeekStats(ctx)
+	default:
+		return nil
+	}
+	if err != nil || ctx.Err() != nil {
 		return nil
 	}
 	return report
@@ -122,74 +98,27 @@ func (s *Service) LiveBusCount() int {
 	return s.stream.LiveBusCount()
 }
 
-// Live returns the live dashboard bundle. Slot has a 30s TTL so repeated
-// calls within that window hit the cache; a call after expiry re-loads.
-// Unlike other accessors, Live returns the error so handlers can log it
-// with request context and distinguish DB failure from a cold cache.
-func (s *Service) Live() (*liveData, error) {
-	ctx, cancel := newCacheCtx()
-	defer cancel()
-	v, err := s.cache.live.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// RefreshLive unconditionally reloads the live slot. Used by the background
-// warmer to keep the slot warm so /transit page requests never pay the
-// loader cost on the hot path.
-func (s *Service) RefreshLive(ctx context.Context) error {
-	return s.cache.live.Refresh(ctx)
-}
-
-// CancelDetails returns the per-trip cancel log for [from, to]. Cached
-// per range; the background warmer refreshes any cached range whose
-// to-side is today so the default 7-day window stays current.
+// CancelDetails reads the per-trip cancel log for [from, to] directly.
 func (s *Service) CancelDetails(ctx context.Context, from, to time.Time) ([]CancelDetail, error) {
-	return s.cache.cancelDetails.Get(ctx, rangeKey(from, to))
+	return LoadCancelDetails(ctx, s.db, from, to)
 }
 
-// RefreshTodayCancelDetails reloads every cancel-detail cache entry whose
-// to-side is today. Called from the warmer. New ranges that have never
-// been requested are not pre-warmed here — only ones a user has hit.
-func (s *Service) RefreshTodayCancelDetails(ctx context.Context) error {
-	todayISO := ServiceDate().Format("2006-01-02")
-	for _, key := range s.cache.cancelDetails.Keys() {
-		if !strings.HasSuffix(key, ".."+todayISO) {
-			continue
-		}
-		if err := s.cache.cancelDetails.Refresh(ctx, key); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// WarmCancelDetails loads the given range into the cache if not already
-// present. Lets the boot-time warmer pre-populate the default 7-day
-// window so the first /transit/metrics request after a restart is warm.
-func (s *Service) WarmCancelDetails(ctx context.Context, from, to time.Time) error {
-	_, err := s.cache.cancelDetails.Get(ctx, rangeKey(from, to))
-	return err
-}
-
-// AllStops returns all stops (lazy-loaded on first call).
-func (s *Service) AllStops() []Stop {
-	ctx, cancel := newCacheCtx()
+// AllStops reads the current stop inventory.
+func (s *Service) AllStops(ctx context.Context) []Stop {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	v, err := s.cache.allStops.Get(ctx)
+	v, err := s.reporter.AllStopsReport(ctx)
 	if err != nil {
 		return nil
 	}
 	return v
 }
 
-// StopAnalytics returns per-stop analytics rows (lazy-loaded on first call).
-func (s *Service) StopAnalytics() []StopAnalyticsRow {
-	ctx, cancel := newCacheCtx()
+// StopAnalytics reads per-stop analytics for the past week.
+func (s *Service) StopAnalytics(ctx context.Context) []StopAnalyticsRow {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	v, err := s.cache.stopAnalytics.Get(ctx)
+	v, err := s.reporter.repo.StopAnalytics(ctx, 7)
 	if err != nil {
 		return nil
 	}
@@ -235,17 +164,15 @@ func (s *Service) RouteServiceDays(ctx context.Context, routeID string, refDate 
 	sunday := monday.AddDate(0, 0, 6)
 
 	rows, err := s.db.Query(ctx, `
-		SELECT DISTINCT day FROM (
-			SELECT date::TEXT AS day
-			FROM transit.stop_delay
-			WHERE route_id = $1 AND date BETWEEN $2::date AND $3::date
-			UNION
-			SELECT TO_CHAR(TO_DATE(start_date, 'YYYYMMDD'), 'YYYY-MM-DD') AS day
-			FROM transit.cancellation
-			WHERE route_id = $1 AND start_date IS NOT NULL
-			  AND start_date BETWEEN TO_CHAR($2::date, 'YYYYMMDD')
-			                     AND TO_CHAR($3::date, 'YYYYMMDD')
-		) sub
+		SELECT day::date::text
+		FROM generate_series($2::date::timestamp, $3::date::timestamp, interval '1 day') AS days(day)
+		WHERE EXISTS (
+			SELECT 1 FROM transit.stop_delay d
+			WHERE d.route_id = $1 AND d.date = day::date
+		) OR EXISTS (
+			SELECT 1 FROM transit.cancellation c
+			WHERE c.route_id = $1 AND c.start_date = TO_CHAR(day, 'YYYYMMDD')
+		)
 	`, routeID, monday, sunday)
 	if err != nil {
 		return nil
@@ -295,10 +222,18 @@ func (s *Service) RouteCancelDays(ctx context.Context, routeID string, refDate t
 }
 
 // RouteTrackingStats returns total trip observations and first observation date for a route.
+// Group scalar keys so PostgreSQL can use a covering index or hash aggregate
+// instead of sorting composite records. Keep all stops: some trips are only
+// observed downstream.
 func (s *Service) RouteTrackingStats(ctx context.Context, routeID string) (totalTrips int, since string) {
 	s.reporter.db.QueryRow(ctx, `
-		SELECT COUNT(DISTINCT (trip_id, date))::INT, COALESCE(MIN(date)::TEXT, '')
-		FROM transit.stop_delay WHERE route_id = $1
+		SELECT COUNT(*)::INT, COALESCE(MIN(date)::TEXT, '')
+		FROM (
+			SELECT date, trip_id
+			FROM transit.stop_delay
+			WHERE route_id = $1
+			GROUP BY date, trip_id
+		) trips
 	`, routeID).Scan(&totalTrips, &since)
 	return
 }
@@ -356,40 +291,5 @@ type MapTimepointStop struct {
 
 // TimepointStops returns timepoint stops grouped by stop_id with route colors for map rendering.
 func (s *Service) TimepointStops(ctx context.Context) ([]MapTimepointStop, error) {
-	tps, err := s.reporter.repo.AllRouteTimepoints(ctx)
-	if err != nil {
-		return nil, err
-	}
-	routes, err := s.reporter.repo.RouteDisplayInfo(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	colorMap := map[string]string{}
-	for _, rd := range routes {
-		if rd.Color != "" {
-			colorMap[rd.RouteID] = rd.Color
-		}
-	}
-
-	stopRoutes := map[string]map[string]bool{}
-	for routeID, rtp := range tps {
-		for _, tp := range rtp {
-			if stopRoutes[tp.StopID] == nil {
-				stopRoutes[tp.StopID] = map[string]bool{}
-			}
-			stopRoutes[tp.StopID][routeID] = true
-		}
-	}
-
-	var result []MapTimepointStop
-	for stopID, routeSet := range stopRoutes {
-		ts := MapTimepointStop{StopID: stopID}
-		for rid := range routeSet {
-			ts.Routes = append(ts.Routes, rid)
-			ts.Colors = append(ts.Colors, colorMap[rid])
-		}
-		result = append(result, ts)
-	}
-	return result, nil
+	return s.reporter.repo.TimepointStops(ctx)
 }

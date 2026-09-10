@@ -97,14 +97,16 @@ func RouteSchedule(ctx context.Context, db *pgxpool.Pool, routeID string, date t
 		SELECT
 			rt.trip_id, rt.headsign,
 			rt.start_time, rt.end_time,
-			CASE WHEN c.trip_id IS NOT NULL THEN TRUE ELSE FALSE END AS canceled,
+			EXISTS (
+				SELECT 1 FROM transit.cancellation c
+				WHERE c.trip_id = rt.trip_id
+				  AND c.feed_timestamp >= $2::date::timestamptz
+				  AND c.feed_timestamp < ($2::date + 1)::timestamptz
+			) AS canceled,
 			a.avg_delay,
 			COALESCE(a.stops_observed, 0)::INT,
 			rt.stops_total
 		FROM route_trips rt
-		LEFT JOIN transit.cancellation c
-			ON c.trip_id = rt.trip_id
-			AND c.feed_timestamp::DATE = $2
 		LEFT JOIN actuals a ON a.trip_id = rt.trip_id
 		ORDER BY rt.start_time ASC
 	`, routeID, date)
@@ -487,19 +489,10 @@ func scanCancelledTrip(rows pgx.Rows, nowMin int) (CancelledTrip, error) {
 	return ct, nil
 }
 
-// LoadLiveCancellations runs a single query that produces both the
-// route-keyed cancelled-trip map (Dashboard.CancelledTrips) and the
-// schedule-walked incident list (live cancel-incidents panel). The two
-// outputs used to be loaded by two separate SQLs that each re-scanned
-// transit.cancellation; this collapses them into one read of today's
-// schedule joined to current-poll cancellation status plus a first-seen
-// aggregate.
-//
-// Semantics: "cancelled" here means present in the latest GTFS-RT poll —
-// matches what CancelIncidents has always used and what users expect on a
-// live dashboard. Historical views (a specific past date) still go through
-// CancelledTripDetails / CancelIncidents, which preserve their existing
-// per-trip semantics.
+// LoadLiveCancellations joins the day's schedule to recorded cancellations,
+// returning both trip details and consecutive cancellation incidents. A trip
+// remains canceled if any snapshot recorded it for this service date, even
+// after the trip disappears from the live feed.
 func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time) (map[string][]CancelledTrip, []CancelIncident, error) {
 	svcDate := date.Format("20060102")
 	nowT := Now()
@@ -508,13 +501,6 @@ func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time
 		nowMin += 24 * 60
 	}
 
-	// "Cancelled today" = any trip whose start_date is today AND was
-	// reported cancelled at some point — not just present in the
-	// latest poll. The previous-poll-only approach hollowed out the
-	// panel as the day progressed (already-departed cancellations drop
-	// out of the live feed) and broke restart recovery (an empty
-	// in-memory state until the next poll). Keying on persisted
-	// start_date keeps the day's history intact across restarts.
 	rows, err := db.Query(ctx, `
 		WITH today_trips AS (
 			SELECT tc.trip_id, tc.route_id, tc.headsign, tc.block_id,
@@ -523,11 +509,6 @@ func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time
 			FROM transit.trip_catalog tc
 			JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
 			WHERE sc.date = $1
-		),
-		cancelled_today AS (
-			SELECT DISTINCT trip_id
-			FROM transit.cancellation
-			WHERE start_date = $2
 		),
 		first_seen AS (
 			SELECT trip_id,
@@ -538,13 +519,12 @@ func LoadLiveCancellations(ctx context.Context, db *pgxpool.Pool, date time.Time
 			GROUP BY trip_id
 		)
 		SELECT tt.route_id, tt.trip_id, tt.start_time, tt.end_time, tt.headsign, tt.block_id,
-		       (ct.trip_id IS NOT NULL) AS is_cancelled,
+		       (fs.trip_id IS NOT NULL) AS is_cancelled,
 		       TO_CHAR(fs.first_feed AT TIME ZONE 'America/Thunder_Bay', 'HH24:MI') AS seen_time,
 		       EXTRACT(HOUR FROM (fs.first_feed AT TIME ZONE 'America/Thunder_Bay')::time)::int * 60 +
 		           EXTRACT(MINUTE FROM (fs.first_feed AT TIME ZONE 'America/Thunder_Bay')::time)::int AS seen_min,
 		       COALESCE(fs.snapshot_count, 0) AS snapshot_count
 		FROM today_trips tt
-		LEFT JOIN cancelled_today ct ON ct.trip_id = tt.trip_id
 		LEFT JOIN first_seen fs ON fs.trip_id = tt.trip_id
 		ORDER BY tt.route_id, tt.start_time
 	`, date, svcDate)
@@ -776,6 +756,9 @@ type UnifiedSchedule struct {
 // trip arrives first and defines that direction's canonical stop list.
 // This preserves the prior "representative trip = min(trip_id)" semantics
 // without the 1+2N round-trip pattern the old implementation used.
+// Cancellation is an existence check so repeated feed snapshots do not
+// duplicate stop rows. Timestamp bounds preserve the original feed-date
+// semantics in the database session's timezone, including daylight saving.
 func RouteTimepointSchedule(ctx context.Context, db *pgxpool.Pool, routeID string, date time.Time) ([]TimepointSchedule, error) {
 	rows, err := db.Query(ctx, `
 		SELECT
@@ -786,7 +769,12 @@ func RouteTimepointSchedule(ctx context.Context, db *pgxpool.Pool, routeID strin
 			ss.stop_sequence,
 			COALESCE(ss.scheduled_departure, ss.scheduled_arrival) AS sched_time,
 			a.arrival_delay, a.departure_delay,
-			CASE WHEN cn.trip_id IS NOT NULL THEN TRUE ELSE FALSE END AS canceled
+			EXISTS (
+				SELECT 1 FROM transit.cancellation cn
+				WHERE cn.trip_id = tc.trip_id
+				  AND cn.feed_timestamp >= $2::date::timestamptz
+				  AND cn.feed_timestamp < ($2::date + 1)::timestamptz
+			) AS canceled
 		FROM transit.trip_catalog tc
 		JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
 		JOIN transit.scheduled_stop ss
@@ -794,8 +782,6 @@ func RouteTimepointSchedule(ctx context.Context, db *pgxpool.Pool, routeID strin
 		LEFT JOIN transit.stop s ON s.stop_id = ss.stop_id
 		LEFT JOIN transit.stop_delay a
 			ON a.trip_id = tc.trip_id AND a.stop_id = ss.stop_id AND a.date = $2
-		LEFT JOIN transit.cancellation cn
-			ON cn.trip_id = tc.trip_id AND cn.feed_timestamp::DATE = $2
 		WHERE tc.route_id = $1 AND sc.date = $2
 		ORDER BY tc.headsign, tc.trip_id, ss.stop_sequence
 	`, routeID, date)

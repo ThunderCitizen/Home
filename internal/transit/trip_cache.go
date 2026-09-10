@@ -110,9 +110,8 @@ func (c *TripCache) Size() int {
 //
 // A simple pub/sub for "Tier 2 has just been rebuilt by the loader." The
 // loader calls NotifyGTFSReloaded() after a successful DeriveTier2; every
-// subscriber's channel receives a non-blocking signal. Subscribers (the
-// recorder's trip cache, the metrics cache invalidator) listen on their
-// channel in a goroutine and rebuild their state.
+// subscriber's channel receives a non-blocking signal. The recorder's trip
+// cache listens on its channel in a goroutine and rebuilds its state.
 
 var (
 	reloadMu          sync.Mutex

@@ -21,7 +21,7 @@ func (h *Handler) auditIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vm := AuditIndexViewModel{
-		Routes:  h.svc.RouteMeta(),
+		Routes:  h.svc.RouteMeta(r.Context()),
 		DateISO: date.Format("2006-01-02"),
 	}
 	w.Header().Set("Cache-Control", cache.Live)

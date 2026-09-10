@@ -4,12 +4,10 @@
 //
 //	go run ./cmd/perftest              # 10 runs per route, print report
 //	go run ./cmd/perftest -n 25        # 25 runs per route
-//	go run ./cmd/perftest -r           # record to perftest/ + show delta vs last run
+//	go run ./cmd/perftest -r           # save a JSON report to perftest/
 //	go run ./cmd/perftest -base http://staging:8080
 //
-// Records are saved to perftest/ as timestamped JSON. When a previous record
-// exists, the report includes a Δ Avg column showing regressions (+) and
-// improvements (-) against the last run.
+// Each URL reports aggregate timings over all requests, including response bodies.
 //
 // Routes are auto-discovered: transit route IDs from /api/transit/routes,
 // minutes IDs from page links.
@@ -32,42 +30,34 @@ import (
 const recordDir = "perftest"
 
 type route struct {
-	group string
-	path  string
+	Group string `json:"group"`
+	Path  string `json:"path"`
 }
 
 type result struct {
-	route route
-	code  int
-	times []time.Duration
-	err   error
+	route
+	stats
+	Code  int    `json:"code"`
+	Error string `json:"error,omitempty"`
 }
 
 // record is the JSON-serializable format for saved runs.
 type record struct {
-	Timestamp string        `json:"timestamp"`
-	Base      string        `json:"base"`
-	Runs      int           `json:"runs"`
-	Routes    []recordRoute `json:"routes"`
-}
-
-type recordRoute struct {
-	Group string `json:"group"`
-	Path  string `json:"path"`
-	Code  int    `json:"code"`
-	Min   int64  `json:"min_ms"`
-	Avg   int64  `json:"avg_ms"`
-	Med   int64  `json:"med_ms"`
-	P95   int64  `json:"p95_ms"`
-	Max   int64  `json:"max_ms"`
-	Error string `json:"error,omitempty"`
+	Timestamp string   `json:"timestamp"`
+	Base      string   `json:"base"`
+	Runs      int      `json:"runs"`
+	Routes    []result `json:"routes"`
 }
 
 func main() {
 	base := flag.String("base", "http://localhost:8080", "server base URL")
-	n := flag.Int("n", 10, "requests per route")
+	n := flag.Int("n", 10, "requests per route (minimum 1)")
 	save := flag.Bool("r", false, "record results to "+recordDir+"/")
 	flag.Parse()
+	if *n < 1 {
+		fmt.Fprintln(os.Stderr, "-n must be at least 1")
+		os.Exit(1)
+	}
 
 	// Health check
 	resp, err := http.Get(*base + "/health")
@@ -76,6 +66,10 @@ func main() {
 		os.Exit(1)
 	}
 	resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		fmt.Fprintf(os.Stderr, "health check failed: %s\n", resp.Status)
+		os.Exit(1)
+	}
 
 	// Discover parameterized route values from running server.
 	routeIDs := discoverRouteIDs(*base)
@@ -83,32 +77,19 @@ func main() {
 
 	routes := buildRoutes(routeIDs, minutesID)
 
-	// Load previous record for delta comparison.
-	prev := loadLatestRecord()
-	prevLookup := map[string]recordRoute{}
-	if prev != nil {
-		for _, rr := range prev.Routes {
-			prevLookup[rr.Path] = rr
-		}
-	}
-
-	hasDelta := len(prevLookup) > 0
 	fmt.Printf("perftest: %d routes × %d runs against %s\n", len(routes), *n, *base)
-	if hasDelta {
-		fmt.Printf("  comparing against %s\n", prev.Timestamp)
-	}
 
 	// Run benchmarks grouped by section.
 	results := make([]result, 0, len(routes))
 	curGroup := ""
 	for _, r := range routes {
-		if r.group != curGroup {
-			curGroup = r.group
-			printGroupHeader(curGroup, hasDelta)
+		if r.Group != curGroup {
+			curGroup = r.Group
+			printGroupHeader(curGroup)
 		}
 		res := bench(*base, r, *n)
 		results = append(results, res)
-		printResult(res, prevLookup)
+		printResult(res)
 	}
 
 	// Summary
@@ -157,12 +138,19 @@ func buildRoutes(routeIDs []string, minutesID string) []route {
 	// Transit pages
 	routes = append(routes, []route{
 		{"Transit Pages", "/transit/"},
+		{"Transit Pages", "/transit/kiosk"},
 		{"Transit Pages", "/transit/metrics"},
 		{"Transit Pages", "/transit/routes"},
 		{"Transit Pages", "/transit/method"},
 	}...)
 	for _, id := range routeIDs {
 		routes = append(routes, route{"Transit Pages", "/transit/route/" + id})
+	}
+	for _, id := range routeIDs {
+		routes = append(routes,
+			route{"Transit Partials", "/transit/route/" + id + "?partial=schedule"},
+			route{"Transit Partials", "/transit/route/" + id + "?partial=schedule-body"},
+		)
 	}
 
 	// Transit API
@@ -172,85 +160,79 @@ func buildRoutes(routeIDs []string, minutesID string) []route {
 		{"Transit API", "/api/transit/stats"},
 		{"Transit API", "/api/transit/stats?range=percentiles"},
 		{"Transit API", "/api/transit/stats?range=week"},
-		{"Transit API", "/api/transit/metrics"},
-		{"Transit API", "/api/transit/kpis"},
 		{"Transit API", "/api/transit/stops"},
-		{"Transit API", "/api/transit/trends"},
 		{"Transit API", "/api/transit/routes"},
-		{"Transit API", "/api/transit/coverage"},
 		{"Transit API", "/api/transit/timepoints"},
 		{"Transit API", "/api/transit/stops/nearby?lat=48.38&lon=-89.25"},
 		{"Transit API", "/api/transit/stops/analytics"},
-		{"Transit API", "/api/transit/designer/config"},
 	}...)
 
 	return routes
 }
 
 func bench(base string, r route, n int) result {
-	client := &http.Client{Timeout: 30 * time.Second}
-	res := result{route: r, times: make([]time.Duration, 0, n)}
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	res := result{route: r}
+	times := make([]time.Duration, 0, n)
 
 	for i := 0; i < n; i++ {
 		start := time.Now()
-		resp, err := client.Get(base + r.path)
-		elapsed := time.Since(start)
+		resp, err := client.Get(base + r.Path)
 		if err != nil {
-			res.err = err
+			res.Error = err.Error()
 			return res
 		}
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-		res.code = resp.StatusCode
-		res.times = append(res.times, elapsed)
+		res.Code = resp.StatusCode
+		_, readErr := io.Copy(io.Discard, resp.Body)
+		closeErr := resp.Body.Close()
+		elapsed := time.Since(start)
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			res.Error = "HTTP " + resp.Status
+			return res
+		}
+		if readErr != nil {
+			res.Error = "read response body: " + readErr.Error()
+			return res
+		}
+		if closeErr != nil {
+			res.Error = "close response body: " + closeErr.Error()
+			return res
+		}
+		times = append(times, elapsed)
 	}
+	res.stats = calcStats(times)
 	return res
 }
 
 // --- Output ---
 
-func printGroupHeader(name string, hasDelta bool) {
-	if hasDelta {
-		fmt.Printf("\n  %-55s %6s %6s %6s %6s %6s %4s %7s\n",
-			name, "Min", "Avg", "Med", "P95", "Max", "Code", "Δ Avg")
-		fmt.Printf("  %-55s %6s %6s %6s %6s %6s %4s %7s\n",
-			strings.Repeat("─", 55), "───", "───", "───", "───", "───", "────", "─────")
-	} else {
-		fmt.Printf("\n  %-55s %6s %6s %6s %6s %6s %4s\n",
-			name, "Min", "Avg", "Med", "P95", "Max", "Code")
-		fmt.Printf("  %-55s %6s %6s %6s %6s %6s %4s\n",
-			strings.Repeat("─", 55), "───", "───", "───", "───", "───", "────")
-	}
+func printGroupHeader(name string) {
+	fmt.Printf("\n  %-65s %7s %7s %7s %7s %7s %4s\n",
+		name, "Min", "Avg", "Med", "P95", "Max", "Code")
+	fmt.Printf("  %-65s %7s %7s %7s %7s %7s %4s\n",
+		strings.Repeat("─", 65), "─────", "─────", "─────", "─────", "─────", "────")
 }
 
-func printResult(r result, prev map[string]recordRoute) {
-	if r.err != nil {
-		fmt.Printf("  %-55s  ERROR: %v\n", r.route.path, r.err)
+func printResult(r result) {
+	if r.Error != "" {
+		fmt.Printf("  %-65s  ERROR: %s\n", r.Path, r.Error)
 		return
 	}
-	s := calcStats(r.times)
-
-	delta := ""
-	if old, ok := prev[r.route.path]; ok {
-		diff := s.avg - old.Avg
-		if diff > 0 {
-			delta = fmt.Sprintf("  +%dms", diff)
-		} else if diff < 0 {
-			delta = fmt.Sprintf("  %dms", diff)
-		}
-	}
-
-	if len(prev) > 0 {
-		fmt.Printf("  %-55s %5dms %5dms %5dms %5dms %5dms %4d %s\n",
-			r.route.path, s.min, s.avg, s.med, s.p95, s.max, r.code, delta)
-	} else {
-		fmt.Printf("  %-55s %5dms %5dms %5dms %5dms %5dms %4d\n",
-			r.route.path, s.min, s.avg, s.med, s.p95, s.max, r.code)
-	}
+	fmt.Printf("  %-65s %5dms %5dms %5dms %5dms %5dms %4d\n",
+		r.Path, r.Min, r.Avg, r.Med, r.P95, r.Max, r.Code)
 }
 
 type stats struct {
-	min, avg, med, p95, max int64
+	Min int64 `json:"min_ms"`
+	Avg int64 `json:"avg_ms"`
+	Med int64 `json:"med_ms"`
+	P95 int64 `json:"p95_ms"`
+	Max int64 `json:"max_ms"`
 }
 
 func calcStats(times []time.Duration) stats {
@@ -276,11 +258,11 @@ func calcStats(times []time.Duration) stats {
 	}
 
 	return stats{
-		min: ms[0],
-		avg: sum / int64(n),
-		med: med,
-		p95: ms[p95idx],
-		max: ms[n-1],
+		Min: ms[0],
+		Avg: sum / int64(n),
+		Med: med,
+		P95: ms[p95idx],
+		Max: ms[n-1],
 	}
 }
 
@@ -288,9 +270,9 @@ func printSummary(results []result) {
 	var slow []result
 	var errs []result
 	for _, r := range results {
-		if r.err != nil {
+		if r.Error != "" {
 			errs = append(errs, r)
-		} else if calcStats(r.times).avg > 50 {
+		} else if r.Avg > 50 {
 			slow = append(slow, r)
 		}
 	}
@@ -298,7 +280,7 @@ func printSummary(results []result) {
 	if len(errs) > 0 {
 		fmt.Printf("  ERRORS (%d):\n", len(errs))
 		for _, r := range errs {
-			fmt.Printf("    %s — %v\n", r.route.path, r.err)
+			fmt.Printf("    %s — %s\n", r.Path, r.Error)
 		}
 		fmt.Println()
 	}
@@ -306,11 +288,10 @@ func printSummary(results []result) {
 	if len(slow) > 0 {
 		fmt.Printf("  SLOW (>50ms avg):\n")
 		for _, r := range slow {
-			s := calcStats(r.times)
-			fmt.Printf("    %s — avg %dms, p95 %dms\n", r.route.path, s.avg, s.p95)
+			fmt.Printf("    %s — avg %dms, p95 %dms\n", r.Path, r.Avg, r.P95)
 		}
 	} else if len(errs) == 0 {
-		fmt.Println("  All routes under 50ms avg.")
+		fmt.Println("  All routes at or below 50ms avg.")
 	}
 }
 
@@ -326,25 +307,7 @@ func saveRecord(base string, n int, results []result) (string, error) {
 		Timestamp: now.Format(time.RFC3339),
 		Base:      base,
 		Runs:      n,
-	}
-
-	for _, r := range results {
-		rr := recordRoute{
-			Group: r.route.group,
-			Path:  r.route.path,
-			Code:  r.code,
-		}
-		if r.err != nil {
-			rr.Error = r.err.Error()
-		} else {
-			s := calcStats(r.times)
-			rr.Min = s.min
-			rr.Avg = s.avg
-			rr.Med = s.med
-			rr.P95 = s.p95
-			rr.Max = s.max
-		}
-		rec.Routes = append(rec.Routes, rr)
+		Routes:    results,
 	}
 
 	data, err := json.MarshalIndent(rec, "", "  ")
@@ -358,34 +321,6 @@ func saveRecord(base string, n int, results []result) (string, error) {
 		return "", err
 	}
 	return path, nil
-}
-
-func loadLatestRecord() *record {
-	entries, err := os.ReadDir(recordDir)
-	if err != nil {
-		return nil
-	}
-
-	// Find the most recent .json file (names sort chronologically).
-	var latest string
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
-			latest = e.Name()
-		}
-	}
-	if latest == "" {
-		return nil
-	}
-
-	data, err := os.ReadFile(filepath.Join(recordDir, latest))
-	if err != nil {
-		return nil
-	}
-	var rec record
-	if err := json.Unmarshal(data, &rec); err != nil {
-		return nil
-	}
-	return &rec
 }
 
 // --- Discovery helpers: fetch real IDs from the running server ---
@@ -431,11 +366,15 @@ func discoverMinutesID(base string) string {
 }
 
 func fetchBody(url string) string {
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return ""
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return ""
+	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return ""

@@ -98,7 +98,7 @@ func (h *Handler) stats(w http.ResponseWriter, r *http.Request) {
 		variant = "day"
 	}
 
-	report := h.svc.Stats(variant)
+	report := h.svc.Stats(r.Context(), variant)
 	if report == nil {
 		httperr.Unavailable(w, "stats unavailable")
 		return
@@ -107,7 +107,7 @@ func (h *Handler) stats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) stops(w http.ResponseWriter, r *http.Request) {
-	allStops := h.svc.AllStops()
+	allStops := h.svc.AllStops(r.Context())
 	if allStops == nil {
 		httperr.Unavailable(w, "stops unavailable")
 		return
@@ -117,7 +117,7 @@ func (h *Handler) stops(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) stopAnalytics(w http.ResponseWriter, r *http.Request) {
-	results := h.svc.StopAnalytics()
+	results := h.svc.StopAnalytics(r.Context())
 	if results == nil {
 		httperr.Unavailable(w, "stop analytics unavailable")
 		return
@@ -126,7 +126,7 @@ func (h *Handler) stopAnalytics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) routesMeta(w http.ResponseWriter, r *http.Request) {
-	routes := h.svc.RouteMeta()
+	routes := h.svc.RouteMeta(r.Context())
 	if routes == nil {
 		httperr.Unavailable(w, "route meta unavailable")
 		return

@@ -35,7 +35,7 @@ type Renderer struct {
 type RenderFunc func(ctx context.Context, w io.Writer) error
 
 // Handler serves all transit page and API routes.
-// It is a thin HTTP adapter — business logic and caching live in Service.
+// It is a thin HTTP adapter — business logic lives in Service.
 // The handler methods are split across three files: this one holds shared
 // infrastructure (struct, constructor, route registration, parseDateRange,
 // helpers); page handlers live in page_handler.go; API handlers live in
@@ -56,12 +56,6 @@ func NewHandler(db *pgxpool.Pool, render Renderer, recorder *Recorder) *Handler 
 		render:        render,
 		VehicleStream: svc.stream,
 	}
-}
-
-// StartLiveWarmer launches the background goroutine that keeps the live
-// dashboard slot warm. See LiveWarmer for details.
-func (h *Handler) StartLiveWarmer(ctx context.Context) {
-	NewLiveWarmer(h.svc).Start(ctx)
 }
 
 // PageRoutes returns a chi.Router with transit page routes.
@@ -103,9 +97,8 @@ func (h *Handler) APIRoutes() chi.Router {
 	return r
 }
 
-// MaxRangeDays caps how wide a custom window can be. One year keeps
-// query cost bounded and the chunk cache from being asked to hydrate
-// the universe on a malformed link.
+// MaxRangeDays caps how wide a custom window can be. One year bounds
+// query cost and response size even for malformed links.
 const MaxRangeDays = 366
 
 // parseDateRange builds a DateRange from ?from= and ?to= query params.

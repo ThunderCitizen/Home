@@ -90,6 +90,16 @@ Or drive the stages individually:
 
 `summarize` (LLM motion classifier), `auditbudget` (sub-ledger balance check), `buildshapes` (route shapes from GTFS), `gentstypes` (TS interfaces from Go API structs), `perftest` (latency report), `seedtransit` (synthetic transit chunks for dev).
 
+`go run ./cmd/perftest -n 10 -r` measures complete HTTP responses and
+reports one set of minimum, average, median, p95, and maximum timings per
+URL. `-n` is the number of requests per URL and can be 1. The tool does not
+flush PostgreSQL's buffer cache, so repeated reads may be faster. Non-2xx
+responses and incomplete bodies are reported as errors.
+
+`-r` saves the report as JSON in `perftest/`. Reports stand alone; the tool
+does not load or compare older records. See [route performance](route-performance.md)
+for measured results and production validation.
+
 ## What `make dev` Does
 
 Air handles hot reload and runs these pre-build commands:

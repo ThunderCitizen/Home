@@ -97,29 +97,36 @@ func (r *Repo) RouteTimepoints(ctx context.Context, routeID string) ([]RouteTime
 	return tps, rows.Err()
 }
 
-// AllRouteTimepoints returns time points for all routes.
-func (r *Repo) AllRouteTimepoints(ctx context.Context) (map[string][]RouteTimepoint, error) {
+// TimepointStops returns unique stop/route memberships with matching colors.
+// Both arrays use route order so routes sharing a color retain separate entries.
+func (r *Repo) TimepointStops(ctx context.Context) ([]MapTimepointStop, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT rp.route_id, rp.headsign, rps.stop_id,
-		       COALESCE(s.name, rps.stop_id) AS stop_name, rps.sequence
-		FROM transit.route_pattern rp
-		JOIN transit.route_pattern_stop rps USING (pattern_id)
-		JOIN transit.stop s ON s.stop_id = rps.stop_id
-		WHERE rps.is_timepoint = true
-		ORDER BY rp.route_id, rp.headsign, rps.sequence
+		SELECT membership.stop_id,
+		       ARRAY_AGG(membership.route_id ORDER BY membership.route_id COLLATE "C"),
+		       ARRAY_AGG(COALESCE(r.color, '') ORDER BY membership.route_id COLLATE "C")
+		FROM (
+			SELECT DISTINCT rps.stop_id, rp.route_id
+			FROM transit.route_pattern rp
+			JOIN transit.route_pattern_stop rps USING (pattern_id)
+			JOIN transit.stop s ON s.stop_id = rps.stop_id
+			WHERE rps.is_timepoint = true
+		) membership
+		LEFT JOIN transit.route r ON r.route_id = membership.route_id
+		GROUP BY membership.stop_id
+		ORDER BY membership.stop_id COLLATE "C"
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	result := map[string][]RouteTimepoint{}
+	var result []MapTimepointStop
 	for rows.Next() {
-		var tp RouteTimepoint
-		if err := rows.Scan(&tp.RouteID, &tp.Headsign, &tp.StopID, &tp.StopName, &tp.Sequence); err != nil {
+		var stop MapTimepointStop
+		if err := rows.Scan(&stop.StopID, &stop.Routes, &stop.Colors); err != nil {
 			return nil, err
 		}
-		result[tp.RouteID] = append(result[tp.RouteID], tp)
+		result = append(result, stop)
 	}
 	return result, rows.Err()
 }
@@ -396,9 +403,10 @@ func (r *Repo) DayPercentiles(ctx context.Context) ([]DelayPercentileBucket, err
 	return result, rows.Err()
 }
 
-// DaySnapshots derives 5-minute system snapshots from raw events for the last 24 hours.
-func (r *Repo) DaySnapshots(ctx context.Context) ([]TransitSnapshot, error) {
-	rows, err := r.db.Query(ctx, `
+// Deduplicate repeated feed snapshots before counting. MATERIALIZED keeps
+// PostgreSQL from sorting all raw vehicle rows for the outer DISTINCT
+// counts; this intermediate result exists only for this query execution.
+const daySnapshotsQuery = `
 		WITH buckets AS (
 			SELECT generate_series(
 				date_trunc('minute', NOW() - INTERVAL '24 hours') - (EXTRACT(MINUTE FROM NOW())::INT % 5) * INTERVAL '1 minute',
@@ -406,13 +414,19 @@ func (r *Repo) DaySnapshots(ctx context.Context) ([]TransitSnapshot, error) {
 				'5 minutes'::interval
 			) AS t
 		),
-		vehicle_stats AS (
+		vehicle_seen AS MATERIALIZED (
 			SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket,
-				COUNT(DISTINCT vehicle_id) AS active_vehicles,
-				COUNT(DISTINCT route_id) AS active_routes
+				vehicle_id, route_id
 			FROM transit.vehicle_position
 			WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
-			GROUP BY 1
+			GROUP BY 1, vehicle_id, route_id
+		),
+		vehicle_stats AS (
+			SELECT bucket,
+				COUNT(DISTINCT vehicle_id) AS active_vehicles,
+				COUNT(DISTINCT route_id) AS active_routes
+			FROM vehicle_seen
+			GROUP BY bucket
 		),
 		delay_stats AS (
 			SELECT date_trunc('minute', last_updated) - (EXTRACT(MINUTE FROM last_updated)::INT % 5) * INTERVAL '1 minute' AS bucket,
@@ -426,18 +440,24 @@ func (r *Repo) DaySnapshots(ctx context.Context) ([]TransitSnapshot, error) {
 			GROUP BY 1
 		),
 		alert_stats AS (
-			SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket,
-				COUNT(DISTINCT alert_id) AS alert_count
-			FROM transit.alert
-			WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
-			GROUP BY 1
+			SELECT bucket, COUNT(alert_id) AS alert_count
+			FROM (
+				SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket, alert_id
+				FROM transit.alert
+				WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
+				GROUP BY 1, alert_id
+			) seen
+			GROUP BY bucket
 		),
 		cancel_stats AS (
-			SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket,
-				COUNT(DISTINCT trip_id) AS cancellation_count
-			FROM transit.cancellation
-			WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
-			GROUP BY 1
+			SELECT bucket, COUNT(trip_id) AS cancellation_count
+			FROM (
+				SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket, trip_id
+				FROM transit.cancellation
+				WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
+				GROUP BY 1, trip_id
+			) seen
+			GROUP BY bucket
 		)
 		SELECT
 			b.t,
@@ -458,7 +478,11 @@ func (r *Repo) DaySnapshots(ctx context.Context) ([]TransitSnapshot, error) {
 		LEFT JOIN cancel_stats c ON c.bucket = b.t
 		WHERE COALESCE(v.active_vehicles, 0) > 0
 		   OR COALESCE(d.measurement_count, 0) > 0
-		ORDER BY b.t`)
+		ORDER BY b.t`
+
+// DaySnapshots derives 5-minute system snapshots from raw events for the last 24 hours.
+func (r *Repo) DaySnapshots(ctx context.Context) ([]TransitSnapshot, error) {
+	rows, err := r.db.Query(ctx, daySnapshotsQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -733,7 +757,9 @@ type StopAnalyticsRow struct {
 	AvgHeadwayMin *float64 `json:"avg_headway_min"` // nil if insufficient data
 }
 
-// StopAnalytics returns per-stop service data from the transit.stop_visit table.
+// StopAnalytics returns per-stop service data for stops visited in the window.
+// Their latest visit must also be in that window, so one aggregate provides
+// counts, route lists, and last-serviced timestamps without per-stop lookups.
 func (r *Repo) StopAnalytics(ctx context.Context, days int) ([]StopAnalyticsRow, error) {
 	rows, err := r.db.Query(ctx, `
 		WITH visit_headways AS (
@@ -767,24 +793,21 @@ func (r *Repo) StopAnalytics(ctx context.Context, days int) ([]StopAnalyticsRow,
 			COALESCE(s.name, s.stop_id) AS stop_name,
 			s.latitude,
 			s.longitude,
-			(SELECT MAX(sv2.observed_at)::TEXT FROM transit.stop_visit sv2 WHERE sv2.stop_id = s.stop_id) AS last_serviced,
-			COALESCE(rc.route_count, 0)::INT AS routes_serving,
-			COALESCE(rc.route_list, ARRAY[]::TEXT[]) AS route_ids,
-			COALESCE(vc.visit_count, 0)::INT AS total_visits,
+			rc.last_serviced::TEXT AS last_serviced,
+			rc.route_count::INT AS routes_serving,
+			rc.route_list AS route_ids,
+			rc.visit_count::INT AS total_visits,
 			h.avg_headway
 		FROM transit.stop s
-		LEFT JOIN (
+		JOIN (
 			SELECT stop_id,
+				COUNT(*) AS visit_count,
+				MAX(observed_at) AS last_serviced,
 				COUNT(DISTINCT route_id) AS route_count,
 				ARRAY_AGG(DISTINCT route_id ORDER BY route_id) AS route_list
 			FROM transit.stop_visit WHERE observed_at >= CURRENT_DATE - $1::int
 			GROUP BY stop_id
 		) rc ON rc.stop_id = s.stop_id
-		LEFT JOIN (
-			SELECT stop_id, COUNT(*) AS visit_count
-			FROM transit.stop_visit WHERE observed_at >= CURRENT_DATE - $1::int
-			GROUP BY stop_id
-		) vc ON vc.stop_id = s.stop_id
 		LEFT JOIN (
 			SELECT stop_id, AVG(headway_min) AS avg_headway
 			FROM headways
@@ -792,8 +815,7 @@ func (r *Repo) StopAnalytics(ctx context.Context, days int) ([]StopAnalyticsRow,
 			GROUP BY stop_id
 		) h ON h.stop_id = s.stop_id
 		WHERE s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-		  AND COALESCE(vc.visit_count, 0) > 0
-		ORDER BY COALESCE(vc.visit_count, 0) DESC
+		ORDER BY rc.visit_count DESC
 	`, days)
 	if err != nil {
 		return nil, err

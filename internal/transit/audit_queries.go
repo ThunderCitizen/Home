@@ -126,15 +126,18 @@ func buildAuditDirectionSchedule(ctx context.Context, db *pgxpool.Pool, routeID 
 			ss.stop_id,
 			COALESCE(ss.scheduled_departure, ss.scheduled_arrival) AS sched_time,
 			a.arrival_delay, a.departure_delay,
-			CASE WHEN cn.trip_id IS NOT NULL THEN TRUE ELSE FALSE END AS canceled
+			EXISTS (
+				SELECT 1 FROM transit.cancellation cn
+				WHERE cn.trip_id = tc.trip_id
+				  AND cn.feed_timestamp >= $2::date::timestamptz
+				  AND cn.feed_timestamp < ($2::date + 1)::timestamptz
+			) AS canceled
 		FROM transit.trip_catalog tc
 		JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
 		JOIN transit.scheduled_stop ss
 			ON ss.trip_id = tc.trip_id
 		LEFT JOIN transit.stop_delay a
 			ON a.trip_id = tc.trip_id AND a.stop_id = ss.stop_id AND a.date = $2
-		LEFT JOIN transit.cancellation cn
-			ON cn.trip_id = tc.trip_id AND cn.feed_timestamp::DATE = $2
 		WHERE tc.route_id = $1 AND tc.headsign = $3 AND sc.date = $2
 		ORDER BY sched_time, tc.trip_id, ss.stop_sequence
 	`, routeID, date, headsign)

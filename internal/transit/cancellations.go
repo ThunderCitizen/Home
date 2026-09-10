@@ -9,8 +9,8 @@ import (
 
 // CancelDetail is one cancelled trip in a date range — the unit of work
 // for the cancel log on the metrics tab. Distinct from CancelledTrip
-// (queries.go) which is "trips cancelled right now from the most recent
-// feed poll" and lives on the live page.
+// (queries.go), which groups the selected service day's recorded cancellations
+// for the live page.
 type CancelDetail struct {
 	Date      string `json:"date"` // YYYY-MM-DD
 	RouteID   string `json:"route_id"`
@@ -24,7 +24,7 @@ type CancelDetail struct {
 }
 
 // LoadCancelDetails returns every cancelled trip whose feed_timestamp falls
-// in [from, to) inclusive of the from-side. Used by the metrics tab to
+// on a day in [from, to], inclusive. Used by the metrics tab to
 // embed a per-trip cancel log alongside the chunk data — separate from
 // the chunk aggregates because each row is a distinct trip, not a sum.
 func LoadCancelDetails(ctx context.Context, db *pgxpool.Pool, from, to time.Time) ([]CancelDetail, error) {

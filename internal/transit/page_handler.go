@@ -27,16 +27,11 @@ func formatPollInterval(d time.Duration) string {
 // --- Page handlers ---
 
 func (h *Handler) transitLivePage(w http.ResponseWriter, r *http.Request) {
-	live, err := h.svc.Live()
+	live, err := h.svc.Live(r.Context())
 	if err != nil {
 		middleware.HandleUnavailable(r.Context(), w, "live data unavailable", err)
 		return
 	}
-	if live == nil || live.dashboard == nil {
-		httperr.Unavailable(w, "live data cache warming")
-		return
-	}
-
 	vm := NewLiveViewModel(live.dashboard.Alerts, live.dashboard.CancelledTrips)
 	vm.FleetSize = live.dashboard.FleetSize
 	vm.BusCount = h.svc.LiveBusCount()
@@ -45,7 +40,7 @@ func (h *Handler) transitLivePage(w http.ResponseWriter, r *http.Request) {
 	vm.ClockDate = now.Format("January 2")
 	vm.CancelIncidents = live.incidents
 	vm.NoServiceRoutes = live.noService
-	vm.RouteMeta = h.svc.RouteMeta()
+	vm.RouteMeta = h.svc.RouteMeta(r.Context())
 
 	h.render.TransitLive(vm)(r.Context(), w)
 }
@@ -53,7 +48,7 @@ func (h *Handler) transitLivePage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 	var vm MetricsViewModel
 	vm.KPI = "otp"
-	vm.RouteMeta = h.svc.RouteMeta()
+	vm.RouteMeta = h.svc.RouteMeta(r.Context())
 	vm.Range = parseDateRange(r, h.svc.SinceDate(r.Context()))
 	vm.ExportSize = EstimateBundleSize(vm.Range)
 
@@ -85,7 +80,7 @@ func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) transitRoutesPage(w http.ResponseWriter, r *http.Request) {
 	var vm RoutesViewModel
-	vm.RouteMeta = h.svc.RouteMeta()
+	vm.RouteMeta = h.svc.RouteMeta(r.Context())
 	vm.Range = parseDateRange(r, h.svc.SinceDate(r.Context()))
 	if from, err := time.ParseInLocation("2006-01-02", vm.Range.From, TZ); err == nil {
 		if to, err := time.ParseInLocation("2006-01-02", vm.Range.To, TZ); err == nil {
@@ -132,7 +127,7 @@ var canonicalTerminals = []TerminalCard{
 func (h *Handler) transitTerminalsPage(w http.ResponseWriter, r *http.Request) {
 	vm := TerminalsViewModel{
 		Terminals: canonicalTerminals,
-		RouteMeta: h.svc.RouteMeta(),
+		RouteMeta: h.svc.RouteMeta(r.Context()),
 	}
 	h.render.Terminals(vm)(r.Context(), w)
 }

@@ -148,7 +148,7 @@
       "id": "service-text",
       "type": "text",
       "x": 280, "y": 502, "width": 140, "height": 32,
-      "text": "Service\n(cached queries)",
+      "text": "Service\n(SQL reads)",
       "fontSize": 14, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
       "strokeColor": "#4ade80", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "roughness": 0, "opacity": 100,
@@ -156,7 +156,7 @@
       "seed": 151, "version": 1, "versionNonce": 151,
       "isDeleted": false, "locked": false,
       "containerId": "service-box",
-      "originalText": "Service\n(cached queries)",
+      "originalText": "Service\n(SQL reads)",
       "lineHeight": 1.2
     },
     {

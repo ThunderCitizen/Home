@@ -36,32 +36,6 @@ type DashboardReport struct {
 	FleetSize      int
 }
 
-// Dashboard assembles the transit overview: alerts, cancellations.
-func (r *Reporter) Dashboard(ctx context.Context) (*DashboardReport, error) {
-	alerts, err := r.repo.CurrentAlerts(ctx)
-	if err != nil {
-		alerts = nil
-	}
-
-	cancelledTrips, err := CancelledTripDetails(ctx, r.db, ServiceDate())
-	if err != nil {
-		cancelledTrips = make(map[string][]CancelledTrip)
-	}
-
-	fleetSize, _ := r.repo.FleetSize(ctx)
-
-	return &DashboardReport{
-		Alerts:         alerts,
-		CancelledTrips: cancelledTrips,
-		FleetSize:      fleetSize,
-	}, nil
-}
-
-// CancelIncidents returns schedule-aware consecutive cancellation groups.
-func (r *Reporter) CancelIncidents(ctx context.Context) ([]CancelIncident, error) {
-	return CancelIncidents(ctx, r.db)
-}
-
 // --- Stats ---
 
 // StatsReport holds one of three stats views: day snapshots, percentiles, or week summary.
@@ -287,9 +261,4 @@ func (r *Reporter) NearestStopsReport(ctx context.Context, lat, lon float64, lim
 // VehicleDistanceReport returns a vehicle's distance to a specific stop.
 func (r *Reporter) VehicleDistanceReport(ctx context.Context, vehicleID, stopID string) (*VehicleDistance, error) {
 	return r.repo.VehicleDistanceToStop(ctx, vehicleID, stopID)
-}
-
-// VehicleFeedRaw returns the raw GTFS-RT vehicle positions protobuf.
-func (r *Reporter) VehicleFeedRaw(ctx context.Context) ([]byte, error) {
-	return r.client.FetchVehiclesRaw(ctx)
 }

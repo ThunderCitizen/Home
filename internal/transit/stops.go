@@ -211,18 +211,20 @@ func StopPredictionsFromFeed(ctx context.Context, db *pgxpool.Pool, feed *gtfsrt
 func expectedRoutesAtStop(ctx context.Context, db *pgxpool.Pool, stopID string, now time.Time) ([]ExpectedRoute, error) {
 	date := now.In(TZ).Format("2006-01-02")
 	rows, err := db.Query(ctx, `
-		SELECT DISTINCT r.route_id, rp.headsign,
-		       COALESCE(r.color, ''), COALESCE(r.text_color, '')
-		FROM transit.route_pattern rp
-		JOIN transit.route_pattern_stop rps USING (pattern_id)
-		JOIN transit.route r USING (route_id)
-		JOIN transit.trip_catalog tc ON tc.pattern_id = rp.pattern_id
-		JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
-		WHERE rps.stop_id = $1
-		  AND sc.date = $2
-		ORDER BY
-		  CAST(NULLIF(REGEXP_REPLACE(r.route_id, '[^0-9]', '', 'g'), '') AS INT) NULLS LAST,
-		  r.route_id, rp.headsign`, stopID, date)
+		SELECT route_id, headsign, color, text_color
+		FROM (
+			SELECT DISTINCT r.route_id, rp.headsign,
+			       COALESCE(r.color, '') AS color, COALESCE(r.text_color, '') AS text_color,
+			       CAST(NULLIF(REGEXP_REPLACE(r.route_id, '[^0-9]', '', 'g'), '') AS INT) AS route_number
+			FROM transit.route_pattern rp
+			JOIN transit.route_pattern_stop rps USING (pattern_id)
+			JOIN transit.route r USING (route_id)
+			JOIN transit.trip_catalog tc ON tc.pattern_id = rp.pattern_id
+			JOIN transit.service_calendar sc ON sc.service_id = tc.service_id
+			WHERE rps.stop_id = $1
+			  AND sc.date = $2
+		) AS expected
+		ORDER BY route_number NULLS LAST, route_id, headsign`, stopID, date)
 	if err != nil {
 		return nil, err
 	}

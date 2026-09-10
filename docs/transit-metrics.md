@@ -199,7 +199,12 @@ Storing sums (not means) is the load-bearing decision. Aggregating already-round
 
 The orchestrator stitches the recipe outputs into a `chunk.Chunk` and upserts it. Each recipe is auditable in isolation — the formula, the SQL, and the test sit in one file with no cross-coupling.
 
-**Read path.** `Service.Chunks(ctx, from, to)` calls `ChunkCache.Range` (`internal/transit/chunk_cache.go`), which lazy-loads from `transit.route_band_chunk` and caches forever per (route, date, band). Today is the only key allowed to refresh; everything else is immutable history.
+**Read path.** `Service.Chunks(ctx, from, to)` reads the inclusive date range
+from `transit.route_band_chunk` through `internal/transit/chunk_read.go`.
+The earliest chunk date and cancellation details also read SQL directly.
+Completed rollups and historical rebuilds are visible on the next read.
+See [server reads](transit.md#server-reads) and
+[route performance](route-performance.md) for query costs and validation.
 
 **Aggregation.** `KPIFromChunks` and `RouteRowKPIFromChunks` in `internal/transit/view_helpers.go` SUM the raw counts across whatever slice you hand them, then divide once at the end. Empty band (`""`) pools all three. The frontend mirror in `static/transit/chunks.js` (`window.transitChunks.aggregate`) is line-for-line the same math — used by `trends-chart.js` for the route comparison chart so client-side and server-side always agree.
 

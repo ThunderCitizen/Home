@@ -8,7 +8,10 @@ DATABASE_URL="postgres://..." make migrate-up
 DATABASE_URL="postgres://..." make migrate-down
 ```
 
-Migrations auto-run on server startup.
+Migrations auto-run on server startup. `000022` is the complete transit
+performance index migration: it adds the read indexes and removes redundant
+ones in one atomic cleanup.
+Follow the [deployment verification steps](route-performance.md#validation).
 
 ## Schema
 
@@ -34,53 +37,77 @@ The `db` container uses `Dockerfile.db` (Debian + `postgresql-16-postgis-3`). Ge
 
 ### Index Strategy
 
-The original schema had ~1.1 GB of indexes for ~500 MB of table data — several
-were never used (GIS on vehicle positions, per-vehicle history) and one btree
-on `last_updated` was 386 MB alone for 18 scans. The current set targets actual
-query patterns and dropped total index footprint to ~170 MB.
+The transit index set was checked against a restored 12 GB production
+snapshot and current readers, recorder writes, metric recipes, and GTFS
+projections. Index scan counters on a restored database describe local tests;
+they do not show production usage. Primary keys, unique constraints, and
+foreign-key lookup coverage remain intact.
 
-**transit.stop_delay** (heaviest table, ~357K rows)
+Migration `000022` removes 11 secondary indexes, about 165 MiB in
+the snapshot. Including the three new read indexes, the final set is about
+95 MiB smaller than the original production set. Each migration contains
+one atomic cleanup operation, and its down migration restores the original
+definitions. Details and tradeoffs are in
+[the performance review](route-performance.md#index-cleanup).
 
-| Index | Type | Covers |
-|-------|------|--------|
-| PK `(date, trip_id, stop_id)` | btree | OTP date-range scans, trip delay lookups |
-| `idx_transit_stop_delay_route_stop_date` | btree | Per-route per-stop metrics |
-| `idx_transit_stop_delay_last_updated` | BRIN | 24h dashboard percentile queries (24 KB vs 386 MB btree) |
-| `idx_transit_stop_delay_first_stop_band` | btree (partial: is_first_stop) | Per-band cancel/OTP at trip start |
-| `idx_transit_stop_delay_timepoint_band` | btree (partial: is_timepoint) | Per-band EWT timepoint queries |
-| `idx_transit_stop_delay_service_date` | btree | Service-day rollups |
-
-**transit.stop_visit** (~180K rows)
+**transit.stop_delay** (about 3.8 million rows; three indexes after cleanup)
 
 | Index | Type | Covers |
 |-------|------|--------|
-| PK `(trip_id, stop_id)` | btree | Upsert on write path |
-| `idx_transit_stop_visit_route_stop INCLUDE (observed_at)` | btree | Headway/EWT/Cv — covering index for index-only scans |
-| `idx_transit_stop_visit_observed` | btree | Date-range headway window functions |
+| PK `(date, trip_id, stop_id)` | btree | Recorder upserts, date-range scans, trip/stop delay lookups |
+| `idx_transit_stop_delay_route_date_trip` | btree | Route/day reads, lifetime trip counts, OTP, and rollup date discovery |
+| `idx_transit_stop_delay_updated` | btree | Recent update-time ranges for stats reports |
 
-**transit.cancellation** (~44K rows)
+Timepoint membership comes from `route_pattern_stop`; readers do not filter
+the recorder's `stop_delay.is_timepoint` flag. The old band indexes and BRIN
+are removed, as are the route/stop/date and service/date indexes replaced
+by the route/date/trip access path.
 
-| Index | Type | Covers |
-|-------|------|--------|
-| UNIQUE `(trip_id, feed_timestamp)` | btree | Dedup on insert, cancel detail queries |
-| `idx_transit_cancellation_feed_timestamp` | btree | Date-range cancel rate scans |
-| `idx_transit_cancellation_route_start` | btree (partial) | Cancel detail GROUP BY (WHERE start_time IS NOT NULL) |
-
-**transit.vehicle_position** (~2.8M rows)
+**transit.stop_visit** (about 825,000 rows)
 
 | Index | Type | Covers |
 |-------|------|--------|
-| PK `(id)` | btree | Required |
-| `idx_transit_vehicle_position_feed_timestamp` | btree | 24h dashboard, live feed queries |
+| PK `(trip_id, stop_id)` | btree | Recorder conflict handling |
+| `idx_transit_stop_visit_route_stop INCLUDE (observed_at)` | btree | Per-route headway recipes; covering observed-time reads |
+| `idx_transit_stop_visit_observed` | btree | Recent visit analytics and headway windows |
 
-**Other tables**
+**transit.cancellation** (about 1.46 million rows)
+
+| Index | Type | Covers |
+|-------|------|--------|
+| PK `(id)` | btree | Row identity |
+| UNIQUE `(trip_id, feed_timestamp)` | btree | Insert deduplication and timetable cancellation checks |
+| `idx_transit_cancellation_feed_timestamp` | btree | Feed-time ranges and recent cancellation counts |
+| `idx_transit_cancellation_start_date` | btree, covering | Cancellation queries by service date |
+| `idx_transit_cancellation_route_date_trip` | btree | Route/day existence checks and cancellation counts |
+
+The removed `route_start` index was actually feed-timestamp-leading. Its
+wide partial key did not improve the tested range readers over the smaller
+full timestamp index.
+
+**transit.vehicle_position** (about 53.4 million rows)
+
+| Index | Type | Covers |
+|-------|------|--------|
+| PK `(id)` | btree | Row identity; retained despite its size |
+| `idx_transit_vehicle_position_feed_timestamp` | btree | Recent vehicle observations and dashboard reads |
+
+**Other retained access paths**
 
 | Index | Table | Covers |
 |-------|-------|--------|
-| `idx_transit_alert_feed_timestamp` | `transit.alert` | Latest-alert queries |
-| GiST on `geog` column | `transit.stop` | PostGIS KNN nearest-stop queries |
-| `idx_gtfs_stop_times_stop` | `gtfs.stop_times` | Stop-level schedule queries |
-| `idx_data_patch_log_patch_id` | `public.data_patch_log` | Latest-apply lookup per dataset (for muni drift check) |
+| Alert ID/feed-time uniqueness + timestamp index | `transit.alert` | Recorder deduplication and latest/recent alerts |
+| GiST on `geog` | `transit.stop` | PostGIS nearest-stop lookup |
+| `idx_transit_scheduled_stop_stop` | `transit.scheduled_stop` | Stop lookups and foreign-key maintenance |
+| `idx_transit_scheduled_stop_trip` | `transit.scheduled_stop` | Narrow trip-join index used by schedule, planner, and audit readers |
+| PK `(trip_id, stop_sequence)` | `gtfs.stop_times` | GTFS trip joins and ordered schedules |
+| `idx_transit_service_calendar_date` | `transit.service_calendar` | Active-service dates |
+| `idx_data_patch_log_patch_id` | `public.data_patch_log` | Latest-apply lookup per dataset |
+
+Leading-column overlap alone does not make an index dispensable. The narrow
+`scheduled_stop_trip` index measurably helps current readers, so it remains
+alongside the wider primary key. The raw GTFS stop/date indexes and legacy
+scheduled-departure indexes had no remaining reader or constraint role.
 
 ### Schedule-headway computation
 
@@ -112,12 +139,18 @@ a background goroutine that does a 60-day backfill on boot and rebuilds
 today's chunks every 10 minutes. See [docs/transit-metrics.md](transit-metrics.md)
 for the full write-path + failure-mode story.
 
-### Postgres Tuning
+### Postgres settings
 
-| Setting | Default | Current | Why |
-|---------|---------|---------|-----|
-| `work_mem` | 4 MB | 16 MB | Eliminates disk-spill sorts in headway window functions |
-| `shared_buffers` | 128 MB | 256 MB | Keeps hot tables (`transit.stop_visit`, `transit.stop_delay`) in memory |
+The Compose files do not set `work_mem` or `shared_buffers`. The local
+production-snapshot measurements used 4 MB and 128 MB respectively; a dump
+does not carry the production server's configuration. Inspect the target
+server rather than assuming those values apply everywhere:
+
+```sql
+SHOW work_mem;
+SHOW shared_buffers;
+SHOW max_wal_size;
+```
 
 ## Connection
 
@@ -137,6 +170,11 @@ Uses `pgx/v5` with connection pooling. Pool configured in `internal/database/db.
   same query that runs in 150 ms takes 30+ seconds. Re-planning every call
   is cheap relative to the actual work the query does; see the
   `internal/database/db.go` comment for the incident history.
+
+Transit reports query PostgreSQL on each request. The pool and parameter
+description cache reuse connections and protocol metadata; they do not
+retain result rows. See [server reads](transit.md#server-reads) for the
+application's data flow.
 
 ## Data Loading at Startup
 

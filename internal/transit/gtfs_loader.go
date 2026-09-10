@@ -72,7 +72,7 @@ func LoadStaticGTFS(ctx context.Context, db *pgxpool.Pool) error {
 		}
 	}
 
-	// Notify subscribers (recorder trip cache, metric cache) that a fresh
+	// Notify subscribers, including the recorder trip cache, that a fresh
 	// Tier 2 is now visible. Subscribers reload their in-memory state.
 	NotifyGTFSReloaded()
 

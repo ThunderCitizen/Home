@@ -90,10 +90,9 @@ persisted as one row in `transit.route_band_chunk` (migration `000003`).
   pairs the recorder observed running (via `transit.stop_delay`), not from
   `gtfs.calendar_dates`. Long-lived prod DBs whose GTFS bundle has
   rolled past the queried range still produce correct numbers.
-- **Read path** — `Service.Chunks(ctx, from, to)` calls `ChunkCache.Range`
-  in `internal/transit/chunk_cache.go`. The cache lazy-loads from the
-  rollup table and stores per (route, date, band) forever; only "today"
-  is allowed to refresh.
+- **Read path** — `Service.Chunks(ctx, from, to)` reads the requested
+  date range from the rollup table through `internal/transit/chunk_read.go`.
+  Reads see completed rollups and historical rebuilds without cache invalidation.
 - **Aggregation** — `KPIFromChunks` and `RouteRowKPIFromChunks` in
   `view_helpers.go` SUM raw counts across the requested slice, then
   divide once at the end. Empty band string pools all three.
@@ -109,51 +108,42 @@ persisted as one row in `transit.route_band_chunk` (migration `000003`).
   writes synthetic chunks for the dev DB (one per route × day × band)
   with a linear bad→good trend and per-route quality bias.
 
-### Cache layer (`cache.go`, `repo_cache.go`, `chunk_cache.go`)
+### Server reads
 
-Two cache structs:
+Database-backed transit views query PostgreSQL on each server request.
+Metadata, stops, analytics, metric chunks, cancellation history, route
+details, stats, and dashboard reads use the request's context. Completed
+rollups and historical corrections are visible on the next read.
 
-1. **`ChunkCache`** (`chunk_cache.go`) — the metrics read layer. Keyed by
-   (route_id, date, band), backed by `transit.route_band_chunk`. Lazy-loads
-   on first access for a date and stores forever; "today" is the only key
-   allowed to be re-read after midnight rolls over. Three methods:
-   `One(routeID, date, band)`, `Range(from, to)`, `EarliestDate()`.
-2. **`RepoCache`** (`repo_cache.go`) — everything else. A single struct
-   holding `CacheSlot[T]` and `CacheMap[K,V]` instances for non-metric
-   data products. The primitives live in `cache.go` and implement a
-   double-checked-locking lazy-load pattern: readers grab an `RLock`,
-   on miss upgrade to `Lock`, re-check, call the loader, store the result.
+Stats delegate directly to `Reporter` for day snapshots, percentiles, or
+weekly summaries. The live builder in `service_live.go` reads alerts,
+fleet size, routes without service, and cancellation status. One combined
+cancellation query produces both the route-keyed `CancelledTrips` map
+and the `CancelIncidents` list from all recorded cancellations for the
+service date. Repeated feed snapshots contribute to each trip's snapshot
+count without duplicating the trip or incident.
 
-**Strategy: lazy-load on cold read, cache forever.** Hits to the cache
-are served from memory; cold reads pay the compute cost once. Two slots
-that observe data which shifts during the day get a TTL **and** a
-background warmer (`live_warmer.go`) that calls `Refresh` faster than
-the TTL would expire, so user-facing requests never run the loader on
-the hot path.
+The `/transit/route/{id}` timetable uses `EXISTS` with timestamp bounds
+to check cancellations by trip and feed calendar day in the database
+session's timezone. The week picker checks for observations on each of
+seven days. Lifetime counts group all observed stops by date and trip,
+using the `(route_id, date, trip_id)` index where the planner chooses it.
+See [route performance](route-performance.md) for measurements and
+production validation.
 
-`RepoCache` slots:
+The timepoint API groups stop/route memberships and their paired colors
+in SQL. Stop analytics computes counts, routes, and last-seen timestamps
+in one aggregate over recent visits; only stops with recent visits are
+returned. Stats time intervals are also grouped in SQL. Go scans the
+results into the existing API types. Day snapshots deduplicate repeated
+vehicle, alert, and cancellation observations before counting each bucket.
 
-| Cache | Type | Key | TTL | Warmer |
-|---|---|---|---|---|
-| `routeMeta` | `CacheSlot[[]RouteMetaAPI]` | — | ∞ | — |
-| `allStops` | `CacheSlot[[]Stop]` | — | ∞ | — |
-| `stopAnalytics` | `CacheSlot[[]StopAnalyticsRow]` | — | ∞ | — |
-| `stats` | `CacheMap[string, *StatsReport]` | `"day" \| "percentiles" \| "week"` | ∞ | — |
-| `cancelDetails` | `CacheMap[string, []CancelDetail]` | `"YYYY-MM-DD..YYYY-MM-DD"` | ∞ | refreshes ranges ending today every 20 s |
-| `live` | `CacheSlot[*liveData]` | — | **30 s** | refreshes every 20 s |
-
-The `live` loader (`repo_cache.go`) does one combined pass over today's
-schedule joined to current-poll cancellation status, producing both the
-route-keyed `CancelledTrips` map and the schedule-walked
-`CancelIncidents` list from a single scan of `transit.cancellation` —
-previously these were two separate queries.
-
-`LiveWarmer` (`live_warmer.go`) starts from `Handler.StartLiveWarmer` and
-ticks every 20 s. On boot it pre-warms the default
-(`today−6 .. today`) cancel-detail range so the first
-`/transit/metrics` request after a restart is hot. Each tick refreshes
-`live`, then every cancel-detail key whose to-side is today. Historical
-ranges never re-load.
+Other transit state has a separate purpose. The recorder retains its
+latest upstream trip feed and stop-visit deduplication state; vehicle
+streaming retains the latest broadcast frame and geometry for live
+updates; the route planner reuses a timetable for its selected service
+date. These support ingestion, streaming, and routing. HTTP cache-control
+is described below, and PostgreSQL still manages its own buffer cache.
 
 KPIs have no separate endpoint or cache — they're rendered straight into
 the metrics page via `KPIFromChunks(vm.Chunks, metric, band)` in
@@ -251,25 +241,20 @@ Cv, and EWT calculations.
 
 HTTP adapter layer. Routes split into page routes (mounted at `/transit`)
 and API routes (mounted at `/api/transit`). Handlers call `Service`
-accessor methods exclusively — they never touch the Reporter or Repo
-directly. This is the boundary where "warming" state is decided: a handler
-that gets `nil` from an accessor returns 503 (cache still warming) rather
-than synthesising an empty response.
+accessors, build view models, and choose the HTTP response when a data
+load fails.
 
 ### Service (`service.go`)
 
-Thin delegator between Handler and RepoCache. Holds the reporter, vehicle
-stream, and cache. Every cached accessor is a one-liner that calls
-`s.cache.X.Peek()` (for always-warmed slots) or `s.cache.X.Get(ctx, key)`
-(for lazy-loadable keyed slots). Also houses the couple of uncached
-convenience queries (`RouteServiceDays`, `RouteCancelDays`,
-`RouteTrackingStats`) that hit the DB directly.
+Owns the reporter, recorder reference, and vehicle stream. Its accessors
+keep SQL reads and report construction separate from handler and template
+logic. See [server reads](#server-reads) for data flow and retained state.
 
 ### Reporter (`reporting.go`)
 
 Assembles complete reports from repo queries and client data. Each method
-returns a typed report struct. Called by the `RepoCache` loaders, not by
-the Handler.
+returns a typed report struct to the Service. The planner's timetable
+cache lives here; stats report results are not retained.
 
 ### Repository (`repo.go`)
 
