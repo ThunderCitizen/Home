@@ -179,6 +179,9 @@ var electionCandidateSocials = map[string][]ElectionCandidateSocial{
 	"Jamie Nichols": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/rose.crantz/posts/pfbid0wsfRwUcksN61k4x3Xco4tBNNaquQJmPD54Bm7ThCswC5QvGysCWzba1xfxj97Fe3l", Label: "Facebook campaign announcement"},
 	},
+	"Stéphane Léonard Kuziora": {
+		{Platform: "Facebook", URL: "https://www.facebook.com/profile.php?id=61588748205441"},
+	},
 	"Cory Bagdon": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/permalink.php?story_fbid=pfbid0tYUFkxVSatNi8Ui4hexPRnn7odYK5US9UqS4zgWHHRqgni8p6b3CR3QHkZKyWJt1l&id=100084445181438", Label: "Facebook campaign announcement"},
 	},
@@ -278,7 +281,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 			electionCandidate("Kasey Taylor Etreni", "Etreni, Kasey Taylor", "A current at-large councillor and retired radiation therapist.", "At-Large Councillor", nil),
 			electionCandidate("Tyler Goode", "Goode, Tyler", "A registered social worker whose work has included cultural mental-health programming with Matawa.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/tyler-goode-enters-at-large-council-race-12692380", "TBNewsWatch candidate profile")),
 			electionCandidate("Dino Menei", "Menei, Dino", "A recycling and heavy-equipment contractor, hobby farmer and previous at-large candidate.", "", nil),
-			electionCandidate("Jamie Nichols", "Nichols, Jamie", "Founder of RNC Coffee and a Thunder Bay Chamber of Commerce board member.", "", electionLabeledPage("https://rnccoffee.ca/", ElectionPageProfessional, "RNC Coffee"), electionSource("https://www.tbnewswatch.com/local-news/jaime-nichols-brings-business-experience-to-at-large-race-12646033", "TBNewsWatch candidate profile")),
+			electionCandidate("Jamie Nichols", "Nichols, Jamie", "Founder of RNC Coffee and a Thunder Bay Chamber of Commerce board member.", "", electionPage("https://campaign.rnccoffee.ca/", ElectionPageCampaign), electionSource("https://www.tbnewswatch.com/local-news/jaime-nichols-brings-business-experience-to-at-large-race-12646033", "TBNewsWatch candidate profile")),
 			electionCandidate("Robert Trevisan", "Trevisan, Robert", "A Thunder Bay chiropractor and Lakehead University alumnus.", "", nil),
 			electionCandidate("Peng You", "You, Peng", "A former at-large councillor who served during the 2018–2022 term.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/former-councillor-peng-you-seeks-at-large-seat-12646078", "TBNewsWatch candidate profile")),
 		},
@@ -307,11 +310,11 @@ func NewElection2026ViewModel() Election2026ViewModel {
 				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
 			},
 			Candidates: []ElectionCandidateView{
-				electionCandidate("Cory Bagdon", "Bagdon, Cory", "A teacher, furniture maker and previous council candidate who has served on the library board.", "", electionLabeledPage("https://pawoodcraft.ca/", ElectionPageProfessional, "Pine + Alder Woodcraft")),
+				electionCandidate("Cory Bagdon", "Bagdon, Cory", "A teacher, furniture maker and previous council candidate who has served on the library board.", "", electionPage("https://corybagdon.ca/", ElectionPageCampaign), electionSource(Election2026CandidateProfilesURL, "City-submitted candidate profile")),
 				electionCandidate("Dino Cicchitano", "Cicchitano, Dino", "A local financial-services professional and business owner.", "", nil, electionSource("https://vote.chroniclejournal.com/the-co-operators", "Chronicle-Journal business profile"), electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/dino-cicchitano-runs-for-red-river-ward-seat-12693448", "TBNewsWatch candidate profile")),
 				electionCandidate("Michael Giardetti", "Giardetti, Michael", "A supply-chain and procurement professional with teaching experience at Confederation College.", "", nil),
 				electionCandidate("John Murray", "Murray, John", "Founder of Red Lion Smokehouse and a Shelter House board member.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/john-murray-enters-red-river-ward-race-12692728", "TBNewsWatch candidate profile")),
-				electionCandidate("Jamie Scrimger", "Scrimger, Jamie", "An energy-sector professional with previous leadership involvement in the First Nations Emergency Response Association.", "", nil, electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/jamie-scrimger-enters-red-river-ward-council-race-12696014", "TBNewsWatch candidate profile")),
+				electionCandidate("Jamie Scrimger", "Scrimger, Jamie", "An energy-sector professional with previous leadership involvement in the First Nations Emergency Response Association.", "", electionPage("https://jamietbaycouncil.ca/", ElectionPageCampaign), electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/jamie-scrimger-enters-red-river-ward-council-race-12696014", "TBNewsWatch candidate profile")),
 			},
 		},
 		{
@@ -340,7 +343,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 				electionCandidate("Tony DiPaolo", "DiPaolo, Tony", "Chief executive of the Thunder Bay Border Cats and a former business-improvement-area chair.", "", nil, electionSource("https://northwoodsleague.com/thunder-bay-border-cats/2019/03/09/ceo/", "Thunder Bay Border Cats announcement")),
 				electionCandidate("Brian Hamilton", "Hamilton, Brian", "The current McKellar councillor, first elected in 2018, and a small-business owner.", "Ward Councillor", nil),
 				electionCandidate("Tracey MacKinnon", "MacKinnon, Tracey", "An Indigenous community advocate whose public work has focused on poverty and housing.", "", nil, electionSource("https://www.ola.org/sites/default/files/node-files/hansard/document/pdf/2026/2026-02/28-JAN-2026_F018.pdf", "Ontario Legislature testimony")),
-				electionCandidate("Donna Lee Morettin", "Morettin, Donna Lee", "A hospitality-sector business owner and former Chamber and business-improvement-area leader.", "", nil),
+				electionCandidate("Donna Lee Morettin", "Morettin, Donna Lee", "A hospitality-sector business owner and former Chamber and business-improvement-area leader.", "", electionPage("https://www.morettin.ca/", ElectionPageCampaign), electionSource(Election2026CandidateProfilesURL, "City-submitted candidate profile")),
 			},
 		},
 		{
