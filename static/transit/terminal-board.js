@@ -461,35 +461,6 @@ function pad2(n) {
     groups = (predictions && predictions.length) ? groupByRoute(predictions) : [];
 
 
-    // Add ghost groups for routes with scheduled service but no live predictions.
-    if (expectedRoutes && expectedRoutes.length) {
-      const seen = {};
-      for (let i = 0; i < groups.length; i++) seen[groups[i].key] = true;
-      for (let i = 0; i < expectedRoutes.length; i++) {
-        const er = expectedRoutes[i];
-        const key = (er.route_id || "") + "\t" + (er.headsign || "");
-        if (seen[key]) continue;
-        groups.push({
-          key: key,
-          route: {
-            route_id: er.route_id,
-            route_name: er.route_id,
-            headsign: er.headsign,
-            route_color: er.color,
-            route_text_color: er.text_color,
-            status: "Scheduled",
-          },
-          items: [],
-        });
-      }
-      groups.sort(function (a, b) {
-        const an = parseInt(a.route.route_id, 10);
-        const bn = parseInt(b.route.route_id, 10);
-        if (!isNaN(an) && !isNaN(bn)) return an - bn;
-        return (a.route.route_id || "").localeCompare(b.route.route_id || "");
-      });
-    }
-
     paintPage();
     if (feedTS) lastFeedAt = feedTS;
     updateFeedAge();
