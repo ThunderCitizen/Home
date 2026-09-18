@@ -314,6 +314,9 @@ templ electionCandidateCard(candidate views.ElectionCandidateView, nested bool) 
 		</header>
 		<div class="election-candidate-body">
 			<p class="election-candidate-summary">{ candidate.Summary }</p>
+			if candidate.WithdrawalURL != "" {
+				<p class="election-candidate-withdrawal"><strong>Withdrawn:</strong> <a href={ templ.SafeURL(candidate.WithdrawalURL) } target="_blank" rel="noopener">Read announcement <span aria-hidden="true">↗</span></a></p>
+			}
 			if len(candidate.Sources) > 0 {
 				<section class="election-candidate-media" aria-label={ "Links for " + candidate.Name }>
 					<p class="election-candidate-media-label">Links</p>

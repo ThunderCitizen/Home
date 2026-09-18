@@ -170,6 +170,21 @@ func TestElection2026MunicipalIncumbencyIsPrecise(t *testing.T) {
 	}
 }
 
+func TestElection2026ShaneJudgeWithdrawal(t *testing.T) {
+	vm := NewElection2026ViewModel()
+	for _, candidate := range vm.Mayor.Candidates {
+		if candidate.Name != "Shane Judge" {
+			continue
+		}
+		want := "https://www.facebook.com/share/p/1DwhE6veWi/"
+		if candidate.WithdrawalURL != want {
+			t.Errorf("Shane Judge withdrawal URL = %q, want %q", candidate.WithdrawalURL, want)
+		}
+		return
+	}
+	t.Fatal("Shane Judge is missing from the mayoral roster")
+}
+
 func TestElection2026CandidatePageProvenance(t *testing.T) {
 	vm := NewElection2026ViewModel()
 	allowed := map[ElectionPageKind]bool{

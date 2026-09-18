@@ -640,6 +640,18 @@
   line-height: 1.55;
 }
 
+.election-candidate-withdrawal {
+  padding: var(--space-2) var(--space-3);
+  color: var(--heading);
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  font-size: var(--text-sm);
+
+  a {
+    font-weight: var(--weight-semi);
+  }
+}
+
 .election-candidate-body { display: grid; gap: var(--space-3); }
 
 .election-candidate-links {

@@ -53,13 +53,14 @@ func (s ElectionCandidateSocial) DisplayLabel() string {
 // ElectionCandidateView is the same neutral card model for every candidate.
 // SortName makes the disclosed surname-order rule explicit and testable.
 type ElectionCandidateView struct {
-	Name         string
-	SortName     string
-	Summary      string
-	OfficeStatus string
-	Page         *ElectionCandidatePage
-	Socials      []ElectionCandidateSocial
-	Sources      []models.SourceRef
+	Name          string
+	SortName      string
+	Summary       string
+	OfficeStatus  string
+	WithdrawalURL string
+	Page          *ElectionCandidatePage
+	Socials       []ElectionCandidateSocial
+	Sources       []models.SourceRef
 }
 
 // ElectionContestView represents one choice on a voter's ballot.
@@ -124,6 +125,12 @@ func electionCandidate(name, sortName, summary, status string, page *ElectionCan
 	}
 }
 
+func electionWithdrawnCandidate(name, sortName, summary, withdrawalURL string, sources ...models.SourceRef) ElectionCandidateView {
+	candidate := electionCandidate(name, sortName, summary, "", nil, sources...)
+	candidate.WithdrawalURL = withdrawalURL
+	return candidate
+}
+
 // These profiles and campaign announcements were checked August 28, 2026.
 // Each is linked by the named candidate's current campaign/personal site,
 // supplied through the City Clerk profile, or is a named campaign announcement.
@@ -151,6 +158,9 @@ var electionCandidateSocials = map[string][]ElectionCandidateSocial{
 	},
 	"Dino Cicchitano": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/dcicchitano"},
+	},
+	"Michael Giardetti": {
+		{Platform: "Facebook", URL: "https://www.facebook.com/profile.php?id=61593869076445"},
 	},
 	"John Murray": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/profile.php?id=61593615248445"},
@@ -247,7 +257,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 			electionCandidate("Maureen (Moe) Comuzzi", "Comuzzi, Maureen", "A Thunder Bay business and real-estate professional who launched her mayoral campaign in August.", "", electionPage("https://moeformayor.ca/", ElectionPageCampaign), electionSource("https://acadiabroadcasting.ca/the-mayors-race-begins-moe-comuzzi-announces-her-bid/", "Acadia News campaign launch")),
 			electionCandidate("Peter Diedrich", "Diedrich, Peter", "An engineer, venture-capital executive and former Tbaytel chief executive.", "", electionPage("https://peterdiedrich4mayor.com/", ElectionPageCampaign), electionSource("https://yourthunderbay.ca/thunder-bay-elections-our-interview-with-peter-diedrich/", "Your Thunder Bay interview")),
 			electionCandidate("Trevor Giertuga", "Giertuga, Trevor", "A current at-large councillor, first elected to council in 2000.", "At-Large Councillor", electionPage("https://www.trevor4mayor.ca/", ElectionPageCampaign)),
-			electionCandidate("Shane Judge", "Judge, Shane", "A retired journalist making a second run for mayor after campaigning in 2022.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/judge-to-take-second-run-at-mayors-chair-12633625", "TBNewsWatch candidate profile")),
+			electionWithdrawnCandidate("Shane Judge", "Judge, Shane", "A retired journalist who withdrew from the mayoral race after announcing a second run in 2026.", "https://www.facebook.com/share/p/1DwhE6veWi/"),
 			electionCandidate("Volker Kromm", "Kromm, Volker", "Long-time executive director of the Regional Food Distribution Association.", "", electionPage("https://www.votevolker.ca/", ElectionPageCampaign), electionSource("https://foodbankscanada.ca/food-banker-spotlight-volker-kromm-of-the-regional-food-distribution-association/", "Food Banks Canada profile")),
 			electionCandidate("Peter Panetta", "Panetta, Peter", "Founder of the Underground Gym, where he has worked with youth through boxing and mentorship, and a previous mayoral candidate.", "", electionLabeledPage("https://undergroundgym.ca/", ElectionPageProfessional, "Underground Gym"), electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/panetta-to-challenge-for-another-shot-at-mayor-12668353", "TBNewsWatch candidate profile")),
 			electionCandidate("Aldo Ruberto", "Ruberto, Aldo", "A former four-term at-large councillor who served from 2006 to 2022.", "", electionPage("https://rubertoformayor.com/", ElectionPageCampaign), electionSource("https://www.tbnewswatch.com/local-news/aldo-ruberto-enters-crowded-mayoral-race-12649095", "TBNewsWatch candidate profile")),
