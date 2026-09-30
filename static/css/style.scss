@@ -1315,23 +1315,6 @@ a.card-link {
     color: var(--pico-muted-color);
   }
 
-  .vote-matrix-councillor {
-    min-width: 1.8rem;
-    padding-bottom: 0.15rem;
-    vertical-align: bottom;
-
-    span {
-      writing-mode: vertical-rl;
-      transform: rotate(180deg);
-      display: inline-block;
-      max-height: 9rem;
-      font-size: 0.7rem;
-      font-weight: var(--weight-semi);
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-
   .vote-matrix-photo-cell {
     padding: 0.2rem 0 0.15rem;
     text-align: center;

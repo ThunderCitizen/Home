@@ -5,6 +5,35 @@
 @use "mixins" as *;
 @use "placeholders" as *;
 
+// Both tables reserve the same trailing space for the final angled name,
+// keeping the sticky header's columns aligned with the vote cells.
+.vote-matrix-sticky-scroll,
+.vote-matrix-wrapper {
+  padding-inline-end: 6rem;
+}
+
+.vote-matrix .vote-matrix-councillor {
+  position: relative;
+  min-width: 1.8rem;
+  height: 8rem;
+  vertical-align: bottom;
+
+  span {
+    position: absolute;
+    bottom: var(--space-1);
+    left: 50%;
+    width: 9rem;
+    transform: rotate(-55deg);
+    transform-origin: bottom left;
+    text-align: left;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 // Councillor biography paragraph inside the member card — prose font for
 // long-form readability (the body default is monospace).
 .councillor-bio {
@@ -960,4 +989,3 @@
   .vote-matrix-result--lost     { @include badge-dark-hue(#f87171); }
   .vote-matrix-result--tie      { @include badge-dark-hue(#fbbf24); }
 }
-
