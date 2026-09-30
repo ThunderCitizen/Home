@@ -37,16 +37,19 @@ func NewClient() *Client {
 
 // VehiclePosition is a parsed position from the GTFS-RT feed (in-memory only, not stored in DB).
 type VehiclePosition struct {
-	FeedTimestamp time.Time
-	VehicleID     string
-	RouteID       *string
-	TripID        *string
-	Latitude      float64
-	Longitude     float64
-	Bearing       *float32
-	Speed         *float32
-	StopStatus    *string
-	CurrentStopID *string
+	FeedTimestamp        time.Time
+	MeasurementTimestamp *time.Time
+	TripStartDate        *string
+	CurrentStopSequence  *uint32
+	VehicleID            string
+	RouteID              *string
+	TripID               *string
+	Latitude             float64
+	Longitude            float64
+	Bearing              *float32
+	Speed                *float32
+	StopStatus           *string
+	CurrentStopID        *string
 }
 
 // VehicleFeed is a parsed snapshot of the vehicle positions feed.
@@ -57,6 +60,8 @@ type VehicleFeed struct {
 
 // DelayObservation is a per-stop delay measurement from a trip update.
 type DelayObservation struct {
+	ServiceDate    string
+	ObservedAt     time.Time
 	TripID         string
 	RouteID        string
 	StopID         string
@@ -114,7 +119,13 @@ func (c *Client) FetchVehicles(ctx context.Context) (*VehicleFeed, error) {
 		if v.Trip != nil {
 			pos.RouteID = v.Trip.RouteId
 			pos.TripID = v.Trip.TripId
+			pos.TripStartDate = v.Trip.StartDate
 		}
+		if v.Timestamp != nil && *v.Timestamp > 0 {
+			at := time.Unix(int64(*v.Timestamp), 0)
+			pos.MeasurementTimestamp = &at
+		}
+		pos.CurrentStopSequence = v.CurrentStopSequence
 		if v.Position.Bearing != nil {
 			pos.Bearing = v.Position.Bearing
 		}
@@ -185,9 +196,11 @@ func (c *Client) FetchTrips(ctx context.Context) (*TripFeed, *gtfsrt.FeedMessage
 			}
 
 			obs := DelayObservation{
-				TripID:  tripID,
-				RouteID: routeID,
-				StopID:  stopID,
+				ServiceDate: tu.Trip.GetStartDate(),
+				ObservedAt:  feedTS,
+				TripID:      tripID,
+				RouteID:     routeID,
+				StopID:      stopID,
 			}
 			if stu.StopSequence != nil {
 				seq := int32(*stu.StopSequence)

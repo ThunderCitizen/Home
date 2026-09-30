@@ -67,7 +67,7 @@ func TestDaySnapshotsDatabase(t *testing.T) {
 				FROM generate_series(0, 59) n`)
 			execAt(t, now, `INSERT INTO transit.stop_delay (date, trip_id, stop_id, route_id, last_updated, arrival_delay, departure_delay)
 				SELECT $1::timestamptz::date, id, 'stop', 'A', $1::timestamptz - interval '12 hours', arrival, departure
-				FROM (VALUES ('early-boundary', -60, NULL), ('late-boundary', 60, NULL), ('late', 61, NULL),
+				FROM (VALUES ('early-boundary', -60, NULL), ('late-boundary', 300, NULL), ('late', 301, NULL),
 					('early', -61, NULL), ('fallback', NULL, 30), ('unknown', NULL, NULL)) d(id, arrival, departure)`)
 			execAt(t, now, `INSERT INTO transit.stop_delay (date, trip_id, stop_id, route_id, last_updated)
 				VALUES ($1::timestamptz::date, 'null-only', 'stop', 'A', $1::timestamptz - interval '6 hours')`)
@@ -81,9 +81,7 @@ func TestDaySnapshotsDatabase(t *testing.T) {
 				{CapturedAt: now.Add(-24 * time.Hour).Truncate(5 * time.Minute), ActiveVehicles: 1, ActiveRoutes: 2},
 				{CapturedAt: now.Add(-23 * time.Hour).Truncate(5 * time.Minute), ActiveVehicles: 1, ActiveRoutes: 1},
 				{CapturedAt: now.Add(-12 * time.Hour).Truncate(5 * time.Minute), ActiveVehicles: 2, ActiveRoutes: 3,
-					OnTimePct: 50, AvgDelaySeconds: 6, LateCount: 1, EarlyCount: 1, MeasurementCount: 6, AlertCount: 2, Cancellations: 2},
-				{CapturedAt: now.Add(-6 * time.Hour).Truncate(5 * time.Minute), MeasurementCount: 1},
-				{CapturedAt: now.Truncate(5 * time.Minute), ActiveVehicles: 1, ActiveRoutes: 1},
+					OnTimePct: float32Ptr(60), AvgDelaySeconds: float32Ptr(102), LateCount: 1, EarlyCount: 1, MeasurementCount: 5, AlertCount: 2, Cancellations: 2},
 			}
 			got := snapshotsAt(t, db, now)
 			if len(got) != len(want) {

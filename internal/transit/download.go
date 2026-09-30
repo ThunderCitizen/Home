@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"thundercitizen/internal/cache"
 	"thundercitizen/internal/logger"
 	"thundercitizen/internal/transit/chunk"
@@ -16,12 +17,10 @@ import (
 var downloadLog = logger.New("download")
 
 // avgBundleBytesPerDay is the per-day size of the compressed export ZIP, used
-// only for the "estimated size" shown in the download dialog. The bundle is
-// dominated by timepoint_stop_events, which scales ~linearly with service days,
-// so days × constant is close enough for a pre-download heads-up. Calibrated
-// against a real production week (~540 KB / 7 days). Recalibrate by downloading
-// a week and dividing by 7.
-const avgBundleBytesPerDay = 77 * 1024
+// only for the "estimated size" shown in the download dialog. Calibrated against
+// the corrected August 2026 export (5.76 MB / 31 days). Timetable metadata adds
+// fixed overhead, so short exports can differ from this rough daily estimate.
+const avgBundleBytesPerDay = 192 * 1024
 
 // EstimateBundleSize returns a human-readable, approximate size for the export
 // ZIP over the given range (e.g. "~1.5 MB"). It never touches the database.
@@ -63,33 +62,33 @@ type bundleFile struct {
 // dr.From/dr.To are re-formatted to YYYY-MM-DD by parseDateRange, so they're
 // safe to inline. CopyTo takes a raw SQL string with no parameters.
 //
-// Excluded on purpose: the raw GPS firehose (transit.vehicle_position) — polled
-// every six seconds, gigabytes per year, useless as a flat dump — and
-// transit.stop_visit, a derived convenience table redundant with the timepoint
-// stop events below.
+// The large raw GPS log is excluded; passage source IDs support a separate
+// detector audit. The legacy stop_visit table is not used by these recipes.
 func bundleFiles(dr DateRange) []bundleFile {
-	// Timepoint membership is resolved via route_pattern_stop, NOT
-	// stop_delay.is_timepoint — the recorder leaves that column false because
-	// its trip cache isn't keyed by stop. This mirrors recipes/otp.go exactly,
-	// so the exported rows are the same population the OTP metric is built from.
+	// Export the exact archived timepoint population used by the corrected OTP.
 	stopEvents := fmt.Sprintf(`
-SELECT
-    d.date, d.route_id, d.trip_id, d.headsign,
-    d.stop_id, d.stop_sequence, d.band, d.service_kind,
-    d.arrival_delay, d.departure_delay,
-    COALESCE(d.arrival_delay, d.departure_delay) AS delay_sec,
-    (COALESCE(d.arrival_delay, d.departure_delay) BETWEEN %g AND %g) AS on_time,
-    d.is_first_stop, d.scheduled_first_dep_time, d.last_updated
+WITH stops AS MATERIALIZED (
+    SELECT t.schedule_id,t.trip_id,t.service_id,s.stop,s.ordinality,
+           jsonb_array_length(t.stops) AS stop_count,
+           count(*) OVER(PARTITION BY t.schedule_id,t.trip_id,s.stop->>'id') AS occurrences
+    FROM transit.metric_trip t
+    CROSS JOIN LATERAL jsonb_array_elements(t.stops) WITH ORDINALITY s(stop,ordinality)
+    WHERE t.schedule_id IN(SELECT schedule_id FROM transit.metric_rebuild WHERE date BETWEEN '%s' AND '%s')
+), points AS MATERIALIZED (
+    SELECT * FROM stops WHERE (stop->>'timepoint')::boolean
+      AND (stop->>'departure')::int >= 21600 AND (stop->>'departure')::int < 86400
+      AND ordinality < stop_count AND occurrences=1
+)
+SELECT d.date,d.route_id,d.trip_id,d.headsign,d.stop_id,d.stop_sequence,
+       d.departure_delay,d.arrival_delay,COALESCE(d.departure_delay,d.arrival_delay) AS delay_sec,
+       (COALESCE(d.departure_delay,d.arrival_delay) BETWEEN %g AND %g) AS on_time,
+       s.stop->>'departure' AS scheduled_departure_sec,d.last_updated
 FROM transit.stop_delay d
-WHERE d.date >= '%s' AND d.date <= '%s'
-  AND EXISTS (
-    SELECT 1 FROM transit.route_pattern_stop rps
-    WHERE rps.pattern_id = d.pattern_id
-      AND rps.stop_id = d.stop_id
-      AND rps.is_timepoint = true
-  )
-ORDER BY d.date, d.trip_id, d.stop_sequence`,
-		chunk.OTPEarlyLimit, chunk.OTPLateLimit, dr.From, dr.To)
+JOIN transit.metric_rebuild r ON r.date=d.date
+JOIN points s ON s.schedule_id=r.schedule_id AND s.trip_id=d.trip_id AND s.stop->>'id'=d.stop_id
+WHERE d.date BETWEEN '%s' AND '%s'
+  AND EXISTS(SELECT 1 FROM transit.metric_service ms WHERE ms.schedule_id=s.schedule_id AND ms.service_id=s.service_id AND ms.date=d.date)
+ORDER BY d.date,d.trip_id,d.stop_sequence`, dr.From, dr.To, chunk.OTPEarlyLimit, chunk.OTPLateLimit, dr.From, dr.To)
 
 	// cancellations and alerts are append-per-poll event logs: a record that
 	// stays active gets re-inserted on every feed poll (one row per poll). The
@@ -109,8 +108,7 @@ FROM (
         MAX(c.feed_timestamp) OVER w AS last_seen,
         COUNT(*)             OVER w AS poll_count
     FROM transit.cancellation c
-    WHERE (c.feed_timestamp AT TIME ZONE 'America/Thunder_Bay')::date >= '%s'
-      AND (c.feed_timestamp AT TIME ZONE 'America/Thunder_Bay')::date <= '%s'
+    WHERE c.start_date >= replace('%s','-','') AND c.start_date <= replace('%s','-','')
     WINDOW w AS (PARTITION BY c.trip_id, c.start_date)
     ORDER BY c.trip_id, c.start_date, c.feed_timestamp DESC
 ) q
@@ -145,6 +143,10 @@ ORDER BY first_seen`, dr.From, dr.To)
 		{name: "timepoint_stop_events.csv", sql: stopEvents},
 		{name: "cancellations.csv", sql: cancellations},
 		{name: "alerts.csv", sql: alerts},
+		{name: "metric_passages.csv", sql: fmt.Sprintf("SELECT * FROM transit.metric_passage WHERE date BETWEEN '%s' AND '%s' ORDER BY date,trip_id,stop_id", dr.From, dr.To)},
+		{name: "metric_rebuilds.csv", sql: fmt.Sprintf("SELECT r.*,s.source,s.published_at FROM transit.metric_rebuild r JOIN transit.metric_schedule s ON s.id=r.schedule_id WHERE date BETWEEN '%s' AND '%s' ORDER BY date", dr.From, dr.To)},
+		{name: "metric_timetables.csv", sql: fmt.Sprintf("SELECT * FROM transit.metric_trip WHERE schedule_id IN(SELECT schedule_id FROM transit.metric_rebuild WHERE date BETWEEN '%s' AND '%s') ORDER BY schedule_id,trip_id", dr.From, dr.To)},
+		{name: "metric_calendar.csv", sql: fmt.Sprintf("SELECT * FROM transit.metric_service WHERE date BETWEEN '%s' AND '%s' ORDER BY date,schedule_id,service_id", dr.From, dr.To)},
 	}
 }
 
@@ -181,36 +183,40 @@ func (h *Handler) dataDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 // writeDataBundle writes the CSV set plus a README into a streaming ZIP. All
-// COPYs run on one acquired connection, sequentially, so the pool sees a single
-// checkout for the whole download.
+// COPYs share a repeatable-read snapshot, so a concurrent rollup cannot mix
+// old counts with new passages or timetable provenance in the same export.
 func (s *Service) writeDataBundle(ctx context.Context, w io.Writer, dr DateRange) error {
 	conn, err := s.db.Acquire(ctx)
 	if err != nil {
 		return err
 	}
 	defer conn.Release()
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
 
 	zw := zip.NewWriter(w)
 	for _, f := range bundleFiles(dr) {
 		entry, err := zw.Create(f.name)
 		if err != nil {
-			zw.Close()
 			return err
 		}
 		copySQL := fmt.Sprintf("COPY (%s) TO STDOUT WITH (FORMAT csv, HEADER true)", f.sql)
 		if _, err := conn.Conn().PgConn().CopyTo(ctx, entry, copySQL); err != nil {
-			zw.Close()
 			return err
 		}
 	}
 
 	readme, err := zw.Create("README.txt")
 	if err != nil {
-		zw.Close()
 		return err
 	}
 	if _, err := io.WriteString(readme, bundleReadme(dr)); err != nil {
-		zw.Close()
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
@@ -222,52 +228,45 @@ func bundleReadme(dr DateRange) string {
 Date range: %s to %s (service dates, America/Thunder_Bay)
 Source: unofficial, derived from observing Thunder Bay Transit's GTFS feeds.
 
-These files are the minimum set to reproduce — or redefine — every metric on
-the Metrics tab in a spreadsheet. All counts are raw; percentages are never
-stored, so you sum the counts and divide once yourself.
+FORMULAS (metric_version=1 only)
+OTP = 100 * sum(otp_on_time) / sum(otp_count).
+A sample is one reported timepoint departure, not a trip-average delay.
+The window is [%g, %g] seconds. Departure delay takes precedence; arrival
+is the fallback. GTFS-RT updates may be predictions, not verified departures.
+Cancellation rate = reported cancelled trips / scheduled trips * 100.
+Cancellation-free chunks without observed trips do not establish a zero rate.
+
+For each route, sum wait_observed_area and wait_scheduled_area, then divide
+their difference by sum(window_seconds) and by 60 to get EWT minutes.
+For each route, CV = sum(cv_weighted_sum) / sum(cv_weight).
+Average routes with a denominator equally; no passenger weights are available.
+Do not pool raw headways from different stops/directions/timetables for CV.
+Negative EWT is retained. Missing data is not zero.
 
 FILES
------
-metrics_chunks.csv
-    Pre-rolled aggregates: one row per route x service-day x 6-hour band.
-    Columns hold raw counts (trip_count, on_time_count, scheduled_count,
-    cancelled_count, no_notice_count) and SUM-stable headway sums
-    (headway_count, headway_sum_sec, headway_sum_sec_sq, sched_headway_sec).
-    This is the "answer key": aggregate it across rows for any KPI.
-      OTP            = sum(on_time_count) / sum(trip_count)
-      Cancel rate    = sum(cancelled_count) / sum(scheduled_count)
-      Headway CV     = sqrt(headway_sum_sec_sq/headway_count
-                           - (headway_sum_sec/headway_count)^2)
-                       / (headway_sum_sec/headway_count), per route, then
-                       averaged across routes.
+metrics_chunks.csv: corrected counts, wait integrals and completeness counts.
+  Old trip-average OTP and headway columns are retained for schema compatibility;
+  corrected rows do not use them. Version 0 rows require rebuilding.
+timepoint_stop_events.csv: archived-schedule timepoints behind OTP.
+cancellations.csv: one row per reported trip/date, with first/last observation.
+alerts.csv: one row per alert, carrying its latest content.
+metric_passages.csv: screened GPS passage estimates and source GPS row IDs.
+metric_rebuilds.csv: recipe version and timetable provenance for every date.
+metric_timetables.csv: archived trips, with ordered stop schedules as JSON.
+metric_calendar.csv: active service IDs for each timetable/date.
 
-timepoint_stop_events.csv
-    The raw layer behind OTP. One row per trip per timepoint stop (timepoint
-    membership already applied). delay_sec = arrival_delay, falling back to
-    departure_delay. on_time is OUR classification: delay_sec within
-    [%g, %g] seconds (1 min early to 5 min late). To use your own
-    definition, ignore on_time and threshold delay_sec however you like.
-    Our official OTP is per-TRIP: average delay_sec across a trip's timepoint
-    stops, then apply the window — group by (date, trip_id) to reproduce it.
+REGULARITY COVERAGE
+Only interior timepoints with at least three scheduled passages are candidates.
+Every scheduled passage must be observed or explicitly reported cancelled.
+Unknown telemetry suppresses the entire stop/direction/day/band window.
+Actual and scheduled waits are integrated over the same bounded time interval.
+Endpoint/terminal ambiguity, repeated stops, ambiguous GPS episodes and
+nonmonotone trips are excluded. No short/long gap is removed by duration alone.
+Coverage-dependent selection remains: these are estimates for sampled windows,
+not proof of system-wide passenger waiting time.
 
-cancellations.csv
-    One row per cancelled trip (trip_id + start_date). We observe these on
-    every feed poll while the trip stays cancelled; rows are de-duplicated to
-    one per trip, with first_seen / last_seen (when we first/last saw it) and
-    poll_count (how many polls reported it). Notice lead = scheduled departure
-    minus first_seen.
-
-alerts.csv
-    One row per service alert (alert_id), de-duplicated the same way with
-    first_seen / last_seen / poll_count. Content columns (header, description,
-    affected_routes, ...) reflect the most recent poll.
-
-NOTES
------
-- Times in *_delay columns are seconds (negative = early).
-- first_seen / last_seen are timestamps with timezone (UTC offset shown).
-- Downloads are capped at one year per request.
-- Raw vehicle GPS positions are not included: that feed is polled every six
-  seconds and runs to gigabytes per year.
+Times are in America/Thunder_Bay. Source vehicle GPS records are not included
+because of their size; source IDs support checking against the retained archive.
+Downloads are capped at one year. See docs/transit-metrics.md for rebuild steps.
 `, dr.From, dr.To, chunk.OTPEarlyLimit, chunk.OTPLateLimit)
 }

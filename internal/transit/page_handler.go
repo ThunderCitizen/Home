@@ -49,33 +49,50 @@ func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 	var vm MetricsViewModel
 	vm.KPI = "otp"
 	vm.RouteMeta = h.svc.RouteMeta(r.Context())
-	vm.Range = parseDateRange(r, h.svc.SinceDate(r.Context()))
+	since := h.svc.SinceDate(r.Context())
+	vm.Month, vm.Range = parseMetricsMonth(r, since)
 	vm.ExportSize = EstimateBundleSize(vm.Range)
 
 	from, errFrom := time.ParseInLocation("2006-01-02", vm.Range.From, TZ)
 	to, errTo := time.ParseInLocation("2006-01-02", vm.Range.To, TZ)
 	if errFrom == nil && errTo == nil {
-		// Chunks and cancel details are independent reads. Run them in
-		// parallel so wall time collapses to whichever is slower instead
-		// of the sum. Both fail open (page renders empty cells).
+		// Read history once and derive the selected month's cards from it.
+		// A failed query is an unavailable page, not an empty success response.
+		trendEnd := to
+		if completed := ServiceDate().AddDate(0, 0, -1); trendEnd.After(completed) {
+			trendEnd = completed
+		}
 		g, ctx := errgroup.WithContext(r.Context())
 		g.Go(func() error {
-			if chunks, err := h.svc.Chunks(ctx, from, to); err == nil {
-				vm.Chunks = chunks
-				vm.HasData = len(chunks) > 0
-			}
-			return nil
+			var err error
+			vm.TrendChunks, err = h.svc.Chunks(ctx, mustParseDate(since, from), trendEnd)
+			return err
 		})
 		g.Go(func() error {
-			if cancels, err := h.svc.CancelDetails(ctx, from, to); err == nil {
-				vm.CancelledTrips = cancels
-			}
-			return nil
+			var err error
+			vm.CancelledTrips, err = h.svc.CancelDetails(ctx, from, trendEnd)
+			return err
 		})
-		_ = g.Wait()
+		if err := g.Wait(); err != nil {
+			middleware.HandleUnavailable(r.Context(), w, "metric history unavailable", err)
+			return
+		}
+		for _, c := range vm.TrendChunks {
+			if c.Date >= vm.Range.From && c.Date <= vm.Range.To {
+				vm.Chunks = append(vm.Chunks, c)
+			}
+		}
+		vm.HasData = len(vm.Chunks) > 0
 	}
 
 	h.render.TransitMetrics(vm)(r.Context(), w)
+}
+
+func mustParseDate(value string, fallback time.Time) time.Time {
+	if parsed, err := time.ParseInLocation("2006-01-02", value, TZ); err == nil {
+		return parsed
+	}
+	return fallback
 }
 
 func (h *Handler) transitRoutesPage(w http.ResponseWriter, r *http.Request) {

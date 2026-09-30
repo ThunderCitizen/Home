@@ -791,7 +791,8 @@
   }
 }
 
-.election-candidate-event {
+.election-candidate-event,
+.election-candidate-feature {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -818,7 +819,8 @@
   }
 }
 
-.election-candidate-event-icon {
+.election-candidate-event-icon,
+.election-candidate-feature-icon {
   display: grid;
   place-items: center;
   width: 2.25rem;

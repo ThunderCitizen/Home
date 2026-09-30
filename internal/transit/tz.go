@@ -35,11 +35,21 @@ const ServiceDayCutoffHour = 4
 // (e.g. 25:30) belong to the previous calendar day's service. Before 4 AM
 // local time, we're still in the previous day's service window.
 func ServiceDate() time.Time {
-	n := Now()
+	return serviceDateAt(Now())
+}
+
+func serviceDateAt(at time.Time) time.Time {
+	n := at.In(TZ)
 	if n.Hour() < ServiceDayCutoffHour {
 		n = n.AddDate(0, 0, -1)
 	}
 	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, TZ)
+}
+
+// GTFS defines schedule times from local noon minus twelve elapsed hours.
+// Using civil midnight would shift every trip on a daylight-saving transition.
+func metricTimeOrigin(date time.Time) time.Time {
+	return time.Date(date.Year(), date.Month(), date.Day(), 12, 0, 0, 0, TZ).Add(-12 * time.Hour)
 }
 
 // DateOnly strips the time component, keeping the Thunder Bay timezone.

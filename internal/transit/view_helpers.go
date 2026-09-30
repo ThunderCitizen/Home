@@ -89,3 +89,30 @@ func RouteRowKPIFromChunks(chunks []chunk.ChunkView, routeID string) RouteRowKPI
 	row.Cv = KPIFromChunks(routeChunks, "cv", "")
 	return row
 }
+
+// MetricCoverage gives a plain-language summary of the selected month's data.
+func MetricCoverage(chunks []chunk.ChunkView) string {
+	legacy := false
+	days := map[string]bool{}
+	for _, c := range chunks {
+		if c.Version != chunk.Version {
+			legacy = true
+			continue
+		}
+		if c.Trips > 0 || c.OTPCount > 0 || c.ObservedTimepoints > 0 || c.Cancelled > 0 {
+			days[c.Date] = true
+		}
+	}
+	if len(days) == 0 {
+		return "Not enough data for this month yet."
+	}
+	unit := "days"
+	if len(days) == 1 {
+		unit = "day"
+	}
+	summary := fmt.Sprintf("Based on %d %s of observations this month.", len(days), unit)
+	if legacy {
+		summary += " Some historical data is still being updated."
+	}
+	return summary
+}

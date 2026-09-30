@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	metricschunk "thundercitizen/internal/transit/chunk"
 )
 
 // band mirrors internal/transit.Band — duplicated locally so this dev tool
@@ -224,8 +225,10 @@ func (s *Seeder) upsertChunk(ctx context.Context, b chunk) error {
 			trip_count, on_time_count,
 			scheduled_count, cancelled_count, no_notice_count,
 			headway_count, headway_sum_sec, headway_sum_sec_sq, sched_headway_sec,
-			built_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now())
+			built_at,metric_version,otp_count,otp_on_time,expected_timepoints,observed_timepoints,
+            eligible_windows,total_windows,wait_observed_area,wait_scheduled_area,window_seconds,cv_weighted_sum,cv_weight
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,now(),$14,$5,$6,$10+1,$10+1,
+            1,1,$12/2,$13*$11/2,$11,$15*$11,$11)
 		ON CONFLICT (route_id, date, band) DO UPDATE SET
 			service_kind = EXCLUDED.service_kind,
 			trip_count = EXCLUDED.trip_count,
@@ -237,12 +240,18 @@ func (s *Seeder) upsertChunk(ctx context.Context, b chunk) error {
 			headway_sum_sec = EXCLUDED.headway_sum_sec,
 			headway_sum_sec_sq = EXCLUDED.headway_sum_sec_sq,
 			sched_headway_sec = EXCLUDED.sched_headway_sec,
-			built_at = now()
-	`,
+			metric_version=excluded.metric_version,otp_count=excluded.otp_count,otp_on_time=excluded.otp_on_time,
+            expected_timepoints=excluded.expected_timepoints,observed_timepoints=excluded.observed_timepoints,
+            eligible_windows=excluded.eligible_windows,total_windows=excluded.total_windows,
+            wait_observed_area=excluded.wait_observed_area,wait_scheduled_area=excluded.wait_scheduled_area,
+            window_seconds=excluded.window_seconds,cv_weighted_sum=excluded.cv_weighted_sum,cv_weight=excluded.cv_weight,
+            built_at = now()
+    `,
 		b.RouteID, b.Date, b.Band, b.ServiceKind,
 		b.TripCount, b.OnTimeCount,
 		b.ScheduledCount, b.CancelledCount, b.NoNoticeCount,
 		b.HeadwayCount, b.HeadwaySumSec, b.HeadwaySumSecSq, b.SchedHeadwaySec,
+		metricschunk.Version, metricschunk.Cv(b.HeadwayCount, b.HeadwaySumSec, b.HeadwaySumSecSq),
 	)
 	return err
 }

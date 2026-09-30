@@ -36,7 +36,9 @@ func main() {
 	case "gtfs":
 		runGTFS()
 	case "votes":
-		runVotes()
+		runVotes(false)
+	case "votes-local":
+		runVotes(true)
 	case "wards":
 		runWards()
 	case "chunks":
@@ -59,7 +61,8 @@ Usage:
 
 Subcommands:
   gtfs     Thunder Bay GTFS static schedule
-  votes    eSCRIBE council meetings (all terms)
+	votes    eSCRIBE council meetings (all terms)
+	votes-local  Parse and import already-downloaded council minutes
   wards    Open North ward boundaries
   chunks  Rebuild transit metric chunks for a date range
 

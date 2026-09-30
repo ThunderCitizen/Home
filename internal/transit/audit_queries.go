@@ -129,8 +129,7 @@ func buildAuditDirectionSchedule(ctx context.Context, db *pgxpool.Pool, routeID 
 			EXISTS (
 				SELECT 1 FROM transit.cancellation cn
 				WHERE cn.trip_id = tc.trip_id
-				  AND cn.feed_timestamp >= $2::date::timestamptz
-				  AND cn.feed_timestamp < ($2::date + 1)::timestamptz
+				  AND cn.start_date = to_char($2::date,'YYYYMMDD')
 			) AS canceled
 		FROM transit.trip_catalog tc
 		JOIN transit.service_calendar sc ON sc.service_id = tc.service_id

@@ -135,9 +135,9 @@ Event-sourced transit analytics. See [docs/transit.md](transit.md) for full deta
 
 **Read path:** Reporter assembles reports from event data via windowed SQL queries. No pre-computed snapshots — dashboard data derived on-the-fly.
 
-**Metrics:** System and per-route metrics (EWT, OTP, cancellation rate, headway Cv, bunching) computed from event data. EWT is the primary rider-facing metric. Per-route detail pages show full breakdowns.
+**Metrics:** Versioned route/day/band chunks combine archived timetables, reported timepoint delays/cancellations and screened GPS passages. Lead with punctuality and cancellations for timetable-based service; EWT and headway CV describe sampled regularity. The D3 history shows daily and 30-day aggregates with coverage. See [metric definitions](transit-metrics.md).
 
-**Stop detection:** The vehicle tracker records `transit.stop_visit` rows when a bus is within 50m of a stop on its route — checking both the current GPS fix and the line segment between the previous and current positions (catches stops the bus passed between 15-second readings). Feeds headway/bunching/EWT calculations.
+**Stop detection:** The vehicle tracker records `transit.stop_visit` rows when a bus is within 50m of a stop on its route — checking both the current GPS fix and the line segment between the previous and current positions (catches stops the bus passed between 15-second readings). Corrected regularity uses a separate screened `metric_passage` reconstruction with source GPS IDs; the historical visit key is now service-date aware.
 
 ## Data Provenance
 

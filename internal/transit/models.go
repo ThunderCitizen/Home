@@ -42,8 +42,8 @@ type TransitSnapshot struct {
 	CapturedAt       time.Time `json:"CapturedAt"`
 	ActiveVehicles   int       `json:"ActiveVehicles"`
 	ActiveRoutes     int       `json:"ActiveRoutes"`
-	OnTimePct        float32   `json:"OnTimePct"`
-	AvgDelaySeconds  float32   `json:"AvgDelaySeconds"`
+	OnTimePct        *float32  `json:"OnTimePct"` // nil when no valid delay was reported
+	AvgDelaySeconds  *float32  `json:"AvgDelaySeconds"`
 	LateCount        int       `json:"LateCount"`
 	EarlyCount       int       `json:"EarlyCount"`
 	MeasurementCount int       `json:"MeasurementCount"`
@@ -51,12 +51,14 @@ type TransitSnapshot struct {
 	Cancellations    int       `json:"Cancellations"`
 }
 
-// DaySummary is a daily aggregate of on-time performance.
+// DaySummary is a daily feed diagnostic over all reported stops. Its population
+// differs from the archived timepoints used for Metrics page punctuality.
 type DaySummary struct {
-	Date          time.Time `json:"date"`
-	AvgOnTime     float32   `json:"avg_on_time"`
-	AvgDelay      float32   `json:"avg_delay"`
-	Cancellations int       `json:"cancellations"`
+	Date             time.Time `json:"date"`
+	AvgOnTime        *float32  `json:"avg_on_time"`
+	AvgDelay         *float32  `json:"avg_delay"`
+	Cancellations    int       `json:"cancellations"`
+	MeasurementCount int       `json:"measurement_count"`
 }
 
 // ScheduledTrip is a trip from the GTFS schedule for a specific route and date.

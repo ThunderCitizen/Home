@@ -40,11 +40,14 @@ type DashboardReport struct {
 
 // StatsReport holds one of three stats views: day snapshots, percentiles, or week summary.
 type StatsReport struct {
-	Type      string                  `json:"type"`
-	Snapshots []TransitSnapshot       `json:"snapshots,omitempty"`
-	Buckets   []DelayPercentileBucket `json:"buckets,omitempty"`
-	Days      []DaySummary            `json:"days,omitempty"`
+	Definition string                  `json:"definition"`
+	Type       string                  `json:"type"`
+	Snapshots  []TransitSnapshot       `json:"snapshots,omitempty"`
+	Buckets    []DelayPercentileBucket `json:"buckets,omitempty"`
+	Days       []DaySummary            `json:"days,omitempty"`
 }
+
+const statsDefinition = "Feed diagnostics over all reported stops, grouped by last-update time. Departure delay preferred; on-time means -60 through +300 seconds. These may be predictions, not actual departures or the Metrics page timepoint population."
 
 // DayStats returns 24h of 5-minute system snapshots derived from events.
 func (r *Reporter) DayStats(ctx context.Context) (*StatsReport, error) {
@@ -55,7 +58,7 @@ func (r *Reporter) DayStats(ctx context.Context) (*StatsReport, error) {
 	if snapshots == nil {
 		snapshots = []TransitSnapshot{}
 	}
-	return &StatsReport{Type: "day", Snapshots: snapshots}, nil
+	return &StatsReport{Type: "day", Definition: statsDefinition, Snapshots: snapshots}, nil
 }
 
 // Percentiles returns 24h delay percentile buckets.
@@ -67,7 +70,7 @@ func (r *Reporter) Percentiles(ctx context.Context) (*StatsReport, error) {
 	if buckets == nil {
 		buckets = []DelayPercentileBucket{}
 	}
-	return &StatsReport{Type: "percentiles", Buckets: buckets}, nil
+	return &StatsReport{Type: "percentiles", Definition: statsDefinition, Buckets: buckets}, nil
 }
 
 // WeekStats returns daily aggregates for the last 7 days.
@@ -79,7 +82,7 @@ func (r *Reporter) WeekStats(ctx context.Context) (*StatsReport, error) {
 	if days == nil {
 		days = []DaySummary{}
 	}
-	return &StatsReport{Type: "week", Days: days}, nil
+	return &StatsReport{Type: "week", Definition: statsDefinition, Days: days}, nil
 }
 
 // --- Live Data ---

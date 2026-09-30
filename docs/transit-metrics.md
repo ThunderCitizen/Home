@@ -1,285 +1,118 @@
-# Transit Performance Metrics — Research Compendium
+# Transit metrics: definitions, provenance and rebuilding
 
-Research into industry-standard transit KPIs, measurement methodologies, and academic literature to inform what ThunderCitizen should compute from its GTFS-RT data (`transit.stop_delay`, `transit.vehicle_position`, `transit.stop_visit`, `transit.cancellation`).
+The Metrics page reports **sampled service performance**, not verified passenger outcomes. The raw feeds are retained, but their presence alone does not make every derived measure valid. Migration 28 and recipe version 1 replace the earlier trip-average OTP and pooled-headway calculations.
 
----
+## What changed
 
-## 1. Core Metrics Taxonomy
+- Visits were keyed by `(trip_id, stop_id)`. GTFS trip IDs recur on multiple dates, so later visits conflicted with earlier records. The recorder now keys by service date as well; exit updates identify the original entry timestamp.
+- The old detector considered every stop on a route, including the opposite direction, interpolated across arbitrarily long outages, and never retried an initial cache-load failure. It now uses the trip's scheduled stops, limits interpolation gaps and refreshes successful caches.
+- Historical metrics depended on replaceable current schedule tables. Timetables are now archived by content hash, with calendars and ordered per-trip stops.
+- OTP averaged a trip's early and late timepoints before classification. Each departure timepoint now receives its own classification.
+- Observed headways below a minute or above two hours were discarded, removing real bunching and disruption. The new calculation screens observations, not headway magnitudes.
+- Scheduled wait was half a mean headway, even for irregular timetables; negative EWT was clamped to zero. Both waits now use the same bounded interval, and signed differences are retained.
+- CV pooled different stops, bands and dates, manufacturing variation when scheduled frequency changed. CV is computed within each stop/direction/day/band window before combining results.
+- Existing rows were treated as proof that an entire date was finished. A transaction now replaces the whole date and records its recipe version; yesterday's unfinished build is finalized after the service day closes.
+- Chart nulls became zeros. Missing and legacy values now remain unavailable; the trend has an explicit completeness rule and coverage strip.
 
-### Schedule Adherence (low-frequency routes, headway > 10 min)
+## Definitions
 
-The standard for **on-time performance (OTP)**. A trip is "on-time" if it departs within a window around the scheduled time. **There is no unified national standard** — agencies define their own windows:
+### Reported timepoint punctuality
 
-| Agency | Early Limit | Late Limit | Window |
-|--------|------------|------------|--------|
-| Most US agencies | 1 min early | 5 min late | 6 min |
-| SFMTA | 1 min early | 4 min late | 5 min |
-| WMATA (DC) | 2 min early | 7 min late | 9 min |
-| MnDOT | 1 min early | 4 min late | 5 min |
-| Japan (all rail) | 0 | 1 min late | 1 min |
-| Tokyo Metro (departure) | 15 sec early | 15 sec late | 30 sec |
+One sample is a retained delay for a scheduled timepoint departure, excluding the trip's final destination and repeated stop IDs. Departure delay takes precedence; arrival delay is a fallback. The selected window is -60 through +300 seconds, inclusive. Count early/on-time/late samples separately; sum counts before division. Band membership uses that stop's scheduled departure, not the trip's first stop.
 
-**Thunder Bay currently uses ±60 seconds** — extremely tight by North American standards. A more standard threshold would be **-1 min / +5 min** (the most common US definition).
+`OTP = 100 × Σotp_on_time / Σotp_count`
 
-**Source:** [TransitCenter: Your Bus Is On Time. What Does That Even Mean?](https://transitcenter.org/bus-time-even-mean/)
+This is **feed-reported punctuality**. The trip-update feed can contain predictions, and the recorder retains the latest value rather than a confirmed departure event. The threshold is our definition, not a universal agency standard. Do not label this as audited actual departure OTP.
 
-### Headway Adherence (high-frequency routes, headway ≤ 10 min)
+### Reported cancellations and notice
 
-For frequent service, passengers don't consult schedules — they just show up. **On-time performance is the wrong metric.** What matters is the **regularity of spacing between buses**. Jarrett Walker (Human Transit) argues this is the fundamental metric for any frequent service.
+Count each cancelled trip/service date once, using its earliest feed timestamp for notice. The denominator is the exact active archived timetable, including routes without observed trips. The percentage is unavailable when there is neither an observed trip nor a cancellation in a chunk. This guard does not prove complete cancellation-feed coverage: unreported missed trips remain unknown.
 
-Key measures:
-- **Coefficient of Variation of Headway (Cv.h)** = σ(headway) / mean(headway). Lower = more regular. Perfect service = 0.
-- **Wait Assessment** = % of observed headways within ±2 min of scheduled headway (TfL uses ±2 min).
-- **Headway Deviation** = actual headway − scheduled headway per stop per trip pair.
+`rate = 100 × Σcancelled_count / Σscheduled_count`
 
-**Source:** [Human Transit: Beyond On-Time Performance](https://humantransit.org/2010/10/beyond-on-time-performance.html)
+`short notice = 100 × Σno_notice_count / Σcancelled_count`
 
-### Excess Waiting Time (EWT) — The Gold Standard
+The 15-minute notice cutoff is editorial. Trips with any cancellation report count even if another feed also showed them operating; the measure is reported cancellations, not verified kilometres or trips lost. Trip counts use any retained delay observation and the trip's first-departure band. They are not the OTP denominator.
 
-Developed by **Transport for London** and validated by Imperial College London's International Bus Benchmarking Group (IBBG). EWT is the **difference between actual passenger wait time and scheduled wait time**.
+### Screened GPS passages
 
-```
-EWT = Actual Wait Time − Scheduled Wait Time
-```
+The regularity calculation uses `metric_passage`, reconstructed from `vehicle_position`, independently of the legacy visit detector. Each estimate links to its two source GPS row IDs. A segment must be at most 30 seconds long, imply at most 35 m/s, and pass within 35 m of the scheduled stop. STOPPED_AT or progression from that stop to its immediate scheduled successor must corroborate proximity. The measurement timestamp is used when retained; older records fall back to the feed timestamp.
 
-For a route with scheduled headway H:
-- **Scheduled Wait Time (SWT)** = H/2 (assumes random passenger arrivals)
-- **Actual Wait Time (AWT)** = Σ(h²) / (2 × Σh) where h = observed headways
+Reject terminals, endpoints, repeated stops, separated visit episodes, multiple vehicles on a trip and nonmonotone stop progression. The spatial/time thresholds are screening choices, not a guaranteed error bound. Feed status is corroboration from the same source, not independent ground truth. Sparse GPS, incorrect assignments and upstream timestamp lag remain limitations.
 
-EWT is considered the **most statistically robust** regularity metric because:
-- It's customer-centric (measures what passengers experience)
-- It normalizes across different headways
-- A late bus can be "counted as the next bus running early" — matching how riders perceive it
+### Matched wait and regularity windows
 
-TfL publishes EWT quarterly for every route via their **Quality of Service Indicators (QSI)** system, computed from iBus AVL data at representative timing points.
+The unit is an interior timepoint × route × direction × service date × band. A candidate needs at least three scheduled passages. Every scheduled passage must have a screened observation or an explicit cancellation; otherwise the entire window is excluded. A valid comparison also needs at least three actual passages. No headway is removed solely because it is very short or very long.
 
-**Source:** [TfL Bus Performance Data](https://tfl.gov.uk/corporate/publications-and-reports/buses-performance-data), [Imperial College IBBG research](https://www.researchgate.net/publication/254609206_Development_of_Key_Performance_Indicator_to_Compare_Regularity_of_Service_Between_Urban_Bus_Operators)
+Use the common interval bounded by the band, the first scheduled/observed passage and the last scheduled/observed passage. Integrate `next arrival − t` over this **same interval** for both timelines. For complete intervals this reduces to `Σh² / 2`; clipping handles boundaries exactly. This avoids assuming `scheduled wait = mean headway / 2` when the timetable is irregular.
 
-### Mean Waiting Time Formula
-
-From TCRP Report 13907 (Using Archived AVL-APC Data):
+For each route:
 
 ```
-E[W] = (H/2) × (1 + Cv.h²)
+AWT minutes = Σwait_observed_area / Σwindow_seconds / 60
+SWT minutes = Σwait_scheduled_area / Σwindow_seconds / 60
+EWT minutes = AWT − SWT
+CV = Σcv_weighted_sum / Σcv_weight
 ```
 
-Where H = mean headway, Cv.h = coefficient of variation. This means irregular service always increases wait times — even if average headway is correct, variance penalizes riders.
+CV uses population standard deviation / mean for complete observed gaps ending inside a window, with at least two gaps. Compute this within the window, multiply by its duration, then sum. The system EWT and CV are equal-weight means of contributing route values. AWT pools exposure across sampled windows. These weights are explicit choices because no passenger counts are available; they do not reproduce TfL's network measure.
 
-**Source:** [NAP: Tools for Analyzing Waiting Time](https://nap.nationalacademies.org/read/13907/chapter/8)
+Selection remains consequential. Unknown passages exclude windows, including potentially disrupted ones. Observed/cancelled completeness cannot establish that every unscheduled bus was detected. The interval excludes service edges without a following observed arrival. Compare the coverage and contributing routes alongside each value.
 
----
+## Industry interpretation and trends
 
-## 2. World-Class Operators
+[DfT's quality report](https://www.gov.uk/government/publications/buses-statistics-guidance/annual-bus-statistics-quality-report) distinguishes punctuality for non-frequent service from excess waiting for frequent service. Thunder Bay's less frequent routes should lead with punctuality and cancellations. EWT assumes random arrivals; it is a spacing diagnostic for timetable-aware passengers, not their expected personal wait.
 
-### Transport for London (TfL)
-- **Primary metric:** Excess Waiting Time (EWT) — the global benchmark for bus reliability
-- **Measurement:** iBus AVL system at QSI timing points, all-day every-day, 05:00–23:59
-- **Supplementary:** Scheduled km operated, bus speeds (mph including dwell), passenger satisfaction scores
-- **Approach:** Passenger-perspective — a late bus is treated as the next bus running early
-- **Source:** [TfL QSI Performance Results](https://bus.data.tfl.gov.uk/boroughreports/current-quarter.pdf)
+[TfL's performance reporting](https://tfl.gov.uk/corporate/publications-and-reports/buses-performance-data) compares corresponding quarters across years to reduce seasonal confounding. With only April–August available for this audit, there is no seasonally matched annual comparison. Do not interpret monthly values as a seasonally adjusted improvement score.
 
-### MTR Corporation (Hong Kong)
-- **99.9% punctuality** — 999 of every 1,000 passengers arrive within 5 minutes of schedule
-- Reports three distinct metrics: **Train Service Delivery**, **Passenger Journeys On-Time**, **Train Punctuality**
-- Must report all delays > 8 minutes to government
-- 5.7M daily passengers, farebox recovery ratio of 187% (world's highest)
-- **Source:** [Railway News: MTR Maintains 99.9% Punctuality](https://railway-news.com/mtr-corporation-maintains-punctuality-rate/)
+The D3 trend sits below the route comparison and follows the selected metric card. It provides daily readings and a trailing 30-calendar-day aggregate (labelled “30-day average”), with the selected month shaded vertically. Hover, touch or focus the chart and use arrow keys to read individual dates. The route selector is the only trend filter; readings include all calendar days and all three time bands (06:00–24:00). Exact service availability comes from the archive calendar. The default is the previous completed month. History ends with the selected month, excluding the unfinished service day. The public page uses a simple days-of-observations summary; detailed coverage counts remain in the exported data and their interpretation is explained on the Method page.
 
-### Tokyo Metro / JR
-- **Threshold:** 1 minute late = delayed (Japan-wide standard)
-- **Shinkansen average delay:** ~20 seconds; commuter trains: ~50 seconds
-- **Departures measured to 15-second precision** — neither early nor late by >15s
-- Dwell time at stations is the critical measurement point (~90% of total delays < 5 min)
-- **Source:** [JRailPass: Japan Train Punctuality](https://www.jrailpass.com/blog/japan-train-punctuality), [Metro Magazine: Tokyo Metro Rush Hour](https://www.metro-magazine.com/10007392/how-the-tokyo-metro-handles-rush-hour-to-operate-on-time)
+When Cancellation Rate is selected, the cancelled-trips list below the trend follows the same route selector. Its desktop table, mobile cards and summary (including scheduled-trip totals) cover the selected route and month. “All routes” restores the full list; changing routes preserves the current sort order.
 
----
+Rolling values recompute from raw counts/integrals. They require a full 30-day calendar span, at least 70% of selected calendar days with valid readings, and a reading on the final day. The 70% rule is a display threshold documented on the Method page, **not** a confidence interval or industry requirement. Real gaps break the line. No interpolation fills them. Samples and the set of routes may change even when this rule passes.
 
-## 3. Bus Bunching & Big Gaps
+## Implementation
 
-Bus bunching = two or more buses arriving together, leaving a big gap behind. This is **the most visible reliability failure** for riders.
+- `metric_schedule.go`: validates and archives local GTFS bundles. Content hashes retain provenance without overwriting older schedules. Calendar exceptions are applied. Among archives covering a date, prefer the one matching the most observed/cancelled trip IDs, then publication timing. A later capture can cover an earlier service date; this does not prove the timetable was identical when originally published.
+- `metric_passage.go`: screened historical reconstruction; raw source tables remain unchanged.
+- `metric_day.go`: reads each event source once for the date, matches the archived timetable, counts punctuality/cancellations and assembles windows.
+- `recipes/window.go`: pure, tested wait integrals and window CV.
+- `chunk.go`: one transaction replaces the day's rows and recipe marker.
+- `chunk/chunk.go`, `chunk/rollup.go`, `static/transit/chunks.js`: additive data and matching server/browser reducers. Tests run the JavaScript reducer against Go.
+- `chunk_rollup.go`: refreshes today, repairs missing/stale recent dates and finalizes yesterday. Invalidated older chunks are also repaired beyond the usual 60-day scan. It only rebuilds dates covered by an archived schedule.
 
-**Detection from GTFS-RT:**
-- **Bunching:** Headway < 25% of scheduled headway (two buses nose-to-tail)
-- **Big Gap:** Headway > 175% of scheduled headway
-- Three headway states: **Bunching**, **Stable**, **Big Gap**
+Recipe version 0 rows remain stored but are excluded from corrected figures. New timetable imports invalidate affected rollup versions; rebuilding also reconstructs their passages. The old trip-average OTP and raw headway columns remain in the SQL table for compatibility and audit, but corrected reads no longer use them. Legacy and corrected versions must never be pooled.
 
-Research uses headway coefficient of variation and prediction models (LS-SVM, neural nets) to forecast bunching before it occurs.
+[GTFS service times](https://gtfs.org/documentation/schedule/reference/) are measured from local noon minus twelve hours, including DST transitions. The recording service date changes at 04:00 local; public bands cover 06:00–24:00. The recorder now retains vehicle timestamps, trip service dates and stop sequences for future validation.
 
-**Source:** [Headway-based bus bunching prediction](https://trid.trb.org/view.aspx?id=1427445), [TTC Riders bunching report](https://www.ttcriders.ca/bunchingreport)
+## Rebuild an archive
 
----
+Apply migration 28 first. It preserves duplicate local visit records in `stop_visit_duplicate_archive` before installing the service-date key. The down migration deliberately refuses a lossy rollback; restoring a pre-migration backup is required to run the old recorder.
 
-## 4. TCQSM Service Frequency Levels
+Build the helper, then import each historical GTFS bundle with its capture/commit time:
 
-The Transit Capacity and Quality of Service Manual (TCRP Report 165, 3rd ed.) defines service levels by headway:
-
-| Headway | Behavior | TCQSM Category |
-|---------|----------|-----------------|
-| ≤ 5 min | No need to check schedule | Very frequent |
-| 5–10 min | Passengers may check schedule | Frequent |
-| 11–15 min | Passengers check schedule | Moderate |
-| 16–30 min | Must plan around schedule | Infrequent |
-| 31–60 min | Significant planning required | Low |
-| > 60 min | Limited mobility | Minimal |
-
-Thunder Bay routes mostly operate at 15–30 min headways → **schedule adherence is the right metric** (not headway adherence).
-
-**Source:** [TCRP Report 165](https://nap.nationalacademies.org/catalog/24766/transit-capacity-and-quality-of-service-manual-third-edition)
-
----
-
-## 5. Key Reference Documents
-
-### Authoritative Standards
-- **TCRP Report 88** — A Guidebook for Developing a Transit Performance-Measurement System. 400+ measures cataloged, recommended core set. [PDF](https://onlinepubs.trb.org/onlinepubs/tcrp/tcrp_report_88/guidebook.pdf)
-- **TCRP Report 141** — Methodology for Performance Measurement and Peer Comparison. Benchmarking framework for bus and rail. [PDF](https://ftis.org/iNTD-Urban/tcrp_141.pdf)
-- **TCRP Report 165 (TCQSM 3rd ed.)** — Transit Capacity and Quality of Service Manual. Service levels, capacity methods, LOS framework. [NAP](https://nap.nationalacademies.org/catalog/24766/transit-capacity-and-quality-of-service-manual-third-edition)
-- **TCRP Report 13907** — Using Archived AVL-APC Data to Improve Transit Performance. Wait time formulas, headway analysis tools. [NAP](https://nap.nationalacademies.org/read/13907/chapter/8)
-
-### Academic Papers
-- **Measurement and classification of transit delays using GTFS-RT data** (Springer, 2022) — Framework for systematic vs. stochastic delay classification from GTFS-RT. [Link](https://link.springer.com/article/10.1007/s12469-022-00291-7)
-- **Definition and Properties of Alternative Bus Service Reliability Measures at the Stop Level** (McGill) — Compares PIR, DIS, EIS metrics. [PDF](https://tram.mcgill.ca/Research/Publications/BusReliability.pdf)
-- **Passenger Travel Time Reliability for Multimodal Journeys** (TRR, 2019) — Buffer time metrics from smartcard + AVL data. [SAGE](https://journals.sagepub.com/doi/10.1177/0361198118825459)
-- **Examining associations with on-time performance** (ScienceDirect, 2023) — Road network, demographic, and land use factors affecting bus OTP. [Link](https://www.sciencedirect.com/science/article/pii/S2772586323000266)
-- **Gini Index for Evaluating Bus Reliability** (HAL, 2016) — Uses inequality measure for headway regularity. [PDF](https://hal.science/hal-01301646/document)
-- **Waiting time and headway modeling considering unreliability** (ScienceDirect, 2021) — Theoretical + empirical headway distribution models. [Link](https://www.sciencedirect.com/science/article/pii/S0965856421003001)
-
-### Open Source Implementations
-- **MBTA transit-performance** — Real-time performance measurement from GTFS + GTFS-RT. Measures travel time, headway, dwell time, OTP, schedule adherence, passenger-weighted wait times. [GitHub](https://github.com/mbta/transit-performance)
-- **MobilityData awesome-transit** — Curated list of transit tools, datasets, and APIs. [GitHub](https://github.com/MobilityData/awesome-transit)
-- **California GTFS Digest** — Statewide GTFS quality and performance reporting. [Link](https://analysis.dds.dot.ca.gov/gtfs_digest/README.html)
-
-### Canadian Context
-- **CUTA** publishes annual operating/financial statistics and performance indicators for all Ontario transit systems via the Ontario Ministry of Transportation. [Ontario Open Data](https://data.ontario.ca/dataset/regional-and-municipal-transit-data)
-- **MTI Report 12-58** — Transit Performance Measures in California. Comprehensive review of measures across agencies. [PDF](https://transweb.sjsu.edu/sites/default/files/1208-transit-performance-measures-in-california.pdf)
-
----
-
-## 6. What ThunderCitizen Computes
-
-Data sources: `transit.stop_delay`, `transit.vehicle_position`, `transit.stop_visit`, `transit.cancellation`, GTFS static schedule.
-
-### System-Level Metrics (6 KPI cards)
-
-All cards show three time-of-day bands — **Morning (6–12) / Midday (12–18) / Evening (18–24)** — and a system-wide main value. The main value is the trip-weighted SUM of raw counts across all chunks in the active range, divided once at the end.
-
-| Card | Data Source | Partitioning |
-|------|------------|--------------|
-| **OTP** | `transit.stop_delay` vs `gtfs.stop_times` | Trips grouped by first-stop departure hour |
-| **Cancellation Rate** | `transit.cancellation` vs observed-trip baseline | First-stop departure hour |
-| **Cancel Notice** | `transit.cancellation` `feed_timestamp` vs `start_time` | First-stop departure hour |
-| **Stop Wait** | `transit.stop_visit` headways | Per-route headway gaps at each timepoint stop |
-| **EWT** | `transit.stop_visit` vs inline-computed schedule | Per-route; schedule from `gtfs.stop_times` filtered by observed service days |
-| **Headway CV** | `transit.stop_visit` headways | Per-route at each stop |
-
-**Why Cv is per-route:** Cv measures spacing regularity of a single service. Pooling multiple routes at a stop creates artificial variance from interleaving — a perfectly regular 20-min Route 1 and 30-min Route 5 produce highly variable 2/18/12/8-minute gaps. Cv at the chunk level captures the rider's experience of one route they're waiting for.
-
-### Implementation — chunk model
-
-The metric unit is a **chunk**: 1 route × 1 day × 1 band, persisted as one row in `transit.route_band_chunk` (migration `000003`). Each chunk stores raw counts and SUM-stable headway sums, never percentages:
-
-```
-trip_count, on_time_count                           -- OTP
-scheduled_count, cancelled_count, no_notice_count   -- cancel rate, notice
-headway_count, headway_sum_sec, headway_sum_sec_sq  -- wait, EWT, Cv
-sched_headway_sec                                   -- EWT reference
+```sh
+go build -o bin/transitmetrics ./cmd/transitmetrics
+./bin/transitmetrics -schedule-dir /path/to/gtfs \
+  -source <git-commit-or-archive-reference> -published-at 2026-07-02T12:00:00Z
+./bin/transitmetrics -from 2026-04-12 -to 2026-08-31 -gps
 ```
 
-Storing sums (not means) is the load-bearing decision. Aggregating already-rounded percentages is wrong; aggregating raw counts then dividing once at the end is exact arithmetic — the same number whether you compute it from one chunk or 420.
+`DATABASE_URL` selects the target. Timetable imports and derived-table rebuilds write to that database. Test against a restored local copy first. The helper does not refresh the live timetable or contact the transit feed. Re-running a date is idempotent. Archived raw GPS is required to recover lost visits; merely repairing the key cannot recover earlier suppressed events.
 
-**Write path (`internal/transit/chunk.go::BuildChunksForDate`).** For each (route, date, band) tuple, the orchestrator runs five small per-metric "recipes" from `internal/transit/recipes/`, each its own file with one SQL constant and one Go function:
+The normal GTFS refresh automatically archives new bundles. Startup also archives the installed bundle when the refresher has no newer download. Importing older history does not replace the application's live route/planner tables.
 
-| Recipe | What it computes |
-|--------|------------------|
-| `service_kind.go` | weekday / saturday / sunday classification |
-| `otp.go` | `trip_count`, `on_time_count` from `transit.stop_delay` |
-| `cancel.go` | `scheduled_count`, `cancelled_count`, `no_notice_count` from `transit.cancellation` |
-| `baseline.go` | scheduled-trip baseline from observed `(service_id, date)` pairs in `gtfs.stop_times` |
-| `headway.go` | `headway_count`, `headway_sum_sec`, `headway_sum_sec_sq`, `sched_headway_sec` from `transit.stop_visit` |
+Exports now include counts, timepoint delays, passages with source IDs, rebuild provenance, archived timetables/calendar, cancellations and alerts. They reproduce the aggregate calculation, but exclude the large raw GPS source needed to independently rerun detection.
 
-The orchestrator stitches the recipe outputs into a `chunk.Chunk` and upserts it. Each recipe is auditable in isolation — the formula, the SQL, and the test sit in one file with no cross-coupling.
+## Checks
 
-**Read path.** `Service.Chunks(ctx, from, to)` reads the inclusive date range
-from `transit.route_band_chunk` through `internal/transit/chunk_read.go`.
-The earliest chunk date and cancellation details also read SQL directly.
-Completed rollups and historical rebuilds are visible on the next read.
-See [server reads](transit.md#server-reads) and
-[route performance](route-performance.md) for query costs and validation.
-
-**Aggregation.** `KPIFromChunks` and `RouteRowKPIFromChunks` in `internal/transit/view_helpers.go` SUM the raw counts across whatever slice you hand them, then divide once at the end. Empty band (`""`) pools all three. The frontend mirror in `static/transit/chunks.js` (`window.transitChunks.aggregate`) is line-for-line the same math — used by `trends-chart.js` for the route comparison chart so client-side and server-side always agree.
-
-**No calendar dependency.** The "scheduled trips" baseline is reconstructed from `gtfs.stop_times` joined to the `(service_id, date)` pairs the recorder observed running — derived from `transit.stop_delay`, **not** `gtfs.calendar_dates`. A long-lived prod DB whose GTFS bundle has rolled past the queried date range produces correct numbers anyway, because we trust observation over the published calendar.
-
-**Auto-rollup (the thing that keeps prod working).** `internal/transit/chunk_rollup.go` runs a background goroutine wired in `cmd/server/main.go` next to the recorder. On startup it scans the last 60 days of `transit.stop_delay` and builds chunks for any date present in events but missing from `transit.route_band_chunk` — the self-healing backfill. Then every 10 minutes it rebuilds today's chunks so `/transit/metrics` stays fresh as bands close. All writes are idempotent upserts, so running this alongside the fetcher or seedtransit is safe.
-
-Without this loop, `route_band_chunk` stays empty forever and every KPI renders as a blank — the event tables fill up fine but nothing projects them into the metrics shape. This exact failure mode hit prod before the rollup was added; dev masked it because `seedtransit` seeds synthetic chunks.
-
-**Manual rebuilding.** `./bin/fetcher chunks` interactively rebuilds chunks for a date range — use this when you've changed a recipe and want to re-project history, or to fill deeper than the 60-day auto-backfill. `./bin/seedtransit` writes synthetic chunks for the dev DB when GTFS hasn't been loaded.
-
-The textbook math (`Cv`, `EWTSec`, `WaitMin`, `ComputeSystem`, `ComputeRoutes`) lives in `internal/transit/chunk/math.go` with unit tests in `math_test.go`. SUM-stable identities used:
-
-```
-Var(X) = E(X²) − E(X)²              # Cv from headway_sum and headway_sum_sec_sq
-EWT    = sum(h²) / (2·sum(h)) − sched_h/2
-Wait   = sum(h) / N
+```sh
+go test ./...
+TRANSIT_TEST_DATABASE_URL='postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable' \
+  go test -race ./internal/transit ./internal/transit/chunk ./internal/transit/recipes
+go vet ./...
+npm run css
+npx eslint static/transit/chunks.js static/transit/trends-chart.js
 ```
 
-### Data export (`download.go`)
-
-The Metrics tab's **Export** button streams a ZIP from `GET /api/transit/download?from=&to=`. One `COPY` per CSV runs on a single pooled connection, piped through `archive/zip` — flat memory regardless of size. Contents:
-
-| File | Source | Notes |
-|---|---|---|
-| `metrics_chunks.csv` | `route_band_chunk` | the aggregates (counts + headway sums) — the answer key |
-| `timepoint_stop_events.csv` | `stop_delay` at timepoints | raw per-stop delays + an `on_time` bool; lets analysts apply their own definition |
-| `cancellations.csv` | `cancellation` | deduped (see below) |
-| `alerts.csv` | `alert` | deduped (see below) |
-| `README.txt` | generated | column docs + recompute formulas |
-
-The date range is validated and capped by `parseDateRange` (≤ `MaxRangeDays`, one year) — that is the **only** bound; there is no SQL-hardcoded interval.
-
-Two non-obvious choices:
-
-1. **Timepoint membership** in `timepoint_stop_events.csv` is resolved via the `route_pattern_stop` join, **not** `stop_delay.is_timepoint` (which the recorder leaves false), mirroring `recipes/otp.go` so the export matches the OTP population exactly.
-2. **`cancellations` and `alerts` are append-per-poll event logs** (a record that stays active is re-inserted every feed poll). They're deduped to one row per logical record (`DISTINCT ON` + `first_seen` / `last_seen` / `poll_count`) **in the export query only**. Storage stays duplicated on purpose — the live site needs `MIN(feed_timestamp)` (cancel-notice KPI) and `MAX(feed_timestamp)` (current snapshot). Don't "fix" one side to match the other.
-
-### Cancellation Incident Detection
-
-Cancellations are grouped into **incidents** by walking the actual schedule for each route and direction:
-
-1. Query all scheduled trips today per (route, headsign), ordered by departure time
-2. LEFT JOIN against the latest cancellation feed to mark which trips are cancelled
-3. Walk through in order — consecutive cancelled trips form one incident
-4. A non-cancelled trip between two cancelled ones breaks the streak into separate incidents
-
-This means 3 back-to-back cancellations on Route 2 inbound = 1 incident (likely one bus/driver went down), while 3 scattered cancellations across the day = 3 separate incidents.
-
-The live map stats bar shows incident counts (not raw trip counts) to present the lowest honest number. Incidents with multiple consecutive trips are flagged explicitly.
-
-### Stop Visit Detection
-
-The vehicle tracker populates `transit.stop_visit` using a two-stage
-distance check (see `internal/transit/vehicle_tracker.go`):
-- **Threshold:** 50m (calibrated from 22K STOPPED_AT observations: P50=11m, P95=48m)
-- **Stage 1 — point distance:** Each 15-second position update checks haversine distance from the fix to every stop on the vehicle's route
-- **Stage 2 — segment distance:** If the point is > 50m, `segmentDistToPoint` measures the nearest distance from the stop to the line segment between the previous and current GPS fixes. This catches stops the bus passed between readings (at 50 km/h that's ~200m of unobserved travel per poll). When matched via segment distance, `observed_at` is interpolated along the segment rather than pinned to the latest feed timestamp
-- **Dedup:** First sighting per `(trip, stop)` wins via in-memory cache + `ON CONFLICT DO NOTHING`
-- **Usage:** Headway, bunching, Cv, and EWT calculations all use `transit.stop_visit.observed_at` timestamps
-- **Measurement point:** All delay-based metrics (OTP, avg delay, P90, EWT, headway) are computed exclusively at GTFS time point stops (`gtfs.stop_times.timepoint = TRUE`). This matches TfL QSI methodology — measuring at schedule adherence checkpoints rather than all stops, which avoids inflating on-time numbers with intermediate stops where small delays average out. For EWT/headway specifically, the busiest time point stop per route is used; falls back to the busiest stop overall if no time point has >= 10 visits.
-
-### Route-Level Comparison
-
-Routes tab offers switchable bar chart comparing all routes by: EWT, OTP, Cancellations, P90, Headway CV, Bunching Rate. Bars use each route's assigned color.
-
-### Timepoint Schedule
-
-The route detail page shows a schedule grid split by direction (headsign). Each cell shows:
-- **Top line** (grey): scheduled departure time
-- **Bottom line** (colored): actual arrival time — green (on time), blue (early), purple (left early), red (late)
-
-Timepoint stops are drawn from each direction's representative trip (`timepoint=TRUE` in `gtfs.stop_times`).
-
-### Not yet computable (would need additional data)
-- Passenger-weighted metrics (need ridership/APC data)
-- Dwell time (GTFS-RT doesn't provide this directly)
-- Crowding/load factor (need APC or occupancy data)
+PostgreSQL tests create and remove scratch databases. Fixtures cover early/late cancellation in the old OTP formula, cancellation deduplication, missing-passage suppression, archived schedules after live tables change, visit identity across service days, finalization after midnight, variable schedules, signed EWT, extreme headways, DST and Go/JavaScript parity. Historical validation results are recorded in [transit metric audit](transit-metric-audit.md).

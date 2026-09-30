@@ -1,511 +1,65 @@
 package pages
 
 import (
-	"thundercitizen/internal/transit"
-	"thundercitizen/templates"
-	"thundercitizen/templates/components"
+    "thundercitizen/internal/transit"
+    "thundercitizen/templates"
+    "thundercitizen/templates/components"
 )
 
 templ TransitMethod(vm transit.MethodViewModel) {
-	@templates.Layout(templates.SocialMeta{
-		Title:       "Transit — Method",
-		Description: "How Thunder Bay Transit performance is measured — OTP, excess wait time, headway reliability, and the GTFS data behind each metric.",
-		OGImage:     "/static/og/transit.png",
-	}) {
-		@components.TransitNav(components.TransitNavProps{Current: "method"})
-		@components.PageHeader(components.PageHeaderProps{Title: "Transit Method"})
-		@transitMethodology()
-		@transitDataCollection(vm)
-	}
-}
-
-templ transitDataCollection(vm transit.MethodViewModel) {
-	<section id="data-collection" aria-label="Data collection" class="report-methodology">
-		<article>
-			<header class="methods-header"><h3>Data Collection</h3></header>
-			<p>
-				Thunder Bay Transit publishes three
-				<a href="https://gtfs.org/documentation/realtime/reference/" target="_blank" rel="noopener">GTFS Realtime</a>
-				feeds &mdash; vehicle positions, trip updates, and service alerts. We poll
-				each on a fixed interval and store every response as a raw event.
-				The official feed URLs are listed on the City of Thunder Bay
-				<a href="https://www.thunderbay.ca/en/city-services/developers---open-data.aspx" target="_blank" rel="noopener">Transit Open Data</a> page.
-			</p>
-			<table>
-				<thead>
-					<tr><th>Source</th><th>Method</th><th>Frequency</th></tr>
-				</thead>
-				<tbody>
-					<tr><td>Vehicle positions</td><td>GTFS-RT feed</td><td>Every { vm.VehiclePoll }</td></tr>
-					<tr><td>Trip delays</td><td>GTFS-RT feed</td><td>Every { vm.TripPoll }</td></tr>
-					<tr><td>Service alerts</td><td>GTFS-RT feed</td><td>Every { vm.AlertPoll }</td></tr>
-				</tbody>
-			</table>
-			<p>
-				The feeds are encoded as
-				<a href="https://protobuf.dev/" target="_blank" rel="noopener">Protocol Buffers</a>
-				(protobuf) &mdash; a compact binary serialization format.
-			</p>
-		</article>
-	</section>
-}
-
-templ transitMethodology() {
-	<section aria-label="Understanding the metrics" class="report-methodology">
-		<article>
-			<header class="methods-header"><h3>The Data</h3></header>
-			<p>
-				Thunder Bay Transit publishes
-				<a href="https://en.wikipedia.org/wiki/GTFS" target="_blank" rel="noopener">GTFS</a>
-				schedule and realtime feeds &mdash; the same standard behind Google Maps and
-				<a href="https://nextlift.ca/" target="_blank" rel="noopener">NextLift</a>.
-				Those apps show where buses are now and discard the data.
-				We store every position, delay, and cancellation as a raw event.
-			</p>
-			<p>
-				A background job periodically rolls the raw events into
-				the aggregates shown on the Metrics tab. All metrics are
-				measured at <strong>timepoint stops</strong> (the ones
-				marked <code>timepoint=true</code> in the GTFS feed).
-			</p>
-		</article>
-
-		<article>
-			<header class="methods-header"><h3>Why Metrics</h3></header>
-			<blockquote>
-				<p>
-					&ldquo;Without an explicit SLO, users often develop their own beliefs
-					about desired performance, which may be unrelated to the beliefs held
-					by the people designing and operating the service.&rdquo;
-				</p>
-				<footer>&mdash; <cite><a href="https://sre.google/sre-book/service-level-objectives/" target="_blank" rel="noopener">Google SRE Handbook</a>, Ch. 4</cite></footer>
-			</blockquote>
-			<p>
-				Google authored the GTFS transit standard and publishes the SRE Handbook
-				openly. The handbook&rsquo;s framing of indicators and objectives shapes
-				how this site reasons about transit service quality.
-			</p>
-
-			<p>
-				The handbook calls its metrics <strong>service level indicators</strong>
-				(SLIs) &mdash; the same idea as a Key Performance Indicator (KPI), but focused on what the user
-				experiences rather than what the operator reports. An indicator becomes
-				a <strong>service level objective</strong> (SLO) when stakeholders
-				commit to a target: not just &ldquo;we track on-time performance&rdquo;
-				but &ldquo;we agree 75% is the floor.&rdquo;
-			</p>
-			<p>
-				These metrics can&rsquo;t tell you whether every rider got where
-				they needed to be. What they can do is show whether the system
-				is trending in the right direction over time.
-			</p>
-		</article>
-
-		<article>
-			<header class="methods-header"><h3>Six-Hour Chunks</h3><span class="methods-tag methods-tag-architecture">Architecture</span></header>
-			<p>
-				Each service day is sliced into three six-hour windows. Every
-				metric is computed per window, per route. Chunks store raw
-				counts and sums &mdash; not percentages. A weekly or
-				system-wide number sums the counts across chunks and divides
-				once at the end, so a busy route with 200 trips outweighs a
-				quiet one with 10 instead of both counting the same.
-			</p>
-			<div class="chunk-stream-visual" id="chunk-stream-visual" aria-label="Six-hour chunks collecting events from the live data stream"></div>
-			<script>
-			(function() {
-				var el = document.getElementById('chunk-stream-visual');
-				if (!el) return;
-
-				var W = 600, H = 240;
-				var PAD = { left: 60, right: 25, top: 22 };
-				var tw = W - PAD.left - PAD.right;
-				function xAt(h) { return PAD.left + (h / 24) * tw; }
-
-				var streamY = 60;
-				var chunkY = 110;
-				var chunkH = 105;
-
-				// Hour labels along the top.
-				var hours = [0, 6, 12, 18, 24];
-				var hourLabels = ['12 AM', '6 AM', '12 PM', '6 PM', '12 AM'];
-
-				var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" style="max-width:' + W + 'px;width:100%">';
-
-				// Hour ticks + labels
-				for (var i = 0; i < hours.length; i++) {
-					var x = xAt(hours[i]);
-					svg += '<text x="' + x + '" y="14" text-anchor="middle" fill="var(--pico-muted-color)" style="font-size:10px;font-weight:600">' + hourLabels[i] + '</text>';
-					svg += '<line x1="' + x + '" y1="20" x2="' + x + '" y2="28" stroke="var(--pico-muted-color)" stroke-width="1"/>';
-				}
-
-				// Stream line
-				svg += '<line x1="' + xAt(0) + '" y1="' + streamY + '" x2="' + xAt(24) + '" y2="' + streamY + '" stroke="var(--accent)" stroke-width="2" opacity="0.45"/>';
-				svg += '<text x="' + (PAD.left - 6) + '" y="' + (streamY + 4) + '" text-anchor="end" fill="var(--accent)" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">stream</text>';
-
-				// Stream events — seeded random dots so each render is identical.
-				// Density tracks service reality: sparse overnight, peaks at midday.
-				var seed = 17;
-				function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-				var hourWeights = [
-					0.05, 0.05, 0.05, 0.05, 0.1, 0.2,   // 0–5 overnight
-					0.7,  1.0,  1.1,  1.1,  1.1, 1.2,   // 6–11 morning
-					1.4,  1.5,  1.5,  1.4,  1.3, 1.1,   // 12–17 midday peak
-					1.0,  0.9,  0.8,  0.6,  0.4, 0.2    // 18–23 evening taper
-				];
-				var wTotal = 0;
-				for (var wi = 0; wi < hourWeights.length; wi++) wTotal += hourWeights[wi];
-				for (var d = 0; d < 50; d++) {
-					var pick = rand() * wTotal;
-					var hh = 23;
-					for (var hi = 0; hi < 24; hi++) {
-						pick -= hourWeights[hi];
-						if (pick <= 0) { hh = hi + rand(); break; }
-					}
-					var dx = xAt(hh);
-					var dy = streamY + (rand() - 0.5) * 6;
-					svg += '<circle cx="' + dx.toFixed(1) + '" cy="' + dy.toFixed(1) + '" r="2.6" fill="var(--accent)" opacity="0.85"/>';
-				}
-
-				// Chunks — three sealed, one passthrough gap (12 AM – 6 AM, no service)
-				var chunks = [
-					{ h0: 0, h1: 6, label: 'no chunk', sub: 'no service hours', dashed: true },
-					{ h0: 6, h1: 12, label: 'Morning', sub: '6 AM – 12 PM', dashed: false },
-					{ h0: 12, h1: 18, label: 'Midday', sub: '12 PM – 6 PM', dashed: false },
-					{ h0: 18, h1: 24, label: 'Evening', sub: '6 PM – 12 AM', dashed: false }
-				];
-
-				for (var b = 0; b < chunks.length; b++) {
-					var bk = chunks[b];
-					var x0 = xAt(bk.h0) + 4;
-					var x1 = xAt(bk.h1) - 4;
-					var w = x1 - x0;
-					var stroke = bk.dashed ? 'var(--pico-muted-color)' : 'var(--accent)';
-					var dashAttr = bk.dashed ? ' stroke-dasharray="4,3"' : '';
-					var groupOpacity = bk.dashed ? '0.55' : '1';
-
-					// Connecting funnel from stream to chunk top: short vertical lines on each side
-					svg += '<line x1="' + x0 + '" y1="' + (streamY + 6) + '" x2="' + x0 + '" y2="' + chunkY + '" stroke="' + stroke + '" stroke-width="1"' + dashAttr + ' opacity="' + groupOpacity + '"/>';
-					svg += '<line x1="' + x1 + '" y1="' + (streamY + 6) + '" x2="' + x1 + '" y2="' + chunkY + '" stroke="' + stroke + '" stroke-width="1"' + dashAttr + ' opacity="' + groupOpacity + '"/>';
-
-					// Chunk rectangle
-					svg += '<rect x="' + x0 + '" y="' + chunkY + '" width="' + w + '" height="' + chunkH + '" rx="3" fill="none" stroke="' + stroke + '" stroke-width="1.5"' + dashAttr + ' opacity="' + groupOpacity + '"/>';
-
-					// Chunk bottom emphasis (the "sealed" floor)
-					if (!bk.dashed) {
-						svg += '<line x1="' + x0 + '" y1="' + (chunkY + chunkH) + '" x2="' + x1 + '" y2="' + (chunkY + chunkH) + '" stroke="' + stroke + '" stroke-width="3"/>';
-					}
-
-					// Label
-					var labelColor = bk.dashed ? 'var(--pico-muted-color)' : 'var(--accent)';
-					svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 22) + '" text-anchor="middle" fill="' + labelColor + '" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">' + bk.label + '</text>';
-					svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 36) + '" text-anchor="middle" fill="var(--pico-muted-color)" style="font-size:9px">' + bk.sub + '</text>';
-
-					if (!bk.dashed) {
-						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 60) + '" text-anchor="middle" fill="var(--pico-color)" style="font-size:9px;font-weight:600">OTP · Cancel</text>';
-						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 74) + '" text-anchor="middle" fill="var(--pico-color)" style="font-size:9px;font-weight:600">Notice · CV</text>';
-						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 92) + '" text-anchor="middle" fill="var(--pico-muted-color)" style="font-size:8px;font-style:italic">sealed at window close</text>';
-					} else {
-						// "Drain" dots passing through to nothing
-						for (var dd = 0; dd < 4; dd++) {
-							svg += '<circle cx="' + (x0 + w / 2) + '" cy="' + (chunkY + 50 + dd * 10) + '" r="1.5" fill="var(--pico-muted-color)" opacity="' + (0.6 - dd * 0.12) + '"/>';
-						}
-						svg += '<text x="' + (x0 + w / 2) + '" y="' + (chunkY + 100) + '" text-anchor="middle" fill="var(--pico-muted-color)" style="font-size:8px;font-style:italic">passthrough only</text>';
-					}
-				}
-
-				svg += '</svg>';
-				el.innerHTML = svg;
-			})();
-			</script>
-			<p>
-				Once a window closes the chunk is sealed and never changes.
-				Midnight to 6 AM has no chunk &mdash; a handful of late-night
-				trips run in that window, but not enough to produce
-				meaningful metrics, so we leave them out.
-			</p>
-		</article>
-
-		<article>
-			<header class="methods-header"><h3>On-Time Performance (OTP)</h3><span class="methods-tag methods-tag-schedule">Schedule</span></header>
-			<p>
-				A trip is "on time" if it arrives within <strong>1 minute early to 5
-				minutes late</strong> of schedule. This window is the
-				<a href="https://www.apta.com/research-technical-resources/transit-statistics/" target="_blank" rel="noopener">standard definition</a>
-				used by most North American agencies.
-			</p>
-			<p>
-				Early departures are penalized because if a bus leaves a stop before the
-				scheduled time, you miss it — that's worse than a bus running late.
-			</p>
-			<aside class="methods-rubric">
-				<strong>TC interpretive rubric</strong> &mdash; not an industry standard.
-				For a mid-size Canadian city we treat <strong>65&ndash;85%</strong> as a
-				typical range, <strong>90%+</strong> as exceptional, and
-				<strong>below 60%</strong> as a sign of a systemic problem. These bands
-				are editorial calibration, not an SLO published by Thunder Bay Transit.
-			</aside>
-		</article>
-
-
-		<article>
-			<header class="methods-header"><h3>Headway CV</h3><span class="methods-tag methods-tag-regularity">Regularity</span></header>
-			<p>
-				CV is the <em>coefficient of variation</em> of headways &mdash;
-				the standard deviation of gaps between buses, divided by the average gap.
-				If buses arrive at perfectly even intervals, CV is zero &mdash; regardless
-				of whether those intervals match the published schedule. In practice,
-				buses bunch up or leave big gaps &mdash; the higher the number, the more
-				unpredictable your wait becomes.
-			</p>
-			<p>
-				Think of it like darts. The bullseye is the average gap between buses.
-				Each actual arrival is a throw. Low CV means the darts cluster
-				around the bullseye &mdash; gaps between buses stay consistent. High
-				CV means darts scattered across the board &mdash; gaps are all
-				over the place.
-			</p>
-			<div class="cv-dartboards" id="cv-dartboards" aria-label="Dartboard analogy for headway CV"></div>
-			<script>
-			(function() {
-				var el = document.getElementById('cv-dartboards');
-				if (!el) return;
-
-				var boards = [
-					{ cv: 0.10, label: 'CV = 0.10', quality: 'Excellent', color: '#16a34a' },
-					{ cv: 0.30, label: 'CV = 0.30', quality: 'Fair', color: '#f97316' },
-					{ cv: 0.50, label: 'CV = 0.50', quality: 'Poor', color: '#ef4444' }
-				];
-
-				var R = 55; // board radius
-				var bw = 150, bh = 170; // per-board viewbox
-				var cx = bw / 2, cy = 70; // center of each board
-				var totalW = bw * 3;
-
-				// Seeded random for reproducible dart positions
-				var seed = 42;
-				function rand() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
-
-				// Generate dart positions with gaussian-ish distribution (Box-Muller)
-				function gaussRand() {
-					var u1 = rand(), u2 = rand();
-					return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-				}
-
-				var svg = '<svg viewBox="0 0 ' + totalW + ' ' + bh + '" role="img" style="max-width:' + totalW + 'px;width:100%">';
-
-				for (var b = 0; b < boards.length; b++) {
-					var ox = b * bw; // x offset for this board
-					var bcx = ox + cx, bcy = cy;
-
-					// Target rings
-					var rings = [1.0, 0.66, 0.33];
-					for (var r = 0; r < rings.length; r++) {
-						var rr = R * rings[r];
-						svg += '<circle cx="' + bcx + '" cy="' + bcy + '" r="' + rr + '" fill="none" stroke="var(--pico-muted-border-color)" stroke-width="1"/>';
-					}
-					// Bullseye dot
-					svg += '<circle cx="' + bcx + '" cy="' + bcy + '" r="3" fill="var(--pico-muted-color)"/>';
-
-					// Crosshairs
-					svg += '<line x1="' + (bcx - R) + '" y1="' + bcy + '" x2="' + (bcx + R) + '" y2="' + bcy + '" stroke="var(--pico-muted-border-color)" stroke-width="0.5" stroke-dasharray="2,2"/>';
-					svg += '<line x1="' + bcx + '" y1="' + (bcy - R) + '" x2="' + bcx + '" y2="' + (bcy + R) + '" stroke="var(--pico-muted-border-color)" stroke-width="0.5" stroke-dasharray="2,2"/>';
-
-					// Darts — spread proportional to cv
-					seed = 42 + b * 100; // reset per board for consistency
-					var nDarts = 20;
-					for (var d = 0; d < nDarts; d++) {
-						var dx = gaussRand() * boards[b].cv * R * 0.9;
-						var dy = gaussRand() * boards[b].cv * R * 0.9;
-						// Clamp to board
-						var dist = Math.sqrt(dx * dx + dy * dy);
-						if (dist > R - 3) { dx *= (R - 3) / dist; dy *= (R - 3) / dist; }
-						svg += '<circle cx="' + (bcx + dx).toFixed(1) + '" cy="' + (bcy + dy).toFixed(1) + '" r="3" fill="' + boards[b].color + '" opacity="0.75"/>';
-					}
-
-					// Labels
-					svg += '<text x="' + bcx + '" y="' + (bcy + R + 18) + '" text-anchor="middle" fill="' + boards[b].color + '" style="font-size:12px;font-weight:600">' + boards[b].label + '</text>';
-					svg += '<text x="' + bcx + '" y="' + (bcy + R + 32) + '" text-anchor="middle" fill="var(--pico-muted-color)" style="font-size:10px">' + boards[b].quality + '</text>';
-				}
-
-				svg += '</svg>';
-				el.innerHTML = svg;
-			})();
-			</script>
-			<p>
-				CV only judges <em>regularity</em>, not whether the bus is on time. A
-				route that runs every 20 minutes when the schedule says every 10
-				still has CV = 0 if those gaps are perfectly even. To see whether the
-				service matches the schedule, look at EWT below.
-			</p>
-		</article>
-
-		<article>
-			<header class="methods-header"><h3><svg class="methods-star" viewBox="0 0 24 24" fill="currentColor" width="0.9em" height="0.9em" aria-label="North-star metric"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Excess Wait Time (EWT)</h3><span class="methods-tag methods-tag-delay">Delay</span></header>
-			<p>
-				Excess Wait Time, as defined by
-				<a href="https://content.tfl.gov.uk/bus-performance-data-methodology.pdf" target="_blank" rel="noopener">Transport for London</a>,
-				is the operational metric we lean on most. The published schedule
-				sets an expected average wait. EWT measures how many extra minutes
-				you actually wait beyond that, because buses aren&rsquo;t arriving at
-				regular intervals &mdash; the gap between the schedule and what
-				actually happens.
-			</p>
-			<p>
-				If a route runs every 15 minutes, you'd expect to wait 7.5 minutes on
-				average. But if two buses arrive together and then nothing comes for 30
-				minutes, the average headway is still 15 minutes &mdash; yet the
-				experience is far worse. EWT captures exactly this gap.
-			</p>
-			<p>
-				<strong>Why does EWT matter more than average delay?</strong> Because
-				it counts riders, not just buses. A long gap doesn&rsquo;t just mean one
-				late bus &mdash; it means every rider who arrived during that gap is
-				waiting at the stop. The longer the gap, the more riders accumulate,
-				and the longer each waits. EWT weights gaps by the number of riders
-				they affect, so it measures rider wait time rather than vehicle timing.
-			</p>
-			<p>
-				The two timelines below have the same average headway (15 min), but
-				the rider experience is very different:
-			</p>
-			<div class="ewt-visual" id="ewt-visual" aria-label="Inspection paradox: even vs bunched headways"></div>
-			<script>
-			(function() {
-				var el = document.getElementById('ewt-visual');
-				if (!el) return;
-
-				var W = 480, H = 195;
-				var PAD = { left: 10, right: 10 };
-				var tw = W - PAD.left - PAD.right; // timeline width
-				var totalMin = 60; // 1 hour timeline
-				function xAt(min) { return PAD.left + (min / totalMin) * tw; }
-
-				var scenarios = [
-					{ label: 'Even spacing', gaps: [15, 15, 15, 15], y: 25, color: '#16a34a', avgWait: '7.5' },
-					{ label: 'Bunched', gaps: [5, 5, 25, 25], y: 115, color: '#ef4444', avgWait: '11.7' }
-				];
-
-				var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" style="max-width:' + W + 'px;width:100%">';
-
-				for (var s = 0; s < scenarios.length; s++) {
-					var sc = scenarios[s];
-					var y = sc.y;
-					var gaps = sc.gaps;
-
-					// Label
-					svg += '<text x="' + PAD.left + '" y="' + (y - 8) + '" fill="var(--pico-color)" style="font-size:12px;font-weight:600">' + sc.label + '</text>';
-					svg += '<text x="' + (W - PAD.right) + '" y="' + (y - 8) + '" text-anchor="end" fill="var(--pico-muted-color)" style="font-size:10px">Avg wait: ' + sc.avgWait + ' min</text>';
-
-					// Timeline bar background
-					svg += '<rect x="' + PAD.left + '" y="' + y + '" width="' + tw + '" height="30" rx="4" fill="var(--pico-muted-border-color)" opacity="0.3"/>';
-
-					// Gap segments — shade by relative size (bigger = darker = more likely to land in)
-					var pos = 0;
-					var maxGap = Math.max.apply(null, gaps);
-					for (var g = 0; g < gaps.length; g++) {
-						var gx = xAt(pos);
-						var gw = (gaps[g] / totalMin) * tw;
-						var opacity = 0.15 + 0.55 * (gaps[g] / maxGap); // bigger gap = more opaque
-						svg += '<rect x="' + gx + '" y="' + y + '" width="' + gw + '" height="30" rx="0" fill="' + sc.color + '" opacity="' + opacity.toFixed(2) + '"/>';
-
-						// Gap duration label inside
-						var cx = gx + gw / 2;
-						svg += '<text x="' + cx + '" y="' + (y + 19) + '" text-anchor="middle" fill="var(--thunder-900)" style="font-size:11px;font-weight:600">' + gaps[g] + 'm</text>';
-
-						pos += gaps[g];
-					}
-
-					// Bus arrival markers (dots on the timeline)
-					pos = 0;
-					for (var g = 0; g <= gaps.length; g++) {
-						var bx = xAt(pos);
-						svg += '<circle cx="' + bx + '" cy="' + (y + 15) + '" r="5" fill="var(--thunder-50)" stroke="' + sc.color + '" stroke-width="2"/>';
-						if (g < gaps.length) pos += gaps[g];
-					}
-
-					// "You land here" probability annotation below
-					svg += '<text x="' + (PAD.left + tw / 2) + '" y="' + (y + 47) + '" text-anchor="middle" fill="var(--pico-muted-color)" style="font-size:10px">';
-					if (s === 0) {
-						svg += 'Equal chance of landing in any gap &mdash; each is the same size';
-					} else {
-						svg += 'You land in a 25m gap 83% of the time &mdash; the big gaps dominate the timeline';
-					}
-					svg += '</text>';
-				}
-
-				svg += '</svg>';
-				el.innerHTML = svg;
-			})();
-			</script>
-			<p>
-				Bigger gaps affect more riders, because more riders arrive during them.
-				EWT captures that &mdash; it weights each gap by how many riders it
-				affects, then subtracts the wait you&rsquo;d expect if buses ran on
-				schedule.
-			</p>
-
-		</article>
-
-
-
-		<article>
-			<header class="methods-header"><h3>Route Finder (RAPTOR)</h3></header>
-			<p>
-				The route finder uses <strong>RAPTOR</strong> (Round-bAsed Public Transit
-				Optimized Router), an algorithm developed at Microsoft Research for
-				computing optimal multi-leg transit journeys. RAPTOR works directly
-				on the timetable &mdash; scanning routes round by round, where each
-				round adds one more vehicle. Round 1 finds all destinations reachable
-				by a single bus, round 2 finds journeys with one transfer, and so on.
-				Because of this, RAPTOR is more efficient compared to graph-based approaches like Dijkstra or A* for transit routing.
-			</p>
-		</article>
-
-		<article>
-			<header><h3>References</h3></header>
-			<div class="ref-table-wrap">
-				<table class="ref-table">
-					<thead>
-						<tr>
-							<th>Source</th>
-							<th>What It Covers</th>
-							<th>Editor Note</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>
-								<a href="https://www.apta.com/research-technical-resources/transit-statistics/" target="_blank" rel="noopener">APTA Transit Statistics</a>
-							</td>
-							<td>OTP definition (1 min early to 5 min late) used across North America</td>
-							<td>Source for the definition. The 65/85/90% bands shown above are our editorial calibration, not from APTA.</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="https://humantransit.org/2010/10/beyond-on-time-performance.html" target="_blank" rel="noopener">Human Transit: Beyond On-Time Performance</a>
-							</td>
-							<td>Why frequency and network design matter more than schedule adherence</td>
-							<td>One of many excellent posts on the <a href="https://humantransit.org" target="_blank" rel="noopener">Human Transit blog</a>. The reason we track wait time and headway regularity alongside OTP</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/raptor_alenex.pdf" target="_blank" rel="noopener">Delling, Pajor, Werneck &mdash; Round-Based Public Transit Routing (PDF)</a>
-							</td>
-							<td>RAPTOR &mdash; the algorithm powering the route finder feature</td>
-							<td>Initial implementation was graph-based (Dijkstra); migration to RAPTOR is in progress</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="https://sre.google/sre-book/introduction/" target="_blank" rel="noopener">Google SRE Book: Introduction</a>
-							</td>
-							<td>Origins of the SRE discipline, error budgets, and treating operations as a software problem</td>
-							<td>The reference book tech companies use for structuring on-call rotations and reliability practices</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</article>
-
-	</section>
+    @templates.Layout(templates.SocialMeta{
+        Title: "Transit — Method",
+        Description: "How transit punctuality, reported cancellations and headway reliability are measured, and what missing observations mean.",
+        OGImage: "/static/og/transit.png",
+    }) {
+        @components.TransitNav(components.TransitNavProps{Current:"method"})
+        @components.PageHeader(components.PageHeaderProps{Title:"Transit Method"})
+        <section class="report-methodology" aria-label="Measurement methods">
+            <article>
+                <header class="methods-header"><h3>Start with the right question</h3></header>
+                <p>For a route you plan around a timetable, punctuality and cancelled trips matter most. For a frequent service where you arrive without checking a schedule, regular spacing and excess waiting time are more useful.</p>
+                <p>This distinction is used in <a href="https://www.gov.uk/government/publications/buses-statistics-guidance/annual-bus-statistics-quality-report">Department for Transport reporting</a>. Our figures are unofficial estimates from Thunder Bay Transit's public feeds. They are not an agency audit or a passenger survey.</p>
+            </article>
+            <article>
+                <header class="methods-header"><h3>On-time performance</h3></header>
+                <p>We classify each reported departure at a scheduled timepoint: early is more than one minute before schedule; on time is one minute early through five minutes late; late is more than five minutes after schedule. Final destinations are excluded from departure punctuality.</p>
+                <p>Each timepoint counts separately. Being early at one stop cannot cancel out being late at another. We sum the on-time observations and divide by all observations with a delay value. We use reported departure delay, falling back to arrival delay when needed.</p>
+                <p>These are the last delay values retained from the trip-update feed. They can be predictions rather than confirmed departures. There is no universal agency OTP threshold, and this percentage should not be compared directly with a differently measured agency score.</p>
+            </article>
+            <article>
+                <header class="methods-header"><h3>Reported cancellations</h3></header>
+                <p>The cancellation rate divides distinct trips reported cancelled by the trips in the archived timetable for that service date. Repeated feed messages count once. A missing vehicle alone is not a cancellation: it could be missing telemetry. Unreported missed trips are outside this measure.</p>
+                <p>Notice is measured from the first cancellation message to the scheduled departure. Less than 15 minutes is our short-notice threshold, including messages received after departure time. It is an editorial threshold, not an industry standard.</p>
+            </article>
+            <article>
+                <header class="methods-header"><h3>Excess waiting time</h3></header>
+                <p>For someone arriving at random, long gaps are more likely to be encountered than short gaps. With complete intervals, average wait is the sum of squared headways divided by twice their total duration. Scheduled wait uses the same calculation: half the mean gap is only correct for an evenly spaced timetable.</p>
+                <p>We compare observed and scheduled forward waits over the same bounded interval at one interior timepoint, in one direction and time band. Excess waiting time is observed wait minus scheduled wait. Negative values are retained when spacing produces a shorter wait than the timetable.</p>
+                <p>Route values weight these complete windows by their duration. The system value averages the contributing routes equally. We have no passenger counts, so this is not a passenger-weighted estimate. On low-frequency routes it is a diagnostic of spacing, not a prediction of how a timetable-aware rider waits.</p>
+            </article>
+            <article>
+                <header class="methods-header"><h3>Bus spacing (headway CV)</h3></header>
+                <p>CV is the standard deviation of observed gaps divided by their mean. Zero means even spacing. We calculate it within each stop, direction, day and time band before combining windows. Pooling an every-15-minute morning with an every-30-minute evening would create variation even if both services ran perfectly.</p>
+                <p>CV measures spacing, not timetable adherence. An evenly spaced service can still be infrequent, late or missing half its trips. Read it alongside punctuality, cancellations and coverage.</p>
+            </article>
+            <article>
+                <header class="methods-header"><h3>Coverage and GPS uncertainty</h3></header>
+                <p>Historical visits are reconstructed from the retained GPS positions and archived timetables. A short GPS segment must pass within 35 metres of the scheduled stop and be corroborated by the feed's stop status or progression. Segments over 30 seconds or implying a speed over 35 metres per second are rejected.</p>
+                <p>Terminals, endpoints, repeated stops, ambiguous visits, vehicle changes and backwards stop order are excluded. These rules screen observations; they do not establish a guaranteed timing accuracy. Older records use feed timestamps because vehicle measurement timestamps were not retained.</p>
+                <p>Every scheduled passage in a regularity window must be observed or explicitly reported cancelled. Otherwise the entire window is excluded. Very short gaps and very long gaps are retained when the observation is valid. Missing data never becomes zero excess wait or perfect regularity.</p>
+                <p>The exported data includes counts of complete and candidate windows. The surviving windows can be an unrepresentative sample. A trend that changes alongside its coverage needs investigation before being attributed to service improvement.</p>
+            </article>
+            <article>
+                <header class="methods-header"><h3>Reading long-term trends</h3></header>
+                <p>The light series shows daily readings. The heavier series recomputes the metric from 30 calendar days of counts and matched windows, rather than averaging daily percentages. It requires readings for at least 70% of the selected day type and a reading on the final day. This is a completeness rule, not a confidence interval.</p>
+                <p>The trend includes all days and service from 6 am to midnight. Use the route selector to follow the same route across periods. The default month is the most recent completed calendar month; the historical chart ends with the selected month and excludes the unfinished service day.</p>
+                <p>Seasonality and timetable changes affect comparisons. <a href="https://tfl.gov.uk/corporate/publications-and-reports/buses-performance-data">TfL compares quarters with the same quarter a year earlier</a>. Until a full year is available, our month-to-month changes describe the observed period and cannot establish a seasonally adjusted trend.</p>
+            </article>
+            <article>
+                <header class="methods-header"><h3>Sources and reproducibility</h3></header>
+                <p>Vehicle positions are polled every { vm.VehiclePoll }, trip updates every { vm.TripPoll }, and alerts every { vm.AlertPoll }. Position and cancellation histories are retained; delay rows retain the latest reported values for each trip, stop and service day.</p>
+                <p>The export includes metric counts, screened passages, timepoint delays, cancellations and the archived timetable used for each date. GPS source record IDs and timetable hashes make the derived observations traceable. Service times follow the <a href="https://gtfs.org/documentation/schedule/reference/">GTFS specification</a>, including times after midnight and daylight-saving transitions.</p>
+            </article>
+        </section>
+    }
 }

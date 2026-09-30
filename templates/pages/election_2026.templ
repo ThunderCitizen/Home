@@ -119,10 +119,16 @@ templ Election2026Partial(vm views.Election2026ViewModel) {
 
 			<div class="election-view-panels">
 				<div class="election-view-panel election-view-panel-mayor" id="election-panel-mayor" data-election-view="mayor">
-					@electionContest(vm.Mayor, "badge-mayor")
+					@electionContest(vm.Mayor, "badge-mayor", nil)
 				</div>
 				<div class="election-view-panel election-view-panel-atlarge" id="election-panel-atlarge" data-election-view="atlarge">
-					@electionContest(vm.AtLarge, "badge-atlarge")
+					@electionContest(vm.AtLarge, "badge-atlarge", &electionContestFeatureProps{
+						URL:         "https://www.cbc.ca/news/canada/thunder-bay/thunder-bay-at-large-candidates-9.7356838",
+						Kicker:      "Candidate guide",
+						Title:       "Meet the At-Large candidates",
+						Description: "CBC News profiles of the candidates in this race.",
+						LinkLabel:   "Read on CBC News",
+					})
 				</div>
 				<section class="election-view-panel election-view-panel-ward" id="election-panel-ward" data-election-view="ward" aria-labelledby="ward-candidates-title">
 					<div class="election-section-heading">
@@ -261,7 +267,15 @@ templ electionSubcontestPanel(contest views.ElectionContestView) {
 	</section>
 }
 
-templ electionContest(contest views.ElectionContestView, roleClass string) {
+type electionContestFeatureProps struct {
+	URL         string
+	Kicker      string
+	Title       string
+	Description string
+	LinkLabel   string
+}
+
+templ electionContest(contest views.ElectionContestView, roleClass string, feature *electionContestFeatureProps) {
 	<section class="election-section" id={ contest.ID } aria-labelledby={ contest.ID + "-title" }>
 		<div class="election-section-heading">
 			<div>
@@ -276,12 +290,29 @@ templ electionContest(contest views.ElectionContestView, roleClass string) {
 			</div>
 		</div>
 		@electionCandidateEvent(contest)
+		@electionContestFeature(feature)
 		<div class="election-candidate-grid">
 			for _, candidate := range contest.Candidates {
 				@electionCandidateCard(candidate, false)
 			}
 		</div>
 	</section>
+}
+
+templ electionContestFeature(feature *electionContestFeatureProps) {
+	if feature != nil {
+		<aside class="election-candidate-feature" aria-label={ feature.Kicker }>
+			<div class="election-candidate-feature-icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+			</div>
+			<div class="election-candidate-event-copy">
+				<span>{ feature.Kicker }</span>
+				<strong>{ feature.Title }</strong>
+				<p>{ feature.Description }</p>
+			</div>
+			<a href={ templ.SafeURL(feature.URL) } target="_blank" rel="noopener">{ feature.LinkLabel } <span aria-hidden="true">↗</span></a>
+		</aside>
+	}
 }
 
 templ electionCandidateEvent(contest views.ElectionContestView) {

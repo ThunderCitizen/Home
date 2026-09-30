@@ -331,11 +331,12 @@ func (r *Recorder) insertVehiclePositions(ctx context.Context, positions []Vehic
 			continue
 		}
 		batch.Queue(
-			`INSERT INTO transit.vehicle_position (feed_timestamp, vehicle_id, route_id, trip_id, latitude, longitude, bearing, speed, stop_status, current_stop_id)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+			`INSERT INTO transit.vehicle_position (feed_timestamp, vehicle_id, route_id, trip_id, latitude, longitude, bearing, speed, stop_status, current_stop_id, measurement_timestamp, trip_start_date, current_stop_sequence)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
 			p.FeedTimestamp, p.VehicleID, p.RouteID, p.TripID,
 			p.Latitude, p.Longitude, p.Bearing, p.Speed,
 			p.StopStatus, p.CurrentStopID,
+			p.MeasurementTimestamp, p.TripStartDate, p.CurrentStopSequence,
 		)
 	}
 	if batch.Len() == 0 {
@@ -358,11 +359,16 @@ func (r *Recorder) upsertTripStopActuals(ctx context.Context, delays []DelayObse
 	if len(delays) == 0 {
 		return nil
 	}
-	svcDate := ServiceDate()
-
 	var dropped int
 	batch := &pgx.Batch{}
 	for _, d := range delays {
+		svcDate := ServiceDate()
+		if !d.ObservedAt.IsZero() {
+			svcDate = serviceDateAt(d.ObservedAt)
+		}
+		if parsed, err := time.ParseInLocation("20060102", d.ServiceDate, TZ); err == nil {
+			svcDate = parsed
+		}
 		ti, ok := r.trips.Lookup(d.TripID)
 		if !ok {
 			dropped++

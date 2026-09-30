@@ -12,10 +12,8 @@ import (
 
 // runChunks backfills the per-(route_id, date, band) metrics rollups in
 // transit.route_band_chunk. Idempotent — re-running for the same date
-// range overwrites existing rows. Intended to run nightly (via shell cron
-// or by hand) after a service day closes; the metrics read path falls
-// through to live builds for any date that hasn't been rolled up yet, so
-// missing this step degrades performance but not correctness.
+// range replaces the day's screened GPS passages and chunks. Requires an
+// archived timetable covering each date; the read path only uses stored chunks.
 func runChunks() {
 	ctx, cancel := rootContext()
 	defer cancel()
@@ -40,6 +38,9 @@ func runChunks() {
 
 	total := 0
 	for d := from; !d.After(to); d = d.AddDate(0, 0, 1) {
+		if _, err := transit.RebuildMetricPassages(ctx, pool, d); err != nil {
+			fail("%s passages: %v", d.Format("2006-01-02"), err)
+		}
 		n, err := transit.BuildChunksForDate(ctx, pool, d)
 		if err != nil {
 			fail("%s: %v", d.Format("2006-01-02"), err)

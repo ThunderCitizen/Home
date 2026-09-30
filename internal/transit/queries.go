@@ -100,8 +100,7 @@ func RouteSchedule(ctx context.Context, db *pgxpool.Pool, routeID string, date t
 			EXISTS (
 				SELECT 1 FROM transit.cancellation c
 				WHERE c.trip_id = rt.trip_id
-				  AND c.feed_timestamp >= $2::date::timestamptz
-				  AND c.feed_timestamp < ($2::date + 1)::timestamptz
+				  AND c.start_date = to_char($2::date,'YYYYMMDD')
 			) AS canceled,
 			a.avg_delay,
 			COALESCE(a.stops_observed, 0)::INT,
@@ -772,8 +771,7 @@ func RouteTimepointSchedule(ctx context.Context, db *pgxpool.Pool, routeID strin
 			EXISTS (
 				SELECT 1 FROM transit.cancellation cn
 				WHERE cn.trip_id = tc.trip_id
-				  AND cn.feed_timestamp >= $2::date::timestamptz
-				  AND cn.feed_timestamp < ($2::date + 1)::timestamptz
+				  AND cn.start_date = to_char($2::date,'YYYYMMDD')
 			) AS canceled
 		FROM transit.trip_catalog tc
 		JOIN transit.service_calendar sc ON sc.service_id = tc.service_id

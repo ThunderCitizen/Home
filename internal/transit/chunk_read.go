@@ -19,10 +19,11 @@ func (r *Repo) Chunks(ctx context.Context, from, to time.Time) ([]chunk.ChunkVie
 	}
 	rows, err := r.db.Query(ctx, `
 		SELECT route_id, date, band, service_kind,
-		       trip_count, on_time_count,
+		       trip_count,
 		       scheduled_count, cancelled_count, no_notice_count,
-		       headway_count, headway_sum_sec, headway_sum_sec_sq, sched_headway_sec,
-		       built_at
+		       built_at, metric_version, otp_count, otp_on_time, early_count, late_count,
+               expected_timepoints, observed_timepoints, eligible_windows, total_windows,
+               wait_observed_area, wait_scheduled_area, window_seconds, cv_weighted_sum, cv_weight
 		FROM transit.route_band_chunk
 		WHERE date >= $1::date AND date <= $2::date
 		ORDER BY date,
@@ -39,10 +40,11 @@ func (r *Repo) Chunks(ctx context.Context, from, to time.Time) ([]chunk.ChunkVie
 		var ck chunk.Chunk
 		if err := rows.Scan(
 			&ck.RouteID, &ck.Date, &ck.Band, &ck.ServiceKind,
-			&ck.TripCount, &ck.OnTimeCount,
+			&ck.TripCount,
 			&ck.ScheduledCount, &ck.CancelledCount, &ck.NoNoticeCount,
-			&ck.HeadwayCount, &ck.HeadwaySumSec, &ck.HeadwaySumSecSq, &ck.SchedHeadwaySec,
-			&ck.BuiltAt,
+			&ck.BuiltAt, &ck.Version, &ck.OTPCount, &ck.OTPOnTime, &ck.Early, &ck.Late,
+			&ck.ExpectedTimepoints, &ck.ObservedTimepoints, &ck.EligibleWindows, &ck.TotalWindows,
+			&ck.WaitObservedArea, &ck.WaitScheduledArea, &ck.WindowSeconds, &ck.CVWeightedSum, &ck.CVWeight,
 		); err != nil {
 			return nil, err
 		}

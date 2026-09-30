@@ -75,9 +75,9 @@ type vehicleTracker struct {
 	mu     sync.Mutex
 	states map[string]*vehicleState // keyed by vehicleID
 
-	cacheOnce     sync.Once
+	cacheLoadedAt time.Time
 	stopLocations map[string]stopLoc
-	routeStops    map[string][]string // routeID → stop IDs served by that route
+	tripStops     map[string][]string // tripID → scheduled stops, preserving direction
 	activeVisits  map[tripStopKey]*visitInProgress
 	sweepCounter  int
 	tz            *time.Location
@@ -95,6 +95,7 @@ type stopVisitEntry struct {
 
 // stopVisitExit records a visit finalization (UPDATE on exit).
 type stopVisitExit struct {
+	enteredAt   time.Time
 	tripID      string
 	stopID      string
 	exitedAt    time.Time
@@ -113,11 +114,16 @@ func newVehicleTracker(db *pgxpool.Pool) *vehicleTracker {
 
 // loadCaches populates stop locations and trip schedules from the database.
 func (t *vehicleTracker) loadCaches(ctx context.Context) error {
-	var err error
-	t.cacheOnce.Do(func() {
-		err = t.doLoadCaches(ctx)
-	})
-	return err
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if time.Since(t.cacheLoadedAt) < 10*time.Minute {
+		return nil
+	}
+	if err := t.doLoadCaches(ctx); err != nil {
+		return err
+	}
+	t.cacheLoadedAt = time.Now()
+	return nil
 }
 
 func (t *vehicleTracker) doLoadCaches(ctx context.Context) error {
@@ -141,32 +147,27 @@ func (t *vehicleTracker) doLoadCaches(ctx context.Context) error {
 		return fmt.Errorf("iterating stop locations: %w", err)
 	}
 
-	// Load route → stops mapping (distinct stops per route) from Tier 2
-	// pattern tables. This is a tiny cached join that never needs to touch
-	// the gtfs.* staging schema.
+	// Each trip has its own stop set; route-wide stops include other directions.
 	rsRows, err := t.db.Query(ctx, `
-		SELECT DISTINCT rp.route_id, rps.stop_id
-		FROM transit.route_pattern rp
-		JOIN transit.route_pattern_stop rps USING (pattern_id)
-		ORDER BY rp.route_id, rps.stop_id`)
+		SELECT DISTINCT trip_id, stop_id FROM transit.scheduled_stop ORDER BY trip_id, stop_id`)
 	if err != nil {
 		return fmt.Errorf("loading route stops: %w", err)
 	}
 	defer rsRows.Close()
 
-	t.routeStops = make(map[string][]string, 20)
+	t.tripStops = make(map[string][]string, 20)
 	for rsRows.Next() {
-		var routeID, stopID string
-		if err := rsRows.Scan(&routeID, &stopID); err != nil {
-			return fmt.Errorf("scanning route stop: %w", err)
+		var tripID, stopID string
+		if err := rsRows.Scan(&tripID, &stopID); err != nil {
+			return fmt.Errorf("scanning trip stop: %w", err)
 		}
-		t.routeStops[routeID] = append(t.routeStops[routeID], stopID)
+		t.tripStops[tripID] = append(t.tripStops[tripID], stopID)
 	}
 	if err := rsRows.Err(); err != nil {
 		return fmt.Errorf("iterating route stops: %w", err)
 	}
 
-	trackerLog.Info("caches loaded", "stops", len(t.stopLocations), "route_stops", len(t.routeStops))
+	trackerLog.Info("caches loaded", "stops", len(t.stopLocations), "route_stops", len(t.tripStops))
 	return nil
 }
 
@@ -204,7 +205,7 @@ func (t *vehicleTracker) processPositions(ctx context.Context, positions []Vehic
 
 	var entries []stopVisitEntry
 	var exits []stopVisitExit
-	serviceDate := ServiceDate().Format("2006-01-02")
+	serviceDate := serviceDateAt(feedTS).Format("2006-01-02")
 
 	for i := range positions {
 		p := &positions[i]
@@ -245,9 +246,9 @@ func (t *vehicleTracker) processPositions(ctx context.Context, positions []Vehic
 		}
 
 		hasPrev := prev != nil && prev.tripID == *p.TripID &&
-			prev.lat != 0 && prev.lon != 0
+			prev.lat != 0 && prev.lon != 0 && feedTS.After(prev.timestamp) && feedTS.Sub(prev.timestamp) <= 30*time.Second
 
-		stops := t.routeStops[*p.RouteID]
+		stops := t.tripStops[*p.TripID]
 		for _, sid := range stops {
 			loc, ok := t.stopLocations[sid]
 			if !ok {
@@ -331,6 +332,7 @@ func (t *vehicleTracker) processPositions(ctx context.Context, positions []Vehic
 					exitedAt = active.lastInsideAt.Add(time.Duration(frac * float64(elapsed)))
 				}
 				exits = append(exits, stopVisitExit{
+					enteredAt:   active.enteredAt,
 					tripID:      active.tripID,
 					stopID:      active.stopID,
 					exitedAt:    exitedAt,
@@ -378,6 +380,7 @@ func (t *vehicleTracker) finalizeVisitsForTrip(vehicleID, oldTripID string, exit
 			continue
 		}
 		*exits = append(*exits, stopVisitExit{
+			enteredAt:   v.enteredAt,
 			tripID:      v.tripID,
 			stopID:      v.stopID,
 			exitedAt:    v.lastInsideAt,
@@ -398,6 +401,7 @@ func (t *vehicleTracker) sweepStaleVisits(ctx context.Context, now time.Time) {
 			continue
 		}
 		exits = append(exits, stopVisitExit{
+			enteredAt:   v.enteredAt,
 			tripID:      v.tripID,
 			stopID:      v.stopID,
 			exitedAt:    v.lastInsideAt,
@@ -485,7 +489,7 @@ func (t *vehicleTracker) insertStopVisitEntries(ctx context.Context, entries []s
 			`INSERT INTO transit.stop_visit
 				(trip_id, stop_id, route_id, vehicle_id, observed_at, distance_m, entered_at, inside_polls)
 			 VALUES ($1, $2, $3, $4, $5, $6, $5, 1)
-			 ON CONFLICT (trip_id, stop_id) DO NOTHING`,
+			 ON CONFLICT (service_date, trip_id, stop_id) DO NOTHING`,
 			e.tripID, e.stopID, e.routeID,
 			e.vehicleID, e.enteredAt, e.distanceM,
 		)
@@ -510,9 +514,9 @@ func (t *vehicleTracker) updateStopVisitExits(ctx context.Context, exits []stopV
 		batch.Queue(
 			`UPDATE transit.stop_visit
 			 SET exited_at = $1, inside_polls = $2, distance_m = $3
-			 WHERE trip_id = $4 AND stop_id = $5 AND exited_at IS NULL`,
+			 WHERE trip_id = $4 AND stop_id = $5 AND observed_at = $6 AND exited_at IS NULL`,
 			x.exitedAt, x.insidePolls, x.minDistance,
-			x.tripID, x.stopID,
+			x.tripID, x.stopID, x.enteredAt,
 		)
 	}
 	br := t.db.SendBatch(ctx, batch)

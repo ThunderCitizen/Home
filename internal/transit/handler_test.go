@@ -78,3 +78,18 @@ func TestRoutePageReturnsInternalErrorWhenSchedulePartialLoadFails(t *testing.T)
 
 	assertTransitInternalError(t, rr)
 }
+
+func TestParseMetricsMonthUsesWholeHistoricalMonth(t *testing.T) {
+	today := Today()
+	month := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, TZ).AddDate(0, -2, 0)
+	since := month.AddDate(0, -1, 0).Format("2006-01-02")
+	req := httptest.NewRequest(http.MethodGet, "/transit/metrics?month="+month.Format("2006-01"), nil)
+	choice, dr := parseMetricsMonth(req, since)
+
+	if choice.Value != month.Format("2006-01") {
+		t.Fatalf("month = %q, want %q", choice.Value, month.Format("2006-01"))
+	}
+	if dr.From != month.Format("2006-01-02") || dr.To != month.AddDate(0, 1, -1).Format("2006-01-02") {
+		t.Fatalf("range = %#v, want whole calendar month", dr)
+	}
+}

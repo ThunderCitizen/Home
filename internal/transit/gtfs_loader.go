@@ -57,6 +57,9 @@ func LoadStaticGTFS(ctx context.Context, db *pgxpool.Pool) error {
 	if err := DeriveTier2(ctx, db); err != nil {
 		return fmt.Errorf("derive: %w", err)
 	}
+	if _, err := ImportMetricSchedule(ctx, db, gtfsBaseDir, "GTFS refresh", time.Now()); err != nil {
+		return fmt.Errorf("archive metric timetable: %w", err)
+	}
 
 	// Update planner statistics on the entity layer. Bulk-loaded heap pages
 	// don't trigger autoanalyze, so the planner ends up with stale stats and

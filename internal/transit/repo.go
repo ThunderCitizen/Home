@@ -377,13 +377,14 @@ func (r *Repo) DayPercentiles(ctx context.Context) ([]DelayPercentileBucket, err
 	rows, err := r.db.Query(ctx, `
 		SELECT
 			(date_trunc('hour', last_updated) + INTERVAL '30 min' * FLOOR(EXTRACT(MINUTE FROM last_updated) / 30))::TIMESTAMPTZ AS bucket_time,
-			PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY COALESCE(arrival_delay, departure_delay))::FLOAT AS p50,
-			PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY COALESCE(arrival_delay, departure_delay))::FLOAT AS p90,
-			PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY COALESCE(arrival_delay, departure_delay))::FLOAT AS p99,
-			PERCENTILE_CONT(0.999) WITHIN GROUP (ORDER BY COALESCE(arrival_delay, departure_delay))::FLOAT AS p999,
+			PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY COALESCE(departure_delay, arrival_delay))::FLOAT AS p50,
+			PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY COALESCE(departure_delay, arrival_delay))::FLOAT AS p90,
+			PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY COALESCE(departure_delay, arrival_delay))::FLOAT AS p99,
+			PERCENTILE_CONT(0.999) WITHIN GROUP (ORDER BY COALESCE(departure_delay, arrival_delay))::FLOAT AS p999,
 			COUNT(*)::INT AS count
 		FROM transit.stop_delay
-		WHERE last_updated >= NOW() - INTERVAL '24 hours'
+		WHERE last_updated >= NOW() - INTERVAL '24 hours' AND last_updated <= NOW()
+          AND COALESCE(departure_delay, arrival_delay) IS NOT NULL
 		GROUP BY bucket_time
 		HAVING COUNT(*) >= 5
 		ORDER BY bucket_time`)
@@ -418,7 +419,7 @@ const daySnapshotsQuery = `
 			SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket,
 				vehicle_id, route_id
 			FROM transit.vehicle_position
-			WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
+			WHERE feed_timestamp >= NOW() - INTERVAL '24 hours' AND feed_timestamp <= NOW()
 			GROUP BY 1, vehicle_id, route_id
 		),
 		vehicle_stats AS (
@@ -430,13 +431,13 @@ const daySnapshotsQuery = `
 		),
 		delay_stats AS (
 			SELECT date_trunc('minute', last_updated) - (EXTRACT(MINUTE FROM last_updated)::INT % 5) * INTERVAL '1 minute' AS bucket,
-				COUNT(*) AS measurement_count,
-				AVG(COALESCE(arrival_delay, departure_delay))::REAL AS avg_delay,
-				COUNT(CASE WHEN ABS(COALESCE(arrival_delay, departure_delay)) <= 60 THEN 1 END) AS on_time,
-				COUNT(CASE WHEN COALESCE(arrival_delay, departure_delay) > 60 THEN 1 END) AS late,
-				COUNT(CASE WHEN COALESCE(arrival_delay, departure_delay) < -60 THEN 1 END) AS early
+				COUNT(COALESCE(departure_delay, arrival_delay)) AS measurement_count,
+				AVG(COALESCE(departure_delay, arrival_delay))::REAL AS avg_delay,
+				COUNT(CASE WHEN COALESCE(departure_delay, arrival_delay) BETWEEN -60 AND 300 THEN 1 END) AS on_time,
+				COUNT(CASE WHEN COALESCE(departure_delay, arrival_delay) > 300 THEN 1 END) AS late,
+				COUNT(CASE WHEN COALESCE(departure_delay, arrival_delay) < -60 THEN 1 END) AS early
 			FROM transit.stop_delay
-			WHERE last_updated >= NOW() - INTERVAL '24 hours'
+			WHERE last_updated >= NOW() - INTERVAL '24 hours' AND last_updated <= NOW()
 			GROUP BY 1
 		),
 		alert_stats AS (
@@ -444,7 +445,7 @@ const daySnapshotsQuery = `
 			FROM (
 				SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket, alert_id
 				FROM transit.alert
-				WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
+				WHERE feed_timestamp >= NOW() - INTERVAL '24 hours' AND feed_timestamp <= NOW()
 				GROUP BY 1, alert_id
 			) seen
 			GROUP BY bucket
@@ -452,10 +453,10 @@ const daySnapshotsQuery = `
 		cancel_stats AS (
 			SELECT bucket, COUNT(trip_id) AS cancellation_count
 			FROM (
-				SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket, trip_id
+				SELECT date_trunc('minute', feed_timestamp) - (EXTRACT(MINUTE FROM feed_timestamp)::INT % 5) * INTERVAL '1 minute' AS bucket, trip_id, start_date
 				FROM transit.cancellation
-				WHERE feed_timestamp >= NOW() - INTERVAL '24 hours'
-				GROUP BY 1, trip_id
+				WHERE feed_timestamp >= NOW() - INTERVAL '24 hours' AND feed_timestamp <= NOW()
+				GROUP BY 1, trip_id, start_date
 			) seen
 			GROUP BY bucket
 		)
@@ -464,8 +465,8 @@ const daySnapshotsQuery = `
 			COALESCE(v.active_vehicles, 0)::INT,
 			COALESCE(v.active_routes, 0)::INT,
 			CASE WHEN COALESCE(d.measurement_count, 0) > 0
-				THEN (d.on_time * 100.0 / d.measurement_count)::REAL ELSE 0 END,
-			COALESCE(d.avg_delay, 0)::REAL,
+				THEN (d.on_time * 100.0 / d.measurement_count)::REAL ELSE NULL END,
+			d.avg_delay::REAL,
 			COALESCE(d.late, 0)::INT,
 			COALESCE(d.early, 0)::INT,
 			COALESCE(d.measurement_count, 0)::INT,
@@ -508,26 +509,26 @@ func (r *Repo) DaySnapshots(ctx context.Context) ([]TransitSnapshot, error) {
 func (r *Repo) WeekSummary(ctx context.Context) ([]DaySummary, error) {
 	rows, err := r.db.Query(ctx, `
 		WITH delay_days AS (
-			SELECT DATE(last_updated) AS day,
-				COUNT(*) AS measurements,
-				COUNT(CASE WHEN ABS(COALESCE(arrival_delay, departure_delay)) <= 60 THEN 1 END) AS on_time,
-				AVG(COALESCE(arrival_delay, departure_delay))::REAL AS avg_delay
+			SELECT (last_updated AT TIME ZONE 'America/Thunder_Bay')::date AS day,
+				COUNT(COALESCE(departure_delay, arrival_delay)) AS measurements,
+				COUNT(CASE WHEN COALESCE(departure_delay, arrival_delay) BETWEEN -60 AND 300 THEN 1 END) AS on_time,
+				AVG(COALESCE(departure_delay, arrival_delay))::REAL AS avg_delay
 			FROM transit.stop_delay
-			WHERE last_updated >= NOW() - INTERVAL '7 days'
-			GROUP BY DATE(last_updated)
+			WHERE last_updated >= NOW() - INTERVAL '7 days' AND last_updated <= NOW()
+			GROUP BY (last_updated AT TIME ZONE 'America/Thunder_Bay')::date
 		),
 		cancel_days AS (
-			SELECT DATE(feed_timestamp) AS day,
-				COUNT(DISTINCT trip_id) AS cancellations
+			SELECT (feed_timestamp AT TIME ZONE 'America/Thunder_Bay')::date AS day,
+				COUNT(DISTINCT (trip_id, start_date)) FILTER(WHERE trip_id IS NOT NULL) AS cancellations
 			FROM transit.cancellation
-			WHERE feed_timestamp >= NOW() - INTERVAL '7 days'
-			GROUP BY DATE(feed_timestamp)
+			WHERE feed_timestamp >= NOW() - INTERVAL '7 days' AND feed_timestamp <= NOW()
+			GROUP BY (feed_timestamp AT TIME ZONE 'America/Thunder_Bay')::date
 		)
 		SELECT d.day,
 			CASE WHEN d.measurements > 0
 				THEN (d.on_time * 100.0 / d.measurements)::REAL ELSE 0 END AS avg_on_time,
-			COALESCE(d.avg_delay, 0)::REAL,
-			COALESCE(c.cancellations, 0)::INT
+			d.avg_delay::REAL,
+			COALESCE(c.cancellations, 0)::INT,d.measurements::INT
 		FROM delay_days d
 		LEFT JOIN cancel_days c ON c.day = d.day
 		WHERE d.measurements > 0
@@ -540,7 +541,7 @@ func (r *Repo) WeekSummary(ctx context.Context) ([]DaySummary, error) {
 	var result []DaySummary
 	for rows.Next() {
 		var s DaySummary
-		if err := rows.Scan(&s.Date, &s.AvgOnTime, &s.AvgDelay, &s.Cancellations); err != nil {
+		if err := rows.Scan(&s.Date, &s.AvgOnTime, &s.AvgDelay, &s.Cancellations, &s.MeasurementCount); err != nil {
 			return nil, err
 		}
 		result = append(result, s)

@@ -80,7 +80,13 @@ func routeQueryTestDB(t *testing.T) *pgxpool.Pool {
 			scheduled_count int DEFAULT 0, cancelled_count int DEFAULT 0, no_notice_count int DEFAULT 0,
 			headway_count int DEFAULT 0, headway_sum_sec float8 DEFAULT 0,
 			headway_sum_sec_sq float8 DEFAULT 0, sched_headway_sec float8 DEFAULT 0,
-			built_at timestamptz DEFAULT now(), PRIMARY KEY (route_id, date, band)
+			metric_version int DEFAULT 1, otp_count int DEFAULT 0, otp_on_time int DEFAULT 0,
+            early_count int DEFAULT 0, late_count int DEFAULT 0,
+            expected_timepoints int DEFAULT 0, observed_timepoints int DEFAULT 0,
+            eligible_windows int DEFAULT 0, total_windows int DEFAULT 0,
+            wait_observed_area float8 DEFAULT 0, wait_scheduled_area float8 DEFAULT 0,
+            window_seconds float8 DEFAULT 0, cv_weighted_sum float8 DEFAULT 0, cv_weight float8 DEFAULT 0,
+            built_at timestamptz DEFAULT now(), PRIMARY KEY (route_id, date, band)
 		);
 		CREATE INDEX idx_transit_route_band_chunk_date ON transit.route_band_chunk (date);
 	`)
@@ -110,12 +116,11 @@ func routeQueryTestIndexes(t *testing.T, db *pgxpool.Pool) {
 func assertScheduleCancellations(t *testing.T, db *pgxpool.Pool, routeID string, date time.Time, want map[string]bool) {
 	t.Helper()
 	ctx := t.Context()
-	// The original cast defines the behavior being preserved, including the
-	// session timezone and cancellation records with missing service dates.
+	// Match reported service dates, independent of when the feed was received.
 	rows, err := db.Query(ctx, `
 		SELECT tc.trip_id, EXISTS (
 			SELECT 1 FROM transit.cancellation c
-			WHERE c.trip_id = tc.trip_id AND c.feed_timestamp::date = $2::date
+			WHERE c.trip_id = tc.trip_id AND c.start_date = to_char($2::date,'YYYYMMDD')
 		)
 		FROM transit.trip_catalog tc WHERE tc.route_id = $1
 	`, routeID, date)
@@ -207,8 +212,8 @@ func TestRouteQueriesDatabase(t *testing.T) {
 				('before-day', 'schedule-test', '20260909', '2026-09-08 23:59:59.999999-04');
 		`)
 		assertScheduleCancellations(t, db, "schedule-test", date, map[string]bool{
-			"duplicates": true, "overnight": false, "other-day": true, "unknown-day": true,
-			"day-start": true, "last-instant": true, "next-day": false, "before-day": false,
+			"duplicates": true, "overnight": true, "other-day": false, "unknown-day": false,
+			"day-start": true, "last-instant": true, "next-day": true, "before-day": true,
 		})
 	})
 
@@ -233,6 +238,7 @@ func TestRouteQueriesDatabase(t *testing.T) {
 				('fall-second-0130', 'dst-test', '2026-11-01 01:30:00-05'),
 				('fall-late', 'dst-test', '2026-11-01 23:30:00-05'),
 				('fall-next', 'dst-test', '2026-11-02 00:00:00-05');
+            UPDATE transit.cancellation SET start_date=to_char(feed_timestamp AT TIME ZONE 'America/Thunder_Bay','YYYYMMDD') WHERE route_id='dst-test';
 		`)
 		for _, test := range []struct {
 			name     string
@@ -316,13 +322,13 @@ func TestRouteQueriesDatabase(t *testing.T) {
 			t.Fatalf("empty range = %v, %v", rows, err)
 		}
 		routeQueryExec(t, db, `
-			INSERT INTO transit.route_band_chunk (route_id, date, band, trip_count, on_time_count)
-			VALUES ('3', '2026-09-09', 'morning', 10, 8);
+			INSERT INTO transit.route_band_chunk (route_id, date, band, trip_count, otp_count, otp_on_time)
+			VALUES ('3', '2026-09-09', 'morning', 10, 10, 8);
 		`)
 		if earliest, err := repo.EarliestChunkDate(ctx); err != nil || earliest.Format("2006-01-02") != "2026-09-09" {
 			t.Fatalf("earliest date after first insert = %v, %v", earliest, err)
 		}
-		if rows, err := repo.Chunks(ctx, from, date); err != nil || len(rows) != 1 || rows[0].Trips != 10 || rows[0].OTPPct != 80 {
+		if rows, err := repo.Chunks(ctx, from, date); err != nil || len(rows) != 1 || rows[0].Trips != 10 || rows[0].OTPPct == nil || *rows[0].OTPPct != 80 {
 			t.Fatalf("new data after empty read = %v, %v", rows, err)
 		}
 		routeQueryExec(t, db, `
@@ -357,10 +363,10 @@ func TestRouteQueriesDatabase(t *testing.T) {
 			t.Errorf("reversed range = %v, %v; want nil, nil", rows, err)
 		}
 		routeQueryExec(t, db, `
-			UPDATE transit.route_band_chunk SET trip_count = 20, on_time_count = 15
+			UPDATE transit.route_band_chunk SET trip_count = 20, otp_count = 20, otp_on_time = 15
 			WHERE route_id = '3' AND date = '2026-09-09' AND band = 'morning';
 		`)
-		if rows, err := repo.Chunks(ctx, date, date); err != nil || len(rows) != 1 || rows[0].Trips != 20 || rows[0].OTPPct != 75 {
+		if rows, err := repo.Chunks(ctx, date, date); err != nil || len(rows) != 1 || rows[0].Trips != 20 || rows[0].OTPPct == nil || *rows[0].OTPPct != 75 {
 			t.Errorf("corrected data = %v, %v", rows, err)
 		}
 		routeQueryExec(t, db, `DELETE FROM transit.route_band_chunk WHERE date = '2026-09-09'`)

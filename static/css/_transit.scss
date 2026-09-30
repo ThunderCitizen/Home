@@ -2768,6 +2768,38 @@ tr.route-tp-canceled {
   }
 }
 
+.metrics-month-nav {
+  @extend %segmented-shell;
+  overflow: hidden;
+}
+
+.metrics-month-btn,
+.metrics-month-label {
+  @extend %term-control;
+  appearance: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--term-fg);
+  cursor: pointer;
+}
+
+.metrics-month-btn {
+  width: 2rem;
+  font-size: var(--text-lg);
+  line-height: 1;
+  &:hover:not(:disabled) { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+.metrics-month-label {
+  min-width: 8.5rem;
+  padding-inline: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semi);
+  cursor: default;
+}
+
 // Export button — phosphor accent treatment to mark it as the primary action
 // in the header, distinct from the neutral date-picker trigger beside it.
 .metrics-dl-btn {
@@ -3287,8 +3319,7 @@ tr.route-tp-canceled {
 .kpi-card-explain {
   font-size: var(--text-xs);
   line-height: 1.45;
-  color: var(--term-fg);
-  opacity: 0.5;
+  color: var(--term-fg-dim);
 }
 
 .kpi-big {
@@ -3370,6 +3401,74 @@ tr.route-tp-canceled {
 .kpi-chart {
   min-height: 200px;
   position: relative;
+}
+
+.metrics-trend-intro {
+  margin: var(--space-1) 0 var(--space-2);
+  color: var(--term-fg-dim);
+  font-size: var(--text-xs);
+}
+
+.metrics-trend-svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mt-line { fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .mt-daily { stroke: var(--term-fg-dim); opacity: .45; }
+  .mt-dot { fill: var(--term-fg-dim); opacity: .65; }
+  .mt-line-average { stroke: var(--accent); stroke-width: 2.5; }
+  .mt-selected-month { fill: color-mix(in srgb, var(--heading) 12%, transparent); }
+  .mt-month-boundary { stroke: var(--heading); stroke-opacity: .5; stroke-dasharray: 3 3; }
+  .mt-focus { stroke: var(--heading); stroke-dasharray: 3 3; }
+  .mt-axis { color: var(--term-fg-dim); }
+  .mt-axis text { font-family: var(--font-mono); font-size: var(--text-2xs); }
+}
+
+#metrics-trend-chart { position: relative; }
+
+.metrics-trend-tooltip {
+  position: absolute;
+  top: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--term-border);
+  border-radius: var(--radius-sm);
+  background: var(--term-bg);
+  color: var(--term-fg);
+  font-size: var(--text-xs);
+  pointer-events: none;
+
+  > * { display: block; }
+}
+
+.metrics-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-block: var(--space-2);
+
+  > span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--term-fg-dim);
+    font-size: var(--text-xs);
+
+    &::before {
+      content: '';
+      width: var(--space-4);
+      border-top: 2px solid var(--term-fg-dim);
+    }
+  }
+
+  .mt-average-key::before { border-color: var(--accent); border-width: 3px; }
+  .mt-month-key::before {
+    height: var(--space-3);
+    border: 1px solid color-mix(in srgb, var(--heading) 50%, transparent);
+    background: color-mix(in srgb, var(--heading) 12%, transparent);
+  }
 }
 
 // ==========================================================================
@@ -5069,3 +5168,23 @@ body.terminal-fullscreen {
     gap: 1.5cqi;
   }
 }
+
+// Metric history route selector.
+.metrics-trend-controls {
+  width: min(100%, 20rem);
+  label { font-size: var(--text-xs); }
+  select {
+    @extend %term-control;
+    display: block;
+    width: 100%;
+    padding-inline-end: var(--space-6);
+    background-position: right var(--space-2) center;
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+  }
+}
+.kpi-card[role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.metrics-panel .rc-col-track { position: relative; }
+.metrics-panel .rc-col-bar { position: absolute; }
+.metrics-panel .rc-zero { position: absolute; width: 100%; border-top: 1px solid var(--term-border); }

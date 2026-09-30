@@ -150,6 +150,9 @@ var electionCandidateSocials = map[string][]ElectionCandidateSocial{
 		{Platform: "Facebook", URL: "https://www.facebook.com/share/p/1JvRof1YQx/", Label: "Facebook campaign announcement"},
 		{Platform: "Facebook", URL: "https://www.facebook.com/julie.colquhoun.3?__cft__[0]=AZYC8hVfD4V2wHhIzn9zoUH81aW5ElsfIQjqx_OFlMSomWQ3gvQZk2pdQpuuZ-iTjU2Ea9dKuLEWX4ijOgTzBPU95p0RjHa-yztGxBqLUZHBQzqhb-3CzExSEh_M7LBONWhvYZEO28dzX2sID7AjB7iJ&__tn__=-UC%2CP-R"},
 	},
+	"Stephanie Danylko": {
+		{Platform: "Facebook", URL: "https://www.facebook.com/profile.php?id=61594374445221"},
+	},
 	"Kasey Taylor Etreni": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/share/p/195on9DoE9/", Label: "Facebook campaign announcement"},
 	},
@@ -176,18 +179,21 @@ var electionCandidateSocials = map[string][]ElectionCandidateSocial{
 	},
 	"Mark Bentz": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/mark.bentz.790/posts/pfbid0hpX4gmGwX5KQ7qudhprPYKCkucybnpePSamGiQ8HFpFwoLTwRWzhh2BtXSbFoTMMl", Label: "Facebook campaign announcement"},
+		{Platform: "YouTube", URL: "https://www.youtube.com/watch?v=4TUu1baJ7eA"},
 	},
 	"Gene Capar": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/groups/1782214149442200/posts/1784966399166975/", Label: "Facebook campaign announcement"},
 	},
 	"Gary Christian": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/permalink.php?story_fbid=pfbid0UngBjLPr7bw2CJQtmVzUDW48FKPdrfMcwCnVqWrZkQcTArgNikGFY4Lq7YGvLenvl&id=61592912046098", Label: "Facebook campaign announcement"},
+		{Platform: "YouTube", URL: "https://www.youtube.com/watch?v=E_claY5Z0zo"},
 	},
 	"Tyler Goode": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/permalink.php?story_fbid=pfbid0Gto77r6RmFD1wGZ8D7ibhhUPc66Fus9fSzoHsvy4EUv7SyyY6KznewcdDtFJWiejl&id=61593323288022", Label: "Facebook campaign announcement"},
 	},
 	"Jamie Nichols": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/rose.crantz/posts/pfbid0wsfRwUcksN61k4x3Xco4tBNNaquQJmPD54Bm7ThCswC5QvGysCWzba1xfxj97Fe3l", Label: "Facebook campaign announcement"},
+		{Platform: "YouTube", URL: "https://www.youtube.com/watch?v=c_tv4ilLmvM"},
 	},
 	"Stéphane Léonard Kuziora": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/profile.php?id=61588748205441"},

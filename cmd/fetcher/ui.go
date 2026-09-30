@@ -67,7 +67,7 @@ func runInteractive() {
 	case "1", "gtfs":
 		runGTFS()
 	case "2", "votes":
-		runVotes()
+		runVotes(false)
 	case "3", "wards":
 		runWards()
 	case "4", "chunks":

@@ -151,6 +151,43 @@ func parseDateRange(r *http.Request, sinceDate string) DateRange {
 	}
 }
 
+// parseMetricsMonth selects one calendar month for the Metrics cards. The
+// current month ends today; historical months end on their final day.
+func parseMetricsMonth(r *http.Request, sinceDate string) (MonthChoice, DateRange) {
+	today := Today()
+	month := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, TZ).AddDate(0, -1, 0)
+	if parsed, err := time.ParseInLocation("2006-01", r.URL.Query().Get("month"), TZ); err == nil {
+		month = parsed
+	}
+	min := month
+	if sinceDate != "" {
+		if parsed, err := time.ParseInLocation("2006-01-02", sinceDate, TZ); err == nil {
+			min = time.Date(parsed.Year(), parsed.Month(), 1, 0, 0, 0, 0, TZ)
+			if month.Before(min) {
+				month = min
+			}
+		}
+	}
+	max := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, TZ)
+	if month.After(max) {
+		month = max
+	}
+	from := month
+	if sinceDate != "" {
+		if parsed, err := time.ParseInLocation("2006-01-02", sinceDate, TZ); err == nil && parsed.After(from) {
+			from = parsed
+		}
+	}
+	to := month.AddDate(0, 1, -1)
+	if to.After(today) {
+		to = today
+	}
+	return MonthChoice{Value: month.Format("2006-01"), Label: month.Format("January 2006"), MinMonth: min.Format("2006-01"), MaxMonth: max.Format("2006-01")}, DateRange{
+		From: from.Format("2006-01-02"), To: to.Format("2006-01-02"),
+		MinDate: from.Format("2006-01-02"), MaxDate: today.Format("2006-01-02"),
+	}
+}
+
 // --- helpers ---
 
 func fmtDelay(sec float64) string {

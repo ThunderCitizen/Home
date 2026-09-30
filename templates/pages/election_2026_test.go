@@ -364,6 +364,11 @@ func TestElection2026RenderedStructure(t *testing.T) {
 		"Wednesday, October 14, 2026, 6 p.m. · Waverley Library",
 		"Mayoral Candidates",
 		"Thursday, October 15, 2026, 6 p.m. · Waverley Library",
+		"Candidate guide",
+		"Meet the At-Large candidates",
+		"CBC News profiles of the candidates in this race.",
+		"Read on CBC News",
+		"https://www.cbc.ca/news/canada/thunder-bay/thunder-bay-at-large-candidates-9.7356838",
 	} {
 		if !strings.Contains(body, required) {
 			t.Errorf("rendered page does not contain %q", required)

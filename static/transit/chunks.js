@@ -1,27 +1,4 @@
-// chunks.js — frontend metrics aggregation, mirroring chunk.KPI in
-// internal/transit/chunk/rollup.go. Reads the chunk data the server
-// embeds via @templ.JSONScript("transit-chunks", vm.Chunks) and exposes
-// a small set of pure helpers for filtering and reaggregating.
-//
-// Chunk shape (from internal/transit/chunk/chunk.go::ChunkView, JSON tags):
-//
-//   {
-//     route_id, date, band,
-//     trips, on_time, scheduled, cancelled, no_notice,
-//     headway_n, headway_sum_sec, headway_sum_sq_sec, sched_headway_sec,
-//     otp_pct, ewt_min, cv
-//   }
-//
-// Two-track design (raw counts AND pre-computed display values):
-//   - Use the raw counts when SUM-ing across multiple chunks — that's
-//     trip-weighted exact arithmetic. Aggregating already-rounded
-//     percentages would be wrong.
-//   - Use the pre-computed otp_pct / ewt_min / cv when rendering ONE
-//     chunk directly (per-day cell, drill-down row, etc.) — they come
-//     from the same Go formulas the reaggregators use.
-//
-// Aggregation rules mirror internal/transit/chunk/rollup.go::KPI exactly.
-
+// Shared reducers for versioned transit chunks. Mirrored and tested against chunk.KPI.
 (function() {
   'use strict';
 
@@ -29,19 +6,19 @@
   // Loader — read the embedded JSON once on first call.
   // ---------------------------------------------------------------------
 
-  var _cached = null;
+  let _cached = null;
 
   function loadChunks() {
     if (_cached !== null) return _cached;
-    var el = document.getElementById('transit-chunks');
+    const el = document.getElementById('transit-chunks');
     if (!el) {
       _cached = [];
       return _cached;
     }
     try {
-      var parsed = JSON.parse(el.textContent || '[]');
+      const parsed = JSON.parse(el.textContent || '[]');
       _cached = Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
+    } catch (_e) {
       _cached = [];
     }
     return _cached;
@@ -68,10 +45,10 @@
   // ---------------------------------------------------------------------
 
   function groupBy(chunks, keyFn) {
-    var out = new Map();
-    for (var i = 0; i < chunks.length; i++) {
-      var k = keyFn(chunks[i]);
-      var arr = out.get(k);
+    const out = new Map();
+    for (let i = 0; i < chunks.length; i++) {
+      const k = keyFn(chunks[i]);
+      let arr = out.get(k);
       if (!arr) {
         arr = [];
         out.set(k, arr);
@@ -85,115 +62,68 @@
   function groupByDate(chunks)  { return groupBy(chunks, function(b) { return b.date; }); }
   function groupByBand(chunks)  { return groupBy(chunks, function(b) { return b.band; }); }
 
-  // ---------------------------------------------------------------------
-  // Math — line-for-line ports of internal/transit/chunk/math.go.
-  // ---------------------------------------------------------------------
-
-  function cvFromSums(n, sumH, sumHSq) {
-    if (n < 2 || sumH <= 0) return 0;
-    var mean = sumH / n;
-    var variance = sumHSq / n - mean * mean;
-    if (variance < 0) variance = 0;
-    return Math.sqrt(variance) / mean;
-  }
-
-  function ewtSecFromSums(sumH, sumHSq, schedHeadwaySec) {
-    if (sumH <= 0 || schedHeadwaySec <= 0) return 0;
-    var awt = sumHSq / (2 * sumH);
-    var swt = schedHeadwaySec / 2;
-    if (awt <= swt) return 0;
-    return awt - swt;
-  }
-
-  function waitMinFromSums(n, sumH) {
-    if (n === 0) return 0;
-    return (sumH / n) / 60;
-  }
-
-  // ---------------------------------------------------------------------
-  // KPI — line-for-line port of chunk.KPI in
-  // internal/transit/chunk/rollup.go. Single source of truth for
-  // reducing a slice of chunks into one KPI reading.
-  //
-  // metric: 'otp' | 'cancel' | 'notice' | 'wait' | 'ewt' | 'cv'
-  // band:   '' (pool all bands) | 'morning' | 'midday' | 'evening'
-  // Returns a number, or null when there's not enough data.
-  //
-  // Aggregation rules:
-  //   otp/cancel/notice → trip-weighted SUM of raw counts, divided once.
-  //   wait              → pooled mean gap SUM(h) / SUM(n).
-  //   cv/ewt            → per-route pool first, then mean across routes.
-  //                       Each route gets one vote.
-  // ---------------------------------------------------------------------
-
   function kpi(chunks, metric, band) {
-    band = band || '';
-    var inBand = function(b) { return band === '' || b.band === band; };
-
-    if (metric === 'otp' || metric === 'cancel' || metric === 'notice') {
-      var trips = 0, onTime = 0, scheduled = 0, cancelled = 0, noNotice = 0;
-      for (var i = 0; i < chunks.length; i++) {
-        var b = chunks[i];
-        if (!inBand(b)) continue;
-        trips     += b.trips;
-        onTime    += b.on_time;
-        scheduled += b.scheduled;
-        cancelled += b.cancelled;
-        noNotice  += b.no_notice;
+    let numerator = 0, denominator = 0;
+    const perRoute = new Map();
+    chunks.forEach(function(c) {
+      if (c.metric_version !== 1 || (band && c.band !== band)) return;
+      if (metric === 'otp') { numerator += c.otp_on_time * 100; denominator += c.otp_count; }
+      if (metric === 'cancel' && (c.trips > 0 || c.cancelled > 0)) { numerator += c.cancelled * 100; denominator += c.scheduled; }
+      if (metric === 'notice') { numerator += c.no_notice * 100; denominator += c.cancelled; }
+      if (metric === 'wait') { numerator += c.wait_observed_area / 60; denominator += c.window_seconds; }
+      if (metric === 'ewt' || metric === 'cv') {
+        const a = perRoute.get(c.route_id) || { numerator: 0, denominator: 0 };
+        a.numerator += metric === 'ewt' ? (c.wait_observed_area - c.wait_scheduled_area) / 60 : c.cv_weighted_sum;
+        a.denominator += metric === 'ewt' ? c.window_seconds : c.cv_weight;
+        perRoute.set(c.route_id, a);
       }
-      if (metric === 'otp')    return trips > 0     ? (onTime * 100 / trips)       : null;
-      if (metric === 'cancel') return scheduled > 0 ? (cancelled * 100 / scheduled) : null;
-      if (metric === 'notice') return cancelled > 0 ? (noNotice * 100 / cancelled)  : null;
+    });
+    perRoute.forEach(function(a) {
+      if (a.denominator > 0) { numerator += a.numerator / a.denominator; denominator++; }
+    });
+    return denominator > 0 ? numerator / denominator : null;
+  }
+
+  function sampleInfo(chunks, metric) {
+    let expected = 0, observed = 0, samples = 0, eligible = 0, windows = 0;
+    const routes = new Set(), days = new Set();
+    chunks.forEach(function(c) {
+      if (c.metric_version !== 1) return;
+      expected += c.expected_timepoints; observed += c.observed_timepoints;
+      eligible += c.eligible_windows; windows += c.total_windows;
+      samples += metric === 'otp' ? c.otp_count : metric === 'cancel' ? c.scheduled : c.eligible_windows;
+      if (kpi([c], metric, '') != null) { routes.add(c.route_id); days.add(c.date); }
+    });
+    return { expected: expected, observed: observed, eligible: eligible, windows: windows,
+      samples: samples, routes: routes.size, days: days.size };
+  }
+
+  // Calendar days, including absent days. A rolling value needs a full 30-day
+  // window, at least 70% of the selected day type observed, and a reading today.
+  // This is a display completeness rule, not a statistical confidence interval.
+  function trendSeries(chunks, metric, from, to, dayType) {
+    const byDate = groupByDate(chunks), out = [], dayMS = 86400000;
+    const start = Date.parse(from + 'T00:00:00Z'), end = Date.parse(to + 'T00:00:00Z');
+    function included(at) {
+      const day = new Date(at).getUTCDay();
+      return !dayType || (dayType === 'weekday' && day > 0 && day < 6) || (dayType === 'saturday' && day === 6) || (dayType === 'sunday' && day === 0);
     }
-
-    if (metric === 'wait') {
-      var wn = 0, wSum = 0;
-      for (var j = 0; j < chunks.length; j++) {
-        var c = chunks[j];
-        if (!inBand(c)) continue;
-        wn   += c.headway_n;
-        wSum += c.headway_sum_sec;
+    for (let at = start; at <= end; at += dayMS) {
+      const date = new Date(at).toISOString().slice(0, 10), rows = byDate.get(date) || [];
+      const daily = included(at) ? kpi(rows, metric, '') : null;
+      let windowRows = [], valid = 0, expectedDays = 0;
+      for (let t = at - 29 * dayMS; t <= at; t += dayMS) {
+        if (!included(t)) continue;
+        expectedDays++;
+        const slice = byDate.get(new Date(t).toISOString().slice(0, 10)) || [];
+        if (kpi(slice, metric, '') != null) valid++;
+        windowRows = windowRows.concat(slice);
       }
-      return wn > 0 ? waitMinFromSums(wn, wSum) : null;
+      const rolling = at - start >= 29 * dayMS && daily != null && valid >= Math.ceil(expectedDays * .7) ? kpi(windowRows, metric, '') : null;
+      out.push({ date: date, at: new Date(at), daily: daily, rolling: rolling, days: valid,
+        expectedDays: expectedDays, sample: sampleInfo(rows, metric) });
     }
-
-    if (metric === 'cv' || metric === 'ewt') {
-      var perRoute = new Map();
-      for (var k = 0; k < chunks.length; k++) {
-        var ch = chunks[k];
-        if (!inBand(ch)) continue;
-        var a = perRoute.get(ch.route_id);
-        if (!a) {
-          a = { n: 0, sumH: 0, sumHSq: 0, schedSum: 0, schedN: 0 };
-          perRoute.set(ch.route_id, a);
-        }
-        a.n      += ch.headway_n;
-        a.sumH   += ch.headway_sum_sec;
-        a.sumHSq += ch.headway_sum_sq_sec;
-        if (ch.sched_headway_sec > 0) {
-          a.schedSum += ch.sched_headway_sec;
-          a.schedN++;
-        }
-      }
-      var sum = 0, count = 0;
-      if (metric === 'cv') {
-        perRoute.forEach(function(a) {
-          if (a.n < 2) return;
-          sum += cvFromSums(a.n, a.sumH, a.sumHSq);
-          count++;
-        });
-      } else {
-        perRoute.forEach(function(a) {
-          if (a.n < 1 || a.schedN === 0) return;
-          var sched = a.schedSum / a.schedN;
-          sum += ewtSecFromSums(a.sumH, a.sumHSq, sched) / 60;
-          count++;
-        });
-      }
-      return count > 0 ? (sum / count) : null;
-    }
-
-    return null;
+    return out;
   }
 
   // ---------------------------------------------------------------------
@@ -226,10 +156,8 @@
     groupByDate: groupByDate,
     groupByBand: groupByBand,
     kpi: kpi,
-    format: format,
-    // Math helpers exposed for testing in the browser console.
-    cvFromSums: cvFromSums,
-    ewtSecFromSums: ewtSecFromSums,
-    waitMinFromSums: waitMinFromSums
+    sampleInfo: sampleInfo,
+    trendSeries: trendSeries,
+    format: format
   };
 })();

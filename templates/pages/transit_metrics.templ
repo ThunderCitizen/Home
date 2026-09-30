@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"fmt"
 	"thundercitizen/internal/assets"
 	"thundercitizen/internal/transit"
 	"thundercitizen/templates"
@@ -21,7 +22,7 @@ type kpiDef struct {
 var kpiDefs = []kpiDef{
 	{
 		Key: "otp", Label: "On-Time", Tag: "Schedule", Unit: "%",
-		Explain: "Share of trips arriving within 1 min early to 5 min late. Whether the schedule matches reality.",
+		Explain: "Departures reported from 1 minute early to 5 minutes late at scheduled checkpoints. Higher is better.",
 		Slots: [3]struct{ Attr, Class, Label string }{
 			{"otp_morn", "kpi-p50", "Morning"},
 			{"otp_mid", "kpi-p90", "Midday"},
@@ -30,7 +31,7 @@ var kpiDefs = []kpiDef{
 	},
 	{
 		Key: "cancel", Label: "Cancellation Rate", Tag: "Schedule", Unit: "%",
-		Explain: "Scheduled trips that did not operate — riders may need to adjust plans or miss a connection.",
+		Explain: "Scheduled trips reported cancelled. Missed trips that were not reported are not included. Lower is better.",
 		Slots: [3]struct{ Attr, Class, Label string }{
 			{"cancel_morn", "kpi-p50", "Morning"},
 			{"cancel_mid", "kpi-p90", "Midday"},
@@ -39,7 +40,7 @@ var kpiDefs = []kpiDef{
 	},
 	{
 		Key: "ewt", Label: "Excess Wait Time", Tag: "Delay", Unit: "min",
-		Explain: "Average extra time riders spend waiting at a stop when buses run off-schedule.",
+		Explain: "Estimated extra waiting compared with buses running to schedule. Uneven spacing between buses can increase waits even when the same number of buses runs.",
 		Slots: [3]struct{ Attr, Class, Label string }{
 			{"ewt_morn", "kpi-p50", "Morning"},
 			{"ewt_mid", "kpi-p90", "Midday"},
@@ -47,8 +48,8 @@ var kpiDefs = []kpiDef{
 		},
 	},
 	{
-		Key: "cv", Label: "Headway CV", Tag: "Regularity",
-		Explain: "How evenly spaced buses are. A higher value means bunching and long gaps.",
+		Key: "cv", Label: "Bus Spacing", Tag: "Regularity",
+		Explain: "How much the time between buses varies. A lower score means buses arrive more evenly spaced.",
 		Slots: [3]struct{ Attr, Class, Label string }{
 			{"cv_morn", "kpi-p50", "Morning"},
 			{"cv_mid", "kpi-p90", "Midday"},
@@ -66,13 +67,13 @@ func kpiCardClass(active, current string) string {
 
 var kpiTitles = map[string]string{
 	"otp": "On-Time Performance", "cancel": "Cancellation Rate",
-	"ewt": "Excess Wait Time", "cv": "Headway CV",
+	"ewt": "Excess Wait Time", "cv": "Bus Spacing",
 }
 
 templ TransitMetrics(vm transit.MetricsViewModel) {
 	@templates.Layout(templates.SocialMeta{
 		Title:       "Transit — " + kpiTitles[vm.KPI],
-		Description: "Thunder Bay Transit " + kpiTitles[vm.KPI] + " — 7-day trend chart with per-route comparison and Morning, Midday, and Evening breakdown.",
+		Description: "Thunder Bay Transit " + kpiTitles[vm.KPI] + " — daily system trend with time-of-day breakdown and a 30-day moving average.",
 		OGImage:     "/static/og/transit.png",
 	}) {
 		@components.TransitNav(components.TransitNavProps{Current: "metrics"})
@@ -82,7 +83,7 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 			<div class="terminal-map-header metrics-panel-header">
 				<h2 class="terminal-map-title">System Metrics</h2>
 				<div class="metrics-header-controls">
-					@dateRangeNav(vm.Range)
+					@metricsMonthNav(vm.Month)
 					<a
 						href={ bundleURL(vm.Range) }
 						class="metrics-dl-btn"
@@ -98,11 +99,12 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 			</div>
 			@exportDialog(vm.Range, vm.ExportSize)
 			<div class="metrics-disclaimer">
-				<strong>Disclaimer:</strong> These are unofficial statistics derived from observing the GTFS feed. Questions or feedback: <a href="mailto:data@thundercitizen.ca">data@thundercitizen.ca</a>.
+				These are unofficial statistics based on the transit data feed. <a href="mailto:data@thundercitizen.ca">Send feedback</a>
 			</div>
+			<p class="metrics-trend-intro">{ transit.MetricCoverage(vm.Chunks) } Select a metric to compare routes and explore its trend.</p>
 			<div class="kpi-grid" data-active-kpi={ vm.KPI }>
 				for _, d := range kpiDefs {
-					<div class={ kpiCardClass(vm.KPI, d.Key) } data-kpi={ d.Key } { kpiPctAttrs(d)... }>
+					<div class={ kpiCardClass(vm.KPI, d.Key) } data-kpi={ d.Key } role="button" tabindex="0" aria-pressed={ fmt.Sprint(vm.KPI == d.Key) } { kpiPctAttrs(d)... }>
 						<div class="kpi-card-top">
 							<span class="kpi-label">{ d.Label }</span>
 							<span class="kpi-tag">{ d.Tag }</span>
@@ -135,6 +137,19 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 				<div id="route-compare-chart"></div>
 			</div>
 			<div id="route-compare-data" hidden></div>
+			<div class="kpi-chart-container">
+				<h3 id="metrics-trend-title">{ "Trend — " + kpiTitles[vm.KPI] }</h3>
+				<p class="metrics-trend-intro">Daily readings and a 30-day average. Gaps mean there isn’t enough data.</p>
+				<div class="metrics-trend-controls">
+					<label for="trend-route">Route<select id="trend-route"><option value="">All routes</option></select></label>
+				</div>
+				<div class="metrics-trend-legend">
+					<span class="mt-daily-key">Daily</span>
+					<span class="mt-average-key">30-day average</span>
+					<span class="mt-month-key">{ vm.Month.Label + " · selected month" }</span>
+				</div>
+				<div id="metrics-trend-chart" data-month={ vm.Month.Value } data-month-label={ vm.Month.Label } data-to={ vm.Range.To }></div>
+			</div>
 
 			<div class="kpi-chart-container" id="cancel-log-container" hidden>
 				<h3>Cancelled Trips</h3>
@@ -145,13 +160,24 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 
 		@templ.JSONScript("route-meta", vm.RouteMeta)
 		@templ.JSONScript("transit-chunks", vm.Chunks)
+		@templ.JSONScript("transit-trend-chunks", vm.TrendChunks)
 		@templ.JSONScript("cancelled-trips", vm.CancelledTrips)
 		<script src={ assets.URL("/static/transit/route-meta.js") }></script>
 		<script src={ assets.URL("/static/transit/chunks.js") }></script>
+		<script src={ assets.URL("/static/vendor/d3.min.js") }></script>
 		<script src={ assets.URL("/static/transit/trends-chart.js") }></script>
-		<script src={ assets.URL("/static/transit/date-range-picker.js") }></script>
+		<script src={ assets.URL("/static/transit/month-picker.js") }></script>
 		<script src={ assets.URL("/static/transit/download-confirm.js") }></script>
 	}
+}
+
+templ metricsMonthNav(month transit.MonthChoice) {
+	<div class="metrics-month-nav" data-month={ month.Value } data-min-month={ month.MinMonth } data-max-month={ month.MaxMonth }>
+		<button type="button" class="metrics-month-btn" data-month-step="-1" aria-label="Previous month">‹</button>
+		<button type="button" class="metrics-month-label" data-month-label>{ month.Label }</button>
+		<button type="button" class="metrics-month-btn" data-month-step="1" aria-label="Next month">›</button>
+		<select class="sr-only" aria-label="Choose month" data-month-select></select>
+	</div>
 }
 
 // exportDialog is the pre-download confirmation shown when JS is on. The Export
@@ -172,6 +198,9 @@ templ exportDialog(dr transit.DateRange, size string) {
 				<li><span class="ef-name">timepoint_stop_events.csv</span><span class="ef-desc">raw per-stop delays</span></li>
 				<li><span class="ef-name">cancellations.csv</span><span class="ef-desc">cancelled trips</span></li>
 				<li><span class="ef-name">alerts.csv</span><span class="ef-desc">service alerts</span></li>
+				<li><span class="ef-name">metric_passages.csv</span><span class="ef-desc">screened GPS passages with source IDs</span></li>
+				<li><span class="ef-name">metric_rebuilds.csv</span><span class="ef-desc">recipe and timetable provenance</span></li>
+				<li><span class="ef-name">metric_timetables.csv / metric_calendar.csv</span><span class="ef-desc">the archived service-date schedule</span></li>
 				<li><span class="ef-name">README.txt</span><span class="ef-desc">field reference</span></li>
 			</ul>
 			<p class="export-dialog-size">Estimated size <strong>{ size }</strong></p>

@@ -6,11 +6,11 @@ import (
 	"thundercitizen/internal/council"
 )
 
-func runVotes() {
+func runVotes(skipDownload bool) {
 	ctx, cancel := rootContext()
 	defer cancel()
 
-	opts := council.VotesFetchOptions{} // always: all terms, full download
+	opts := council.VotesFetchOptions{SkipDownload: skipDownload} // always: all terms
 
 	fmt.Println("Discovering meetings via eSCRIBE...")
 	sources, err := council.DiscoverVoteSources(ctx, opts)
@@ -21,7 +21,11 @@ func runVotes() {
 		fmt.Println("No meetings to fetch.")
 		return
 	}
-	printSources(sources)
+	if skipDownload {
+		fmt.Println("Using PDFs already in static/councillors/minutes.")
+	} else {
+		printSources(sources)
+	}
 
 	if !confirm() {
 		fmt.Println("cancelled")

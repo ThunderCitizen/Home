@@ -35,6 +35,15 @@ type DateRange struct {
 	MaxDate string // latest selectable date (today)
 }
 
+// MonthChoice is the Metrics page's calendar-month selector. Range holds the
+// actual available portion of that month (the current month is month-to-date).
+type MonthChoice struct {
+	Value    string // YYYY-MM
+	Label    string // "September 2026"
+	MinMonth string // YYYY-MM
+	MaxMonth string // YYYY-MM
+}
+
 // MetricsViewModel contains data for the metrics page (/transit/metrics).
 //
 // Chunks is the single source of truth for metrics — server templates and
@@ -46,7 +55,9 @@ type MetricsViewModel struct {
 	KPI            string         // active KPI key (otp, cancel, notice, wait, ewt, cv)
 	RouteMeta      []RouteMetaAPI // needed for route comparison chart
 	Range          DateRange
-	Chunks         []chunk.ChunkView // 7 days × 3 bands × N routes — THE metrics shape
+	Month          MonthChoice
+	Chunks         []chunk.ChunkView // selected month × 3 bands × N routes
+	TrendChunks    []chunk.ChunkView // daily raw rows for the long-term trend
 	CancelledTrips []CancelDetail    // per-trip cancel log for the date range
 	HasData        bool
 	ExportSize     string // approximate download size for Range, e.g. "~1.5 MB"

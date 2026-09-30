@@ -66,47 +66,36 @@ GTFS-RT protobuf client. Parses feeds into Go types. Used by:
 - Stop predictions (on-demand for popup arrivals)
 - Vehicle proxy (raw pass-through for live map)
 
-### Metrics — chunk model (`internal/transit/chunk.go`, `internal/transit/chunk/`, `internal/transit/recipes/`)
+### Metrics — versioned chunks
 
-Computes transit performance from `transit.stop_delay`, `transit.stop_visit`,
-`gtfs.stop_times`, and `transit.cancellation`. The metric unit is a
-**chunk**: 1 route × 1 day × 1 band (Morning 6–12 / Midday 12–18 / Evening 18–24),
-persisted as one row in `transit.route_band_chunk` (migration `000003`).
+One chunk is one route × service date × six-hour band: Morning 6–12,
+Midday 12–18 or Evening 18–24. Migration 28 adds corrected sample counts,
+matched wait integrals and coverage to `transit.route_band_chunk`.
 
-- **Raw counts only** — Each chunk stores `trip_count`, `on_time_count`,
-  `scheduled_count`, `cancelled_count`, `no_notice_count`, `headway_count`,
-  `headway_sum_sec`, `headway_sum_sec_sq`, `sched_headway_sec`. Never
-  pre-computed percentages. Aggregating already-rounded percentages is
-  wrong; aggregating raw counts and dividing once at the end is exact
-  arithmetic.
-- **Recipes** — `BuildChunksForDate` runs five small per-metric SQL
-  queries from `internal/transit/recipes/` for each (route, date, band)
-  tuple: `service_kind`, `otp`, `cancel`, `baseline`, `headway`. Each
-  recipe is its own file with one SQL constant and one Go function so
-  the formulas can be audited in isolation. The orchestrator stitches
-  recipe outputs into a `chunk.Chunk` and upserts it.
-- **No calendar_dates dependency** — The "scheduled trips" baseline is
-  reconstructed from `gtfs.stop_times` joined to the `(service_id, date)`
-  pairs the recorder observed running (via `transit.stop_delay`), not from
-  `gtfs.calendar_dates`. Long-lived prod DBs whose GTFS bundle has
-  rolled past the queried range still produce correct numbers.
-- **Read path** — `Service.Chunks(ctx, from, to)` reads the requested
-  date range from the rollup table through `internal/transit/chunk_read.go`.
-  Reads see completed rollups and historical rebuilds without cache invalidation.
-- **Aggregation** — `KPIFromChunks` and `RouteRowKPIFromChunks` in
-  `view_helpers.go` SUM raw counts across the requested slice, then
-  divide once at the end. Empty band string pools all three.
-- **Math** — Pure formulas in `internal/transit/chunk/math.go` with
-  textbook unit tests. SUM-stable identities:
-  `Cv = √(E(X²) − E(X)²) / E(X)`, `EWT = Σ(h²)/(2·Σh) − sched_h/2`,
-  `Wait = Σ(h)/N`. Same formulas mirrored in
-  `static/transit/chunks.js` (`window.transitChunks.aggregate`) so the
-  client-side route comparison chart and the server-rendered KPI cards
-  always agree.
-- **Rebuilding** — `./bin/fetcher chunks` interactively rebuilds chunks
-  for a date range against the live event tables. `./bin/seedtransit`
-  writes synthetic chunks for the dev DB (one per route × day × band)
-  with a linear bad→good trend and per-route quality bias.
+- `metric_schedule.go` archives GTFS calendars and ordered trip stops by
+  content hash, independently of replaceable live timetable tables.
+- `metric_passage.go` reconstructs screened interior timepoint passages from
+  saved GPS, retaining source row IDs. Legacy `stop_visit` rows are not used
+  for regularity metrics.
+- `metric_day.go` reads each source once per service date. OTP classifies
+  each retained departure timepoint; cancellations use the exact archived
+  active timetable. `recipes/window.go` computes matched wait integrals
+  and within-window CV, excluding incomplete windows.
+- `BuildChunksForDate` atomically replaces a whole date and its versioned
+  provenance marker. `ChunkRollup` refreshes today, finalizes yesterday and
+  repairs recent missing dates plus invalidated older history.
+- Reads query stored chunks directly. Server and browser reducers sum raw
+  evidence before division; EWT and CV combine within routes first, then
+  average contributing routes equally. Missing and legacy values stay null.
+- The D3 chart shows daily readings, a trailing 30-calendar-day aggregate,
+  completeness and monthly sample counts, with route/day-type/band filters.
+- `cmd/transitmetrics` imports historical GTFS and rebuilds retained GPS;
+  `./bin/fetcher chunks` provides an interactive rebuild. `seedtransit`
+  remains a synthetic development-data helper.
+
+See [definitions and rebuilding](transit-metrics.md) and the
+[April–August validation audit](transit-metric-audit.md) for formulas,
+limitations and measured recovery results.
 
 ### Server reads
 
@@ -234,8 +223,9 @@ GTFS-RT `STOPPED_AT` observations: P50 = 11m, P95 = 48m. At 50 km/h with
 15-second polling that's ~200m of unobserved travel between fixes, which is
 why the segment-distance check (in addition to point distance) is necessary —
 without it the tracker would miss stops the bus drove past between two GPS
-readings. `transit.stop_visit` is the primary source for headway, bunching,
-Cv, and EWT calculations.
+readings. The recorder retains these visit observations, but corrected
+regularity uses the separately screened, source-linked `metric_passage`
+reconstruction described in [transit metrics](transit-metrics.md).
 
 ### Handler (`handler.go`)
 
@@ -401,8 +391,16 @@ Page embeds `RouteMeta` JSON for route pills on first paint, then `terminal-boar
 
 **`/api/transit/stats`**
 - `range=percentiles` — P50/P90/P99/P99.9 delay curves in 30-min buckets (24h)
-- `range=week` — daily on-time summaries for last 7 days
+- `range=week` — daily feed diagnostics for the last 7 days
 - *(default)* — 5-min system snapshots derived from events (24h)
+
+These diagnostics cover all reported stops by last-update time, not the
+archived timepoint population on Metrics. Responses include that definition.
+Departure delay is preferred, the on-time window is -60 through +300 seconds,
+null delays are excluded, and future timestamps are rejected. Missing snapshot
+delay/percentage values are JSON `null`; weekly rows include the valid sample
+count. Weekly dates use Thunder Bay local time. The retained updates may be
+predictions, not actual departures.
 
 > Metric KPIs are NOT exposed as a JSON API. They're computed via
 > `KPIFromChunks` and rendered straight into `/transit/metrics` and

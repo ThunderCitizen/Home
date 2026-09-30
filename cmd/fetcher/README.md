@@ -7,6 +7,7 @@ fetcher              # interactive menu
 fetcher budget       # Ontario FIR data (all missing fiscal years)
 fetcher gtfs         # Thunder Bay GTFS static schedule
 fetcher votes        # eSCRIBE council meetings (all terms)
+fetcher votes-local  # parse/import already-downloaded council minutes
 fetcher wards        # Open North ward boundaries
 ```
 

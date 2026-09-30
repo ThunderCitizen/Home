@@ -68,8 +68,8 @@ by the route/date/trip access path.
 | Index | Type | Covers |
 |-------|------|--------|
 | PK `(trip_id, stop_id)` | btree | Recorder conflict handling |
-| `idx_transit_stop_visit_route_stop INCLUDE (observed_at)` | btree | Per-route headway recipes; covering observed-time reads |
-| `idx_transit_stop_visit_observed` | btree | Recent visit analytics and headway windows |
+| `idx_transit_stop_visit_route_stop INCLUDE (observed_at)` | btree | Legacy visit queries; covering observed-time reads |
+| `idx_transit_stop_visit_observed` | btree | Recent visit analytics |
 
 **transit.cancellation** (about 1.46 million rows)
 
@@ -109,35 +109,34 @@ Leading-column overlap alone does not make an index dispensable. The narrow
 alongside the wider primary key. The raw GTFS stop/date indexes and legacy
 scheduled-departure indexes had no remaining reader or constraint role.
 
-### Schedule-headway computation
+### Historical metric evidence
 
-EWT and related scheduled-headway calculations are derived inline from
-`gtfs.stop_times` joined against `transit.route_baseline` (the per-route
-timepoint projection) and the (service_id, date) pairs we observed running
-(via `transit.stop_delay`). The previous materialized sched_headways view
-was dropped — it depended on calendar_dates which silently lapsed on
-long-lived deployments whenever the GTFS bundle's coverage rolled past
-the queried date range. See the `headway` recipe in
-`internal/transit/recipes/` and the chunk orchestrator in
-`internal/transit/chunk.go`.
+Migration 28 retains timetable versions in `metric_schedule`, active calendar
+entries in `metric_service` and ordered trip stops in `metric_trip`.
+`metric_passage` stores screened GPS passage estimates, schedule/detector
+versions and source GPS IDs. `metric_rebuild` records the recipe version,
+timetable and build time for each completed rollup date.
+
+`stop_visit` is now keyed by `(service_date, trip_id, stop_id)`; its service
+date is generated from the observed timestamp with a 04:00 local boundary.
+Existing duplicate local records are preserved in `stop_visit_duplicate_archive`.
+The down migration refuses a lossy rollback; retain a pre-migration backup.
 
 ### Metric rollup table — `transit.route_band_chunk`
 
-The chunk-based metrics read path stores one row per (route, date, band)
-in `transit.route_band_chunk` (added in migration `000003`, formerly
-`transit.route_band_bucket`). Columns are raw counts plus SUM-stable
-headway sums (`headway_sum_sec`, `headway_sum_sec_sq`, `sched_headway_sec`),
-never percentages — aggregation happens in Go via `KPIFromChunks` in
-`internal/transit/view_helpers.go` and the matching JS port in
-`static/transit/chunks.js`. The orchestrator that fills this table is
-`BuildChunksForDate` in `internal/transit/chunk.go`, which calls five
-per-metric recipes from `internal/transit/recipes/` against the upstream
-event tables.
+One row per route × date × band stores raw sample counts, coverage, matched
+wait integrals and within-window CV contributions. These are combined by
+`chunk.KPI` and the tested JavaScript reducer, never by averaging rounded
+percentages. Legacy headway/trip-average columns remain for compatibility,
+but version 0 rows are excluded from corrected readings.
 
-Kept populated automatically by `ChunkRollup` (`internal/transit/chunk_rollup.go`):
-a background goroutine that does a 60-day backfill on boot and rebuilds
-today's chunks every 10 minutes. See [docs/transit-metrics.md](transit-metrics.md)
-for the full write-path + failure-mode story.
+`metric_day.go` reads each source once per date and `BuildChunksForDate`
+replaces that date in a transaction. `ChunkRollup` refreshes today every
+10 minutes, finalizes yesterday after the service day closes, and scans
+60 recent days plus older invalidated chunks. Only dates covered by an
+archived timetable are rebuilt. See [transit metrics](transit-metrics.md)
+for the definitions and [validation audit](transit-metric-audit.md) for the
+historical results.
 
 ### Postgres settings
 
