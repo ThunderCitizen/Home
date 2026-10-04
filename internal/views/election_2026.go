@@ -179,21 +179,18 @@ var electionCandidateSocials = map[string][]ElectionCandidateSocial{
 	},
 	"Mark Bentz": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/mark.bentz.790/posts/pfbid0hpX4gmGwX5KQ7qudhprPYKCkucybnpePSamGiQ8HFpFwoLTwRWzhh2BtXSbFoTMMl", Label: "Facebook campaign announcement"},
-		{Platform: "YouTube", URL: "https://www.youtube.com/watch?v=4TUu1baJ7eA"},
 	},
 	"Gene Capar": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/groups/1782214149442200/posts/1784966399166975/", Label: "Facebook campaign announcement"},
 	},
 	"Gary Christian": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/permalink.php?story_fbid=pfbid0UngBjLPr7bw2CJQtmVzUDW48FKPdrfMcwCnVqWrZkQcTArgNikGFY4Lq7YGvLenvl&id=61592912046098", Label: "Facebook campaign announcement"},
-		{Platform: "YouTube", URL: "https://www.youtube.com/watch?v=E_claY5Z0zo"},
 	},
 	"Tyler Goode": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/permalink.php?story_fbid=pfbid0Gto77r6RmFD1wGZ8D7ibhhUPc66Fus9fSzoHsvy4EUv7SyyY6KznewcdDtFJWiejl&id=61593323288022", Label: "Facebook campaign announcement"},
 	},
 	"Jamie Nichols": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/rose.crantz/posts/pfbid0wsfRwUcksN61k4x3Xco4tBNNaquQJmPD54Bm7ThCswC5QvGysCWzba1xfxj97Fe3l", Label: "Facebook campaign announcement"},
-		{Platform: "YouTube", URL: "https://www.youtube.com/watch?v=c_tv4ilLmvM"},
 	},
 	"Stéphane Léonard Kuziora": {
 		{Platform: "Facebook", URL: "https://www.facebook.com/profile.php?id=61588748205441"},
@@ -260,8 +257,8 @@ func NewElection2026ViewModel() Election2026ViewModel {
 			Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
 		},
 		Candidates: []ElectionCandidateView{
-			electionCandidate("Maureen (Moe) Comuzzi", "Comuzzi, Maureen", "A Thunder Bay business and real-estate professional who launched her mayoral campaign in August.", "", electionPage("https://moeformayor.ca/", ElectionPageCampaign), electionSource("https://acadiabroadcasting.ca/the-mayors-race-begins-moe-comuzzi-announces-her-bid/", "Acadia News campaign launch")),
-			electionCandidate("Peter Diedrich", "Diedrich, Peter", "An engineer, venture-capital executive and former Tbaytel chief executive.", "", electionPage("https://peterdiedrich4mayor.com/", ElectionPageCampaign), electionSource("https://yourthunderbay.ca/thunder-bay-elections-our-interview-with-peter-diedrich/", "Your Thunder Bay interview")),
+			electionCandidate("Maureen (Moe) Comuzzi", "Comuzzi, Maureen", "A Thunder Bay business and real-estate professional who launched her mayoral campaign in August.", "", electionPage("https://moeformayor.ca/", ElectionPageCampaign), electionSource("https://acadiabroadcasting.ca/the-mayors-race-begins-moe-comuzzi-announces-her-bid/", "Acadia News campaign launch"), electionSource("https://www.youtube.com/watch?v=03fzeciPzKo", "YouTube interview")),
+			electionCandidate("Peter Diedrich", "Diedrich, Peter", "An engineer, venture-capital executive and former Tbaytel chief executive.", "", electionPage("https://peterdiedrich4mayor.com/", ElectionPageCampaign), electionSource("https://yourthunderbay.ca/thunder-bay-elections-our-interview-with-peter-diedrich/", "Your Thunder Bay interview"), electionSource("https://www.youtube.com/watch?v=Te57pWsCfM0", "YouTube interview")),
 			electionCandidate("Trevor Giertuga", "Giertuga, Trevor", "A current at-large councillor, first elected to council in 2000.", "At-Large Councillor", electionPage("https://www.trevor4mayor.ca/", ElectionPageCampaign)),
 			electionWithdrawnCandidate("Shane Judge", "Judge, Shane", "A retired journalist who withdrew from the mayoral race after announcing a second run in 2026.", "https://www.facebook.com/share/p/1DwhE6veWi/"),
 			electionCandidate("Volker Kromm", "Kromm, Volker", "Long-time executive director of the Regional Food Distribution Association.", "", electionPage("https://www.votevolker.ca/", ElectionPageCampaign), electionSource("https://foodbankscanada.ca/food-banker-spotlight-volker-kromm-of-the-regional-food-distribution-association/", "Food Banks Canada profile")),
@@ -287,9 +284,9 @@ func NewElection2026ViewModel() Election2026ViewModel {
 		},
 		Candidates: []ElectionCandidateView{
 			electionCandidate("Rajni Agarwal", "Agarwal, Rajni", "A current at-large councillor and local business owner.", "At-Large Councillor", nil, electionSource("https://www.tbnewswatch.com/local-news/rajni-agarwal-running-to-keep-at-large-council-seat-12688979", "TBNewsWatch candidate profile")),
-			electionCandidate("Mark Bentz", "Bentz, Mark", "A current at-large councillor who has also served as Northwood councillor and a school trustee.", "At-Large Councillor", nil),
+			electionCandidate("Mark Bentz", "Bentz, Mark", "A current at-large councillor who has also served as Northwood councillor and a school trustee.", "At-Large Councillor", nil, electionSource("https://www.youtube.com/watch?v=4TUu1baJ7eA", "YouTube interview")),
 			electionCandidate("Gene Capar", "Capar, Gene", "A Thunder Bay tabletop-game creator who launched two crowdfunded fantasy-miniatures projects.", "", nil),
-			electionCandidate("Gary Christian", "Christian, Gary", "Executive director of the North Superior Workforce Planning Board and an appointed Lakehead trustee since June 2026.", "School Trustee", nil, electionSource("https://www.lakeheadschools.ca/general/the-lakehead-district-school-board-is-pleased-to-welcome-gary-christian-as-trustee/", "Lakehead trustee appointment")),
+			electionCandidate("Gary Christian", "Christian, Gary", "Executive director of the North Superior Workforce Planning Board and an appointed Lakehead trustee since June 2026.", "School Trustee", nil, electionSource("https://www.lakeheadschools.ca/general/the-lakehead-district-school-board-is-pleased-to-welcome-gary-christian-as-trustee/", "Lakehead trustee appointment"), electionSource("https://www.youtube.com/watch?v=E_claY5Z0zo", "YouTube interview")),
 			electionCandidate("Julie Colquhoun", "Colquhoun, Julie", "An at-large candidate calling for a collaborative, fiscally responsible approach to safety, housing, local business and economic development.", "", nil),
 			electionCandidate("Patrick George Cully", "Cully, Patrick George", "An accessibility and inclusion advocate campaigning to revive Thunder Bay's \"Giant Heart\" identity.", "", nil, electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/patrick-cully-enters-at-large-council-race-12687228", "TBNewsWatch candidate profile")),
 			electionCandidate("Heather K. Dahlstrom", "Dahlstrom, Heather K.", "A Thunder Bay-born film producer whose work has screened at Sundance and TIFF.", "", nil),
@@ -297,7 +294,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 			electionCandidate("Kasey Taylor Etreni", "Etreni, Kasey Taylor", "A current at-large councillor and retired radiation therapist.", "At-Large Councillor", nil),
 			electionCandidate("Tyler Goode", "Goode, Tyler", "A registered social worker whose work has included cultural mental-health programming with Matawa.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/tyler-goode-enters-at-large-council-race-12692380", "TBNewsWatch candidate profile")),
 			electionCandidate("Dino Menei", "Menei, Dino", "A recycling and heavy-equipment contractor, hobby farmer and previous at-large candidate.", "", nil),
-			electionCandidate("Jamie Nichols", "Nichols, Jamie", "Founder of RNC Coffee and a Thunder Bay Chamber of Commerce board member.", "", electionPage("https://campaign.rnccoffee.ca/", ElectionPageCampaign), electionSource("https://www.tbnewswatch.com/local-news/jaime-nichols-brings-business-experience-to-at-large-race-12646033", "TBNewsWatch candidate profile")),
+			electionCandidate("Jamie Nichols", "Nichols, Jamie", "Founder of RNC Coffee and a Thunder Bay Chamber of Commerce board member.", "", electionPage("https://campaign.rnccoffee.ca/", ElectionPageCampaign), electionSource("https://www.tbnewswatch.com/local-news/jaime-nichols-brings-business-experience-to-at-large-race-12646033", "TBNewsWatch candidate profile"), electionSource("https://www.youtube.com/watch?v=c_tv4ilLmvM", "YouTube interview")),
 			electionCandidate("Robert Trevisan", "Trevisan, Robert", "A Thunder Bay chiropractor and Lakehead University alumnus.", "", nil),
 			electionCandidate("Peng You", "You, Peng", "A former at-large councillor who served during the 2018–2022 term.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/former-councillor-peng-you-seeks-at-large-seat-12646078", "TBNewsWatch candidate profile")),
 		},
@@ -314,7 +311,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("Andrew Foulds", "Foulds, Andrew", "A teacher and fifth-term Current River councillor.", "Ward Councillor", nil),
-				electionCandidate("Stéphane Léonard Kuziora", "Kuziora, Stéphane Léonard", "A Current River candidate who returned to Thunder Bay after studying in Norway and advocates evidence-informed, cost-effective action on homelessness and municipal priorities.", "", nil),
+				electionCandidate("Stéphane Léonard Kuziora", "Kuziora, Stéphane Léonard", "A Current River candidate who returned to Thunder Bay after studying in Norway and advocates evidence-informed, cost-effective action on homelessness and municipal priorities.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/current-river-candidate-profile-stephane-kuziora-12816975", "TBNewsWatch candidate profile")),
 			},
 		},
 		{
@@ -342,8 +339,8 @@ func NewElection2026ViewModel() Election2026ViewModel {
 				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
 			},
 			Candidates: []ElectionCandidateView{
-				electionCandidate("Albert Aiello", "Aiello, Albert", "The current McIntyre councillor and executive director of BGC Thunder Bay.", "Ward Councillor", electionPage("https://www.albertaiello.com/", ElectionPageCandidate)),
-				electionCandidate("Brian Phillips", "Phillips, Brian", "Manager of Arthur Street Medical Health Centre (Spence Clinic) and a previous at-large council candidate.", "", nil, electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/brian-phillips-enters-race-for-mcintyre-ward-seat-12693575", "TBNewsWatch candidate profile")),
+				electionCandidate("Albert Aiello", "Aiello, Albert", "The current McIntyre councillor and executive director of BGC Thunder Bay.", "Ward Councillor", electionPage("https://www.albertaiello.com/", ElectionPageCandidate), electionSource("https://www.tbnewswatch.com/local-news/mcintyre-candidate-profile-albert-aiello-12817290", "TBNewsWatch candidate profile")),
+				electionCandidate("Brian Phillips", "Phillips, Brian", "Manager of Arthur Street Medical Health Centre (Spence Clinic) and a previous at-large council candidate.", "", nil, electionSource("https://www.tbnewswatch.com/municipal-election/2026-municipal-election/brian-phillips-enters-race-for-mcintyre-ward-seat-12693575", "TBNewsWatch candidacy announcement"), electionSource("https://www.tbnewswatch.com/local-news/mcintyre-candidate-profile-brian-phillips-12817303", "TBNewsWatch candidate profile")),
 			},
 		},
 		{
@@ -372,7 +369,7 @@ func NewElection2026ViewModel() Election2026ViewModel {
 			},
 			Candidates: []ElectionCandidateView{
 				electionCandidate("André Gagné", "Gagné, André", "A logistics and business-development professional involved in local construction projects.", "", nil),
-				electionCandidate("Syed Kabir", "Kabir, Syed", "His campaign site describes a background in business, media and community organizations.", "", electionPage("https://syedkabir.ca/", ElectionPageCampaign)),
+				electionCandidate("Syed Kabir", "Kabir, Syed", "His campaign site describes a background in business, media and community organizations.", "", electionPage("https://syedkabir.ca/", ElectionPageCampaign), electionSource("https://www.tbnewswatch.com/local-news/northwood-candidate-profile-syed-kabir-12833887", "TBNewsWatch candidate profile")),
 				electionCandidate("John Ongaro", "Ongaro, John", "A long-time local broadcaster and programming executive.", "", electionPage("https://www.johnongaro.ca/", ElectionPageCampaign)),
 			},
 		},
@@ -385,9 +382,9 @@ func NewElection2026ViewModel() Election2026ViewModel {
 				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
 			},
 			Candidates: []ElectionCandidateView{
-				electionCandidate("Angel Gamble", "Gamble, Angel", "A First Nations business owner in Westfort and first-time municipal candidate with prior union political-action experience in Alberta.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/candidate-for-westfort-ward-wants-to-bring-people-together-12710446", "TBNewsWatch candidate profile")),
-				electionCandidate("Clinton Harris", "Harris, Clinton", "A former publisher and teacher who has served on community boards and ran for mayor in 2022.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/harris-shifts-from-mayoral-race-to-ward-councillor-bid-12689527", "TBNewsWatch candidate profile")),
-				electionCandidate("Stephen Margarit", "Margarit, Stephen", "A community and political-party organizer and Rotary club leader who has previously sought elected office.", "", nil, electionSource("https://fwrotary.ca/clubexecutives", "Fort William Rotary executive")),
+				electionCandidate("Angel Gamble", "Gamble, Angel", "A First Nations business owner in Westfort and first-time municipal candidate with prior union political-action experience in Alberta.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/candidate-for-westfort-ward-wants-to-bring-people-together-12710446", "TBNewsWatch candidacy announcement"), electionSource("https://www.tbnewswatch.com/local-news/westfort-candidate-profile-angel-gamble-12768627", "TBNewsWatch candidate profile")),
+				electionCandidate("Clinton Harris", "Harris, Clinton", "A former publisher and teacher who has served on community boards and ran for mayor in 2022.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/harris-shifts-from-mayoral-race-to-ward-councillor-bid-12689527", "TBNewsWatch candidacy announcement"), electionSource("https://www.tbnewswatch.com/local-news/westfort-candidate-profile-clint-harris-12768642", "TBNewsWatch candidate profile")),
+				electionCandidate("Stephen Margarit", "Margarit, Stephen", "A community and political-party organizer and Rotary club leader who has previously sought elected office.", "", nil, electionSource("https://fwrotary.ca/clubexecutives", "Fort William Rotary executive"), electionSource("https://www.tbnewswatch.com/local-news/westfort-candidate-profile-stephen-margarit-12768483", "TBNewsWatch candidate profile")),
 			},
 		},
 		{
@@ -399,8 +396,8 @@ func NewElection2026ViewModel() Election2026ViewModel {
 				Source:   electionSource(Election2026EventsURL, "Thunder Bay Public Library event schedule"),
 			},
 			Candidates: []ElectionCandidateView{
-				electionCandidate("John Warren Beals", "Beals, John Warren", "A former local business owner who operated the Neebing Roadhouse and Best Western Plus Nor'Wester Hotel and Conference Centre.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/john-beals-enters-race-for-neebing-ward-12693862", "TBNewsWatch candidate profile")),
-				electionCandidate("Greg Johnsen", "Johnsen, Greg", "The current Neebing councillor, with a professional background in education and history.", "Ward Councillor", nil),
+				electionCandidate("John Warren Beals", "Beals, John Warren", "A former local business owner who operated the Neebing Roadhouse and Best Western Plus Nor'Wester Hotel and Conference Centre.", "", nil, electionSource("https://www.tbnewswatch.com/local-news/john-beals-enters-race-for-neebing-ward-12693862", "TBNewsWatch candidacy announcement"), electionSource("https://www.tbnewswatch.com/local-news/neebing-candidate-profile-john-beals-12817359", "TBNewsWatch candidate profile")),
+				electionCandidate("Greg Johnsen", "Johnsen, Greg", "The current Neebing councillor, with a professional background in education and history.", "Ward Councillor", nil, electionSource("https://www.tbnewswatch.com/local-news/neebing-candidate-profile-greg-johnsen-12817355", "TBNewsWatch candidate profile")),
 			},
 		},
 	}
