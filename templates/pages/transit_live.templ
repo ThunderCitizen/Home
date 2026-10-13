@@ -16,10 +16,16 @@ import (
 var sundayScheduleNotice = regexp.MustCompile(`(?i)\s*Sunday schedules are available at thunderbay\.ca/transit\.?`)
 
 func pillBorderStyle(color string) templ.Attributes {
+	if color == "" {
+		color = "var(--status-muted)"
+	}
 	return templ.Attributes{"style": "border-left-color:" + color}
 }
 
 func pillIdStyle(bg string) templ.Attributes {
+	if bg == "" {
+		bg = "var(--status-muted)"
+	}
 	return templ.Attributes{"style": "background:" + bg + "; color: var(--text-on-dark)"}
 }
 
@@ -119,7 +125,6 @@ templ TransitLive(vm transit.LiveViewModel) {
 		OGImage:     "/static/og/transit.png",
 	}) {
 		@components.TransitNav(components.TransitNavProps{Current: "map"})
-
 		<h1 class="sr-only">Live Transit</h1>
 		<section class="route-panel" aria-label="Live transit map and routes">
 			if len(vm.Alerts) > 0 {
@@ -165,11 +170,11 @@ templ TransitLive(vm transit.LiveViewModel) {
 					<span class="selector-bar-label">Features</span>
 					<div class="selector-bar-btns">
 						<button type="button" id="map-locate-btn" class="selector-bar-btn" title="Show my location" aria-label="Show my location">
-							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg>
 							<span>Locate</span>
 						</button>
 						<button type="button" id="find-route-btn" class="selector-bar-btn trip-planner-open" aria-controls="trip-planner" aria-expanded="false">
-							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 							<span>Find Route</span>
 						</button>
 					</div>
@@ -178,7 +183,7 @@ templ TransitLive(vm transit.LiveViewModel) {
 				<div class="tmi-layer tmi-selection" data-layer="selection" aria-live="polite"></div>
 				<div class="tmi-layer tmi-trip" data-layer="trip" aria-live="polite"></div>
 			</div>
-				@templ.JSONScript("route-meta", vm.RouteMeta)
+			@templ.JSONScript("route-meta", vm.RouteMeta)
 			@components.LeafletMap(components.MapProps{
 				ID:        "transit-map",
 				AriaLabel: "Live map showing Thunder Bay bus positions. Bus locations update every 10 seconds.",
@@ -187,7 +192,7 @@ templ TransitLive(vm transit.LiveViewModel) {
 			}) {
 				<div id="trip-planner" class="trip-planner trip-planner-overlay">
 					<button type="button" id="trip-planner-close" class="trip-planner-tab" aria-label="Close route finder">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 						Close
 					</button>
 					<div id="trip-planner-body" class="trip-planner-body">
@@ -256,35 +261,11 @@ templ TransitLive(vm transit.LiveViewModel) {
 							for _, rt := range vm.RouteMeta {
 								{{ pastN, upcomingN := routeCancelSplit(vm.CancelledTrips, rt.RouteID) }}
 								{{ noService := hasRoute(vm.NoServiceRoutes, rt.RouteID) }}
-								<button type="button" class="route-pill route-pill-inactive" role="listitem" data-route={ rt.RouteID } { pillBorderStyle(rt.Color)... }>
-									<span class="route-pill-id" { pillIdStyle(rt.Color)... }>{ rt.RouteID }</span>
-									if rt.Name != "" && rt.Name != rt.RouteID {
-										<span class="route-pill-name">{ rt.Name }</span>
-									}
-									if noService {
-										<span class="route-pill-no-service">No Service</span>
-									} else if len(rt.Terminals) > 0 {
-										<span class="route-pill-term-from">{ rt.Terminals[0] }</span>
-										if len(rt.Terminals) > 1 && rt.Terminals[1] != rt.Terminals[0] {
-											<span class="route-pill-term-to">{ rt.Terminals[1] }</span>
-										}
-									}
-									<span class="route-pill-footer">
-										<span class="route-pill-ft"><span class="route-pill-ft-val">0</span><span class="route-pill-ft-label">buses</span></span>
-										<span class="route-pill-ft-sep"></span>
-										if pastN > 0 {
-											<span class={ ftCellClass(true, "ft-error") } data-cancel-route={ rt.RouteID }><span class="route-pill-ft-val">{ fmt.Sprintf("%d", pastN) }</span><span class="route-pill-ft-label">cancel</span></span>
-										} else {
-											<span class="route-pill-ft"><span class="route-pill-ft-val">0</span><span class="route-pill-ft-label">cancel</span></span>
-										}
-										<span class="route-pill-ft-sep"></span>
-										if upcomingN > 0 {
-											<span class={ ftCellClass(true, "ft-warn") } data-cancel-route={ rt.RouteID }><span class="route-pill-ft-val">{ fmt.Sprintf("%d", upcomingN) }</span><span class="route-pill-ft-label">upcoming</span></span>
-										} else {
-											<span class="route-pill-ft"><span class="route-pill-ft-val">0</span><span class="route-pill-ft-label">upcoming</span></span>
-										}
-									</span>
-								</button>
+								@routeCard(rt, noService, true, []routeCardField{
+									{Value: "0", Label: "buses"},
+									liveCancelField(pastN, "cancel", "ft-error", rt.RouteID),
+									liveCancelField(upcomingN, "upcoming", "ft-warn", rt.RouteID),
+								})
 							}
 						</div>
 					</div>
@@ -299,7 +280,6 @@ templ TransitLive(vm transit.LiveViewModel) {
 			</div>
 		</section>
 		@terminalTabKeyboard()
-
 		<div id="cancelled-routes-data" data-routes={ strings.Join(vm.CancelledRoutes, ",") } hidden></div>
 		<div id="no-service-routes-data" data-routes={ strings.Join(vm.NoServiceRoutes, ",") } hidden></div>
 		if len(vm.CancelledTrips) > 0 {
@@ -356,4 +336,14 @@ templ terminalTabKeyboard() {
 		syncAria();
 	})();
 	</script>
+}
+
+// The live parent owns cancellation status and click hooks, not the card.
+func liveCancelField(count int, label, class, routeID string) routeCardField {
+	field := routeCardField{Value: fmt.Sprint(count), Label: label}
+	if count > 0 {
+		field.Class = class
+		field.Attrs = templ.Attributes{"data-cancel-route": routeID}
+	}
+	return field
 }

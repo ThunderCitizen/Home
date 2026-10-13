@@ -25,6 +25,14 @@ CREATE TABLE transit.metric_trip (
 CREATE INDEX metric_trip_route ON transit.metric_trip (schedule_id, route_id, service_id);
 
 -- A trip ID repeats on each service day. Keep existing observations intact.
+-- Online preparation supplies an ordinary, trigger-filled service date and
+-- a concurrently built unique index. Reuse it without rewriting/scanning the
+-- live table under migration 28's exclusive metadata lock.
+DO $$ BEGIN
+IF EXISTS(SELECT 1 FROM pg_index WHERE indexrelid=to_regclass('transit.stop_visit_service_day_prepared') AND indisvalid) THEN
+    ALTER TABLE transit.stop_visit DROP CONSTRAINT stop_visit_pkey;
+    ALTER TABLE transit.stop_visit ADD CONSTRAINT stop_visit_pkey PRIMARY KEY USING INDEX stop_visit_service_day_prepared;
+ELSE
 ALTER TABLE transit.stop_visit ADD COLUMN service_date date
     GENERATED ALWAYS AS (((observed_at AT TIME ZONE 'America/Thunder_Bay') - interval '4 hours')::date) STORED;
 -- Some local recovery databases allowed duplicate trip/stop/day rows. Retain
@@ -41,6 +49,9 @@ WITH ranked AS (
 INSERT INTO transit.stop_visit_duplicate_archive SELECT * FROM moved;
 ALTER TABLE transit.stop_visit DROP CONSTRAINT stop_visit_pkey;
 ALTER TABLE transit.stop_visit ADD PRIMARY KEY (service_date, trip_id, stop_id);
+
+END IF;
+END $$;
 
 -- Reconstructed passages are kept separate from the recorder's observations.
 CREATE TABLE transit.metric_passage (

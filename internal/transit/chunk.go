@@ -11,6 +11,11 @@ import (
 
 // BuildChunk uses the same daily recipes as the persisted rollup.
 func BuildChunk(ctx context.Context, db *pgxpool.Pool, routeID string, date time.Time, b Band) (*chunk.Chunk, error) {
+	release, err := lockMetricMonth(ctx, db, date)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 	_, chunks, err := buildMetricDay(ctx, db, date)
 	if err != nil {
 		return nil, err
@@ -26,6 +31,11 @@ func BuildChunk(ctx context.Context, db *pgxpool.Pool, routeID string, date time
 // BuildChunksForDate atomically replaces a complete day and its recipe marker.
 // A crash cannot leave a partially rebuilt day that looks complete at next boot.
 func BuildChunksForDate(ctx context.Context, db *pgxpool.Pool, date time.Time) (int, error) {
+	release, err := lockMetricMonth(ctx, db, date)
+	if err != nil {
+		return 0, err
+	}
+	defer release()
 	scheduleID, chunks, err := buildMetricDay(ctx, db, date)
 	if err != nil {
 		return 0, err
@@ -58,6 +68,9 @@ func BuildChunksForDate(ctx context.Context, db *pgxpool.Pool, date time.Time) (
 	_, err = tx.Exec(ctx, `INSERT INTO transit.metric_rebuild(date,version,schedule_id) VALUES($1,$2,$3)
         ON CONFLICT(date) DO UPDATE SET version=excluded.version,schedule_id=excluded.schedule_id,built_at=now()`, date, chunk.Version, scheduleID)
 	if err != nil {
+		return 0, err
+	}
+	if _, err = tx.Exec(ctx, `SELECT transit.refresh_route_day_summary($1::date)`, date); err != nil {
 		return 0, err
 	}
 	return len(chunks), tx.Commit(ctx)

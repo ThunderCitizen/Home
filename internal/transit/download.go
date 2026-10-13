@@ -9,12 +9,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"thundercitizen/internal/cache"
-	"thundercitizen/internal/logger"
 	"thundercitizen/internal/transit/chunk"
 )
-
-var downloadLog = logger.New("download")
 
 // avgBundleBytesPerDay is the per-day size of the compressed export ZIP, used
 // only for the "estimated size" shown in the download dialog. Calibrated against
@@ -140,6 +136,7 @@ ORDER BY first_seen`, dr.From, dr.To)
 				"SELECT * FROM transit.route_band_chunk WHERE date >= '%s' AND date <= '%s' ORDER BY date, route_id, band",
 				dr.From, dr.To),
 		},
+		{name: "route_day_summaries.csv", sql: fmt.Sprintf("SELECT * FROM transit.route_day_summary WHERE date BETWEEN '%s' AND '%s' ORDER BY date,route_id", dr.From, dr.To)},
 		{name: "timepoint_stop_events.csv", sql: stopEvents},
 		{name: "cancellations.csv", sql: cancellations},
 		{name: "alerts.csv", sql: alerts},
@@ -150,36 +147,10 @@ ORDER BY first_seen`, dr.From, dr.To)
 	}
 }
 
-// dataDownload streams a ZIP of curated CSVs bounded by the ?from=&to= range.
-// parseDateRange is the single validation layer: it clamps to today, swaps a
-// reversed range, and caps the span at MaxRangeDays (one year) — so a download
-// can never ask for more than a year regardless of what the URL says. Each CSV
-// is generated inside Postgres via COPY ... TO STDOUT and streamed straight
-// into the zip entry — no temp files, flat memory regardless of table size.
+// dataDownload retires request-time raw exports. Published aggregate reports
+// are available from the Method page without database work.
 func (h *Handler) dataDownload(w http.ResponseWriter, r *http.Request) {
-	dr := parseDateRange(r, "")
-
-	// Clear the server-wide 15s WriteTimeout for this route. The bundle streams
-	// to the client as it's generated, so a large range over a slow link easily
-	// exceeds 15s; without this the connection is force-closed mid-stream and
-	// the client gets a truncated, unopenable ZIP. Scoped per-connection — other
-	// routes keep the global timeout. Mirrors vehiclesSSE.
-	rc := http.NewResponseController(w)
-	if err := rc.SetWriteDeadline(time.Time{}); err != nil {
-		downloadLog.Warn("download: could not clear write deadline", "err", err)
-	}
-
-	name := fmt.Sprintf("thunder-transit-data-%s-to-%s.zip", dr.From, dr.To)
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", name))
-	w.Header().Set("Cache-Control", cache.Short)
-
-	if err := h.svc.writeDataBundle(r.Context(), w, dr); err != nil {
-		// The status line and some zip bytes are already on the wire, so we
-		// can't switch to a clean error response. The truncated archive fails
-		// to open, which surfaces the error to the client.
-		downloadLog.Error("data bundle failed", "from", dr.From, "to", dr.To, "err", err)
-	}
+	http.Redirect(w, r, "/transit/method#downloads", http.StatusSeeOther)
 }
 
 // writeDataBundle writes the CSV set plus a README into a streaming ZIP. All
@@ -247,6 +218,7 @@ FILES
 metrics_chunks.csv: corrected counts, wait integrals and completeness counts.
   Old trip-average OTP and headway columns are retained for schema compatibility;
   corrected rows do not use them. Version 0 rows require rebuilding.
+route_day_summaries.csv: one retained route/day row, additive counts, coverage and provenance.
 timepoint_stop_events.csv: archived-schedule timepoints behind OTP.
 cancellations.csv: one row per reported trip/date, with first/last observation.
 alerts.csv: one row per alert, carrying its latest content.

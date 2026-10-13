@@ -12,6 +12,15 @@ import (
 // Reading the rollup table directly makes backfills and corrections visible
 // on the next request, including dates that previously had no rows.
 func (r *Repo) Chunks(ctx context.Context, from, to time.Time) ([]chunk.ChunkView, error) {
+	return r.routeChunks(ctx, "", from, to)
+}
+
+// RouteChunks bounds both route and date before reading retained summaries.
+func (r *Repo) RouteChunks(ctx context.Context, routeID string, from, to time.Time) ([]chunk.ChunkView, error) {
+	return r.routeChunks(ctx, routeID, from, to)
+}
+
+func (r *Repo) routeChunks(ctx context.Context, routeID string, from, to time.Time) ([]chunk.ChunkView, error) {
 	from = DateOnly(from)
 	to = DateOnly(to)
 	if to.Before(from) {
@@ -25,11 +34,11 @@ func (r *Repo) Chunks(ctx context.Context, from, to time.Time) ([]chunk.ChunkVie
                expected_timepoints, observed_timepoints, eligible_windows, total_windows,
                wait_observed_area, wait_scheduled_area, window_seconds, cv_weighted_sum, cv_weight
 		FROM transit.route_band_chunk
-		WHERE date >= $1::date AND date <= $2::date
+		WHERE date >= $1::date AND date <= $2::date AND ($3 = '' OR route_id = $3)
 		ORDER BY date,
 			CASE band WHEN 'morning' THEN 0 WHEN 'midday' THEN 1 WHEN 'evening' THEN 2 ELSE 3 END,
 			route_id COLLATE "C"
-	`, from, to)
+	`, from, to, routeID)
 	if err != nil {
 		return nil, err
 	}

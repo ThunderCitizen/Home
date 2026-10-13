@@ -487,11 +487,11 @@ func (t *vehicleTracker) insertStopVisitEntries(ctx context.Context, entries []s
 	for _, e := range entries {
 		batch.Queue(
 			`INSERT INTO transit.stop_visit
-				(trip_id, stop_id, route_id, vehicle_id, observed_at, distance_m, entered_at, inside_polls)
-			 VALUES ($1, $2, $3, $4, $5, $6, $5, 1)
+				(trip_id, stop_id, route_id, vehicle_id, observed_at, distance_m, entered_at, inside_polls, service_date)
+			 VALUES ($1, $2, $3, $4, $5, $6, $5, 1, $7)
 			 ON CONFLICT (service_date, trip_id, stop_id) DO NOTHING`,
 			e.tripID, e.stopID, e.routeID,
-			e.vehicleID, e.enteredAt, e.distanceM,
+			e.vehicleID, e.enteredAt, e.distanceM, serviceDateAt(e.enteredAt),
 		)
 	}
 	br := t.db.SendBatch(ctx, batch)

@@ -45,3 +45,6 @@ backups/
 caddy-logs/
 
 static/transit/transit-map.js.map
+
+# Persistent host deployment state (slot activation + resumable cutover)
+.deploy/

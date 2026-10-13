@@ -1,0 +1,55 @@
+package pages
+
+import "thundercitizen/internal/transit"
+
+// The parent supplies every statistic and any live-update hooks. The card
+// only renders identity and a compact strip of labelled values.
+type routeCardField struct {
+	Value string
+	Label string
+	Class string
+	Attrs templ.Attributes
+}
+
+templ routeCardFields(fields []routeCardField) {
+	<span class="route-pill-footer">
+		for i, field := range fields {
+			if i > 0 {
+				<span class="route-pill-ft-sep"></span>
+			}
+			<span class={ "route-pill-ft", field.Class } { field.Attrs... }>
+				<span class="route-pill-ft-val">{ field.Value }</span>
+				<span class="route-pill-ft-label">{ field.Label }</span>
+			</span>
+		}
+	</span>
+}
+
+templ routeCard(rt transit.RouteMetaAPI, noService bool, interactive bool, fields []routeCardField) {
+	if interactive {
+		<button type="button" class="route-pill route-pill-inactive" role="listitem" data-route={ rt.RouteID } { pillBorderStyle(rt.Color)... }>
+			@routeCardIdentity(rt, noService)
+			@routeCardFields(fields)
+		</button>
+	} else {
+		<div class="route-pill route-pill-inactive route-summary-card" { pillBorderStyle(rt.Color)... }>
+			@routeCardIdentity(rt, noService)
+			@routeCardFields(fields)
+		</div>
+	}
+}
+
+templ routeCardIdentity(rt transit.RouteMetaAPI, noService bool) {
+	<span class="route-pill-id" { pillIdStyle(rt.Color)... }>{ rt.RouteID }</span>
+	if rt.Name != "" && rt.Name != rt.RouteID {
+		<span class="route-pill-name">{ rt.Name }</span>
+	}
+	if noService {
+		<span class="route-pill-no-service">No Service</span>
+	} else if len(rt.Terminals) > 0 {
+		<span class="route-pill-term-from">{ rt.Terminals[0] }</span>
+		if len(rt.Terminals) > 1 && rt.Terminals[1] != rt.Terminals[0] {
+			<span class="route-pill-term-to">{ rt.Terminals[1] }</span>
+		}
+	}
+}

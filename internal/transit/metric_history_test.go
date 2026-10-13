@@ -30,6 +30,9 @@ func metricHistoryDB(t *testing.T) *pgxpool.Pool {
 	}
 	// The shared reader fixture already has the extended chunk columns.
 	routeQueryExec(t, db, strings.Split(string(migration), "ALTER TABLE transit.route_band_chunk")[0])
+	// Migration 30 makes this an explicit writer-supplied partition key.
+	routeQueryExec(t, db, `ALTER TABLE transit.stop_visit ALTER COLUMN service_date DROP EXPRESSION`)
+	installRouteDaySummary(t, db)
 	return db
 }
 func metricFixtureSchedule(t *testing.T) string {
@@ -86,6 +89,10 @@ func TestMetricHistoryDatabase(t *testing.T) {
 		if err != nil || len(rows) != 1 {
 			t.Fatal(rows, err)
 		}
+		daily, err := NewRepo(db).RouteDaySummaries(ctx, date)
+		if err != nil || len(daily) != 1 || daily["R"].Trips != 2 || daily["R"].OTPCount != 4 || !daily["R"].IsFinal || daily["R"].ScheduleID == nil || *daily["R"].ScheduleID != id {
+			t.Fatalf("daily summary %+v: %v", daily, err)
+		}
 		c := rows[0]
 		if c.OTPCount != 4 || c.OTPOnTime != 2 || c.Early != 1 || c.Late != 1 || c.Scheduled != 4 || c.Cancelled != 1 || c.NoNotice != 0 || c.EligibleWindows != 2 {
 			t.Fatalf("counts: %+v", c)
@@ -119,8 +126,14 @@ func TestMetricHistoryDatabase(t *testing.T) {
 	}
 	// Export samples must reproduce the chunks even after live GTFS is replaced.
 	files := bundleFiles(DateRange{From: "2026-08-03", To: "2026-08-03"})
+	var stopEventExport string
+	for _, file := range files {
+		if file.name == "timepoint_stop_events.csv" {
+			stopEventExport = file.sql
+		}
+	}
 	var exported, counted int
-	if err := db.QueryRow(ctx, "SELECT count(*) FROM ("+files[1].sql+") e WHERE delay_sec IS NOT NULL").Scan(&exported); err != nil {
+	if err := db.QueryRow(ctx, "SELECT count(*) FROM ("+stopEventExport+") e WHERE delay_sec IS NOT NULL").Scan(&exported); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.QueryRow(ctx, `SELECT sum(otp_count) FROM transit.route_band_chunk`).Scan(&counted); err != nil || exported != counted {
@@ -145,7 +158,23 @@ func TestMetricHistoryDatabase(t *testing.T) {
 	}
 	// A revised archive must repair invalidated history outside the normal
 	// recent-date scan, instead of leaving permanent gaps after a GTFS refresh.
-	routeQueryExec(t, db, `UPDATE transit.route_band_chunk SET metric_version=0; DELETE FROM transit.metric_rebuild;`)
+	f, err := os.OpenFile(filepath.Join(dir, "stops.txt"), os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.WriteString("\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = ImportMetricSchedule(ctx, db, dir, "revised fixture", date); err != nil {
+		t.Fatal(err)
+	}
+	daily, err := NewRepo(db).RouteDaySummaries(ctx, date)
+	if err != nil || daily["R"].Version != 0 || daily["R"].IsFinal {
+		t.Fatalf("stale daily summary %+v: %v", daily, err)
+	}
 	dates, err = NewChunkRollup(db).findMissingDates(ctx, date.AddDate(0, 0, 60), date.AddDate(0, 0, 62))
 	if err != nil || len(dates) != 1 || !dates[0].Equal(date) {
 		t.Fatal(dates, err)

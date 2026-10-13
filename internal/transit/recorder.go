@@ -438,7 +438,7 @@ func (r *Recorder) insertTripCancellations(ctx context.Context, cancellations []
 				feed_timestamp, trip_id, route_id, start_date, start_time,
 				schedule_relationship, headsign, pattern_id, scheduled_last_arr_time
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			 ON CONFLICT (trip_id, feed_timestamp) DO NOTHING`,
+			 ON CONFLICT (trip_id, feed_timestamp, start_date) DO NOTHING`,
 			c.FeedTimestamp, c.TripID, c.RouteID, c.StartDate, c.StartTime,
 			c.ScheduleRelationship, headsign, patternID, lastArr,
 		)

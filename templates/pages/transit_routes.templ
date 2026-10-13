@@ -1,119 +1,92 @@
 package pages
 
 import (
-	"thundercitizen/internal/assets"
 	"thundercitizen/internal/transit"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
+	"time"
 )
+
+func routeDayLabel(iso string) string {
+	day, err := time.Parse("2006-01-02", iso)
+	if err != nil {
+		return iso
+	}
+	return day.Format("Monday, January 2, 2006")
+}
+
+func routeMetricUnit(value, unit string) string {
+	if value == "" || value == "—" {
+		return "—"
+	}
+	return value + unit
+}
+
+templ routeDayNav(dr transit.DateRange) {
+	<form class="route-date-nav" method="get" aria-label="Choose service day" hx-get="/transit/routes" hx-trigger="change" hx-target="#route-day-panel" hx-swap="outerHTML focus-scroll:false" hx-push-url="true" hx-sync="#route-day-panel:replace">
+		if dr.From > dr.MinDate {
+			<a id="route-previous-day" href={ templ.SafeURL("?date=" + weekShift(dr.From, -1)) } hx-get={ "/transit/routes?date=" + weekShift(dr.From, -1) } hx-target="#route-day-panel" hx-swap="outerHTML focus-scroll:false" hx-push-url="true" hx-sync="#route-day-panel:replace" aria-label="Previous day">&lsaquo;</a>
+		} else {
+			<span aria-disabled="true" aria-label="Previous day">&lsaquo;</span>
+		}
+		<input id="route-service-date" type="date" name="date" value={ dr.From } min={ dr.MinDate } max={ dr.MaxDate } aria-label="Service date" required/>
+		if dr.From < dr.MaxDate {
+			<a id="route-next-day" href={ templ.SafeURL("?date=" + weekShift(dr.From, 1)) } hx-get={ "/transit/routes?date=" + weekShift(dr.From, 1) } hx-target="#route-day-panel" hx-swap="outerHTML focus-scroll:false" hx-push-url="true" hx-sync="#route-day-panel:replace" aria-label="Next day">&rsaquo;</a>
+		} else {
+			<span aria-disabled="true" aria-label="Next day">&rsaquo;</span>
+		}
+	</form>
+}
+
+templ routeDayNote(date string) {
+	if date == transit.ServiceDate().Format("2006-01-02") {
+		<p class="metrics-trend-intro">Today’s figures are in progress and update as observations are processed.</p>
+	}
+}
 
 templ TransitRoutes(vm transit.RoutesViewModel) {
 	@templates.Layout(templates.SocialMeta{
 		Title:       "Transit — Routes",
-		Description: "Thunder Bay Transit route directory — compare every route by cancellations, excess wait time, and headway reliability.",
+		Description: "Thunder Bay Transit routes — daily trips, reported cancellations and on-time performance.",
 		OGImage:     "/static/og/transit.png",
 	}) {
 		@components.TransitNav(components.TransitNavProps{Current: "routes"})
-
 		@components.PageHeader(components.PageHeaderProps{Title: "Route Directory"})
-		<section class="metrics-panel">
-			<div class="terminal-map-header metrics-panel-header">
-				<h2 class="terminal-map-title">All Routes</h2>
-				@dateRangeNav(vm.Range)
-			</div>
-			<table class="route-table" id="route-directory">
-				<thead>
-					<tr>
-						<th class="route-table-id route-table-sort" data-col="0" data-type="nat">#</th>
-						<th class="route-table-sort" data-col="1" data-type="str">Route</th>
-						<th class="route-table-num route-table-sort" data-col="2" data-type="num">Trips</th>
-						<th class="route-table-num route-table-sort" data-col="3" data-type="num">Cancels</th>
-						<th class="route-table-num route-table-sort" data-col="4" data-type="num">Cancel %</th>
-						<th class="route-table-num route-table-sort" data-col="5" data-type="num">EWT</th>
-						<th class="route-table-num route-table-sort" data-col="6" data-type="num">Cv</th>
-						<th>Terminals</th>
-					</tr>
-				</thead>
-				<tbody>
-					if len(vm.Chunks) > 0 {
-						@routeTotalsRow(vm.Chunks)
-					}
-					for _, rt := range vm.RouteMeta {
-						@routeRow(rt, transit.RouteRowKPIFromChunks(vm.Chunks, rt.RouteID))
-					}
-				</tbody>
-			</table>
-		</section>
-		@templ.JSONScript("transit-chunks", vm.Chunks)
-		<script src={ assets.URL("/static/transit/chunks.js") }></script>
-		<script src={ assets.URL("/static/transit/date-range-picker.js") }></script>
-		<script>
-		(function(){
-			var table = document.getElementById('route-directory');
-			if (!table) return;
-			var tbody = table.querySelector('tbody');
-			var heads = table.querySelectorAll('.route-table-sort');
-			var sortCol = 0, sortAsc = true;
-
-			function natKey(s) {
-				var m = s.match(/^(\d+)(.*)/);
-				if (!m) return [0, s];
-				return [parseInt(m[1]), m[2]];
-			}
-
-			function doSort() {
-				var type = heads[0].getAttribute('data-type');
-				for (var j = 0; j < heads.length; j++) {
-					if (parseInt(heads[j].getAttribute('data-col')) === sortCol) {
-						type = heads[j].getAttribute('data-type');
-						heads[j].classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
-					} else {
-						heads[j].classList.remove('sort-asc', 'sort-desc');
-					}
-				}
-				var dataRows = Array.prototype.slice.call(tbody.querySelectorAll('.route-table-row'));
-				dataRows.sort(function(a, b) {
-					var av = a.cells[sortCol].textContent.trim();
-					var bv = b.cells[sortCol].textContent.trim();
-					if (type === 'nat') {
-						var ak = natKey(av), bk = natKey(bv);
-						var d = ak[0] - bk[0];
-						if (d !== 0) return sortAsc ? d : -d;
-						var s = ak[1].localeCompare(bk[1]);
-						return sortAsc ? s : -s;
-					}
-					if (type === 'num') {
-						av = parseFloat(av.replace(/[^0-9.\-]/g, '')) || 0;
-						bv = parseFloat(bv.replace(/[^0-9.\-]/g, '')) || 0;
-						return sortAsc ? av - bv : bv - av;
-					}
-					return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
-				});
-				for (var r = 0; r < dataRows.length; r++) {
-					tbody.appendChild(dataRows[r]);
-				}
-			}
-
-			for (var i = 0; i < heads.length; i++) {
-				heads[i].addEventListener('click', (function(th) {
-					return function() {
-						var col = parseInt(th.getAttribute('data-col'));
-						if (sortCol === col) { sortAsc = !sortAsc; }
-						else { sortCol = col; sortAsc = (th.getAttribute('data-type') !== 'num'); }
-						doSort();
-					};
-				})(heads[i]));
-			}
-
-			// Click row → navigate to dedicated route page
-			tbody.addEventListener('click', function(e) {
-				var row = e.target.closest('.route-table-link');
-				if (!row) return;
-				window.location.href = row.getAttribute('data-href');
-			});
-
-			doSort();
-		})();
-		</script>
+		@TransitRoutesDay(vm)
 	}
+}
+
+templ TransitRoutesDay(vm transit.RoutesViewModel) {
+	<section id="route-day-panel" class="metrics-panel" aria-label="Daily route summaries">
+		<div class="terminal-map-header metrics-panel-header">
+			<h2 class="terminal-map-title route-day-heading">
+				<span>All Routes</span>
+				<time datetime={ vm.Range.From }>{ routeDayLabel(vm.Range.From) }</time>
+			</h2>
+			<div class="metrics-header-controls">
+				@routeDayNav(vm.Range)
+			</div>
+		</div>
+		<dl class="route-day-totals" aria-label="All route totals for the selected day">
+			<div><dt>Total trips</dt><dd>{ vm.Totals.Trips }</dd></div>
+			<div><dt>Total cancelled</dt><dd>{ vm.Totals.Cancelled }</dd></div>
+			<div><dt>% cancelled</dt><dd>{ vm.Totals.CancelPct }</dd></div>
+		</dl>
+		@routeDayNote(vm.Range.From)
+		<div class="route-legend route-directory-grid">
+			for _, rt := range vm.RouteMeta {
+				{{ kpi := vm.Summaries[rt.RouteID].CardStats() }}
+				@routeCard(rt, false, false, []routeCardField{
+					{Value: valOrDash(kpi.Trips), Label: "trips"},
+					{Value: valOrDash(kpi.Cancel), Label: "cancel"},
+					{Value: routeMetricUnit(kpi.OTP, "%"), Label: "OTP"},
+				})
+			}
+		</div>
+		if len(vm.RouteMeta) == 0 {
+			<p class="metrics-trend-intro">No routes are available for this day.</p>
+		}
+		<p class="metrics-trend-intro">Service day: 4 a.m. to 4 a.m. Thunder Bay local time.</p>
+		<p class="metrics-trend-intro">Trips and cancellations reflect available feed reports. OTP means on-time performance; — means unavailable. <a href="/transit/method">How we calculate these figures</a>.</p>
+	</section>
 }

@@ -8,6 +8,7 @@
 .github
 .claude
 .playwright-cli
+.deploy/
 .vscode
 .idea
 *.swp

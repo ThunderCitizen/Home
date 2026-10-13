@@ -14,6 +14,7 @@
   function navigate(next) {
     var url = new URL(window.location.href);
     url.searchParams.set('month', next);
+    url.searchParams.delete('date');
     url.searchParams.delete('from');
     url.searchParams.delete('to');
     window.location.assign(url.toString());

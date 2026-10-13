@@ -343,9 +343,9 @@ idx_transit_stop_geog           — GiST index on transit.stop for KNN nearest-n
 |----------|---------|
 | `GET /transit` | Live map, trip planner, live stats bar |
 | `GET /transit/metrics` | KPI cards + trend chart + route comparison |
-| `GET /transit/routes` | Route directory (table of all routes) |
+| `GET /transit/routes` | Daily compact route cards using retained summaries |
 | `GET /transit/method` | Methodology documentation |
-| `GET /transit/route/{id}` | Route detail: metrics, alerts, stop performance, schedule |
+| `GET /transit/route/{id}` | Redirect to the daily directory; live timetable partials remain available |
 | `GET /transit/terminals` | Live departure boards for all canonical terminals |
 | `GET /transit/report` | Permanent redirect to `/transit` |
 
@@ -473,3 +473,34 @@ Consumers: **Transit** (`transit_live.templ` + `web/transit/transit-map.ts`) put
 ### Selector bars / segmented controls
 
 `%segmented-shell` (in `_placeholders.scss`) is the **single source of truth** for any tab/button strip: outer 1px `--term-border` + radius, inner `padding: 3px`, `gap: 0`, and a `> * + *` rule that paints 1px dividers between flush siblings via **inset `box-shadow`** (not `border` — children routinely reset `border: 0` to kill the default button outline, and an equal-specificity `border-left` loses on source order). `.selector-bar-btns` and `.terminal-tab-group` both `@extend` it; any new strip control must too — don't reinvent the chrome or redefine dividers locally (app-wide visual consistency depends on it). Don't reintroduce `gap`/`margin` — the adjacent-sibling rule needs flush children. When a strip switches to `display: grid` for a 2-col wrap (mobile kiosk), keep `gap: 0` and re-paint dividers per axis: `:nth-child(2n)` gets a left edge, `:nth-child(n+3)` a top edge, the bottom-right cell both. Adjacent shells line up vertically by giving each `.selector-bar-label` the same `min-width` + `text-align: end`.
+
+### Historical route pages
+
+`/transit/routes` selects one service day
+(`?date=YYYY-MM-DD`, default: today). A native calendar and previous/next-day links
+share the same bounds; future dates and dates before the first retained chunk are
+clamped. Today is explicitly provisional. The Metrics page remains a monthly rollup.
+
+The directory and live map share `routeCard` in `templates/pages/route_card.templ`:
+the same compact identity header and stat strip, with labels, values, status classes
+and click hooks passed as a `[]routeCardField` by the parent. The live parent supplies
+buses/cancel/upcoming; the directory supplies observed trips/cancel/OTP. Client live
+updates use the corresponding generic `renderRouteCardFields` renderer. The directory
+includes current routes and retained historical routes; unknown observations stay
+unavailable. Names/destinations describe current metadata where available.
+
+The daily directory reads `route_day_summary` directly, including the earliest
+available date and retired route membership. It does not load band or stop/event
+rows. Summary refresh, provenance and repair commands are documented in
+[transit metrics](transit-metrics.md#persisted-routeday-summaries).
+
+The directory header pools available daily trip/cancellation counts and divides
+reported cancellations by the summed eligible scheduled-trip denominator. It does
+not average route percentages. Missing and legacy observations remain unavailable.
+Directory cards are static summaries, while live cards remain interactive map
+filters. Standalone route metrics have been removed; old route URLs redirect to
+the directory preserving the selected date. Today’s timetable remains available
+through live-map partials. Metrics retains monthly rollups and trends.
+
+See [monthly evidence archives](transit-archival.md) for verified snapshot export,
+Spaces upload, analysis restore, automatic operating-month closure and verified partition eviction.

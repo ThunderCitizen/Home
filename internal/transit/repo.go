@@ -225,6 +225,58 @@ func (r *Repo) AllRouteMeta(ctx context.Context, from, to time.Time) ([]RouteMet
 	return result, rows.Err()
 }
 
+// SummaryRouteMeta includes routes retained in history even after they leave the live timetable.
+func (r *Repo) SummaryRouteMeta(ctx context.Context, from, to time.Time) ([]RouteMetaAPI, error) {
+	query := `
+		WITH active_routes AS (
+			SELECT route_id FROM transit.route
+            UNION
+            SELECT route_id FROM transit.route_day_summary
+            WHERE date BETWEEN $1 AND $2
+		),
+		route_ends AS (
+			SELECT rp.route_id, s.name AS stop_name,
+			       ROW_NUMBER() OVER (PARTITION BY rp.pattern_id ORDER BY rps.sequence ASC) AS first_rn,
+			       ROW_NUMBER() OVER (PARTITION BY rp.pattern_id ORDER BY rps.sequence DESC) AS last_rn
+			FROM transit.route_pattern rp
+			JOIN transit.route_pattern_stop rps USING (pattern_id)
+			JOIN transit.stop s ON s.stop_id = rps.stop_id
+			WHERE rps.is_timepoint = true
+		),
+		terminals AS (
+			SELECT route_id, ARRAY_AGG(DISTINCT stop_name) AS names
+			FROM route_ends
+			WHERE first_rn = 1 OR last_rn = 1
+			GROUP BY route_id
+		)
+		SELECT ar.route_id,
+		       COALESCE(NULLIF(r.long_name, ''), NULLIF(r.short_name, ''), ar.route_id) AS name,
+		       COALESCE(r.color, '') AS color,
+		       COALESCE(r.text_color, '') AS text_color,
+		       COALESCE(t.names, ARRAY[]::TEXT[]) AS terminals
+		FROM active_routes ar
+		LEFT JOIN transit.route r ON r.route_id = ar.route_id
+		LEFT JOIN terminals t ON t.route_id = r.route_id
+		ORDER BY
+		  CAST(NULLIF(REGEXP_REPLACE(ar.route_id, '[^0-9]', '', 'g'), '') AS INT) NULLS LAST,
+		  REGEXP_REPLACE(ar.route_id, '[0-9]', '', 'g')`
+	rows, err := r.db.Query(ctx, query, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []RouteMetaAPI
+	for rows.Next() {
+		var rm RouteMetaAPI
+		if err := rows.Scan(&rm.RouteID, &rm.Name, &rm.Color, &rm.TextColor, &rm.Terminals); err != nil {
+			return nil, err
+		}
+		result = append(result, rm)
+	}
+	return result, rows.Err()
+}
+
 // GetRoute returns display info for a single route.
 func (r *Repo) GetRoute(ctx context.Context, routeID string) (*RouteInfo, error) {
 	var ri RouteInfo

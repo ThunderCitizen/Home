@@ -19,8 +19,8 @@ type Renderer struct {
 	TransitLive               func(vm LiveViewModel) RenderFunc
 	TransitMetrics            func(vm MetricsViewModel) RenderFunc
 	TransitRoutes             func(vm RoutesViewModel) RenderFunc
+	TransitRoutesDay          func(vm RoutesViewModel) RenderFunc
 	TransitMethod             func(vm MethodViewModel) RenderFunc
-	Route                     func(vm RouteViewModel) RenderFunc
 	RoutePartial              func(vm RouteViewModel) RenderFunc
 	RouteSchedulePartial      func(vm RouteViewModel) RenderFunc
 	RouteScheduleTodayPartial func(vm RouteViewModel) RenderFunc

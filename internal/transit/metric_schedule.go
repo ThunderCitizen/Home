@@ -169,6 +169,40 @@ func ImportMetricSchedule(ctx context.Context, db *pgxpool.Pool, dir, source str
 			}
 		}
 	}
+	// Lock affected months in calendar order so finalization cannot race an
+	// invalidation. Sealed months retain the schedule interpretation finalized
+	// by the archive worker.
+	months := map[int]bool{}
+	for _, row := range serviceRows {
+		d := row[2].(time.Time)
+		months[d.Year()*12+int(d.Month())] = true
+	}
+	keys := make([]int, 0, len(months))
+	for key := range months {
+		keys = append(keys, key)
+	}
+	sort.Ints(keys)
+	for _, key := range keys {
+		if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock_shared(23010,$1)`, key); err != nil {
+			return "", err
+		}
+	}
+	openRows := serviceRows[:0]
+	closedMonths := map[int]bool{}
+	for _, key := range keys {
+		var closed bool
+		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM transit.archive_month WHERE extract(year FROM month)::int*12+extract(month FROM month)::int=$1 AND state IN ('sealed','frozen','uploaded','published','complete'))`, key).Scan(&closed); err != nil {
+			return "", err
+		}
+		closedMonths[key] = closed
+	}
+	for _, row := range serviceRows {
+		d := row[2].(time.Time)
+		if !closedMonths[d.Year()*12+int(d.Month())] {
+			openRows = append(openRows, row)
+		}
+	}
+	serviceRows = openRows
 	if _, err = tx.CopyFrom(ctx, pgx.Identifier{"transit", "metric_trip"}, []string{"schedule_id", "trip_id", "route_id", "service_id", "direction_id", "first_departure", "stops"}, pgx.CopyFromRows(tripRows)); err != nil {
 		return "", err
 	}
@@ -178,11 +212,18 @@ func ImportMetricSchedule(ctx context.Context, db *pgxpool.Pool, dir, source str
 	// A new timetable may revise the interpretation of dates already built.
 	// Keep their old counts for audit but stop presenting them as current.
 	if _, err = tx.Exec(ctx, `UPDATE transit.route_band_chunk c SET metric_version=0
-        WHERE EXISTS(SELECT 1 FROM transit.metric_service s WHERE s.schedule_id=$1 AND s.date=c.date)`, id); err != nil {
+        WHERE EXISTS(SELECT 1 FROM transit.metric_service s WHERE s.schedule_id=$1 AND s.date=c.date)
+ AND NOT EXISTS(SELECT 1 FROM transit.archive_month a WHERE a.month=date_trunc('month',c.date)::date AND a.state IN ('sealed','frozen','uploaded','published','complete'))`, id); err != nil {
+		return "", err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE transit.route_day_summary d SET metric_version=0,is_final=false
+        WHERE EXISTS(SELECT 1 FROM transit.metric_service s WHERE s.schedule_id=$1 AND s.date=d.date)
+ AND NOT EXISTS(SELECT 1 FROM transit.archive_month a WHERE a.month=date_trunc('month',d.date)::date AND a.state IN ('sealed','frozen','uploaded','published','complete'))`, id); err != nil {
 		return "", err
 	}
 	if _, err = tx.Exec(ctx, `DELETE FROM transit.metric_rebuild b
-        WHERE EXISTS(SELECT 1 FROM transit.metric_service s WHERE s.schedule_id=$1 AND s.date=b.date)`, id); err != nil {
+        WHERE EXISTS(SELECT 1 FROM transit.metric_service s WHERE s.schedule_id=$1 AND s.date=b.date)
+ AND NOT EXISTS(SELECT 1 FROM transit.archive_month a WHERE a.month=date_trunc('month',b.date)::date AND a.state IN ('sealed','frozen','uploaded','published','complete'))`, id); err != nil {
 		return "", err
 	}
 	return id, tx.Commit(ctx)

@@ -67,7 +67,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     LDFLAGS="-w -s \
         -X thundercitizen/internal/handlers.Commit=${COMMIT} \
         -X thundercitizen/internal/handlers.BuildTime=${BUILD_TIME}"; \
-    for pkg in server fetcher summarize auditbudget buildshapes perftest; do \
+    for pkg in server fetcher summarize auditbudget buildshapes perftest transitprepare transitarchive transitreports; do \
         CGO_ENABLED=0 GOOS=linux go build \
             -trimpath \
             -ldflags="${LDFLAGS}" \

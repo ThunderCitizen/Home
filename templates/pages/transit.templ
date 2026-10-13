@@ -3,9 +3,7 @@ package pages
 import (
 	"fmt"
 	"math"
-	"strings"
 	"thundercitizen/internal/transit"
-	"thundercitizen/internal/transit/chunk"
 )
 
 func valOrDash(v string) string {
@@ -13,65 +11,6 @@ func valOrDash(v string) string {
 		return v
 	}
 	return "\u2014"
-}
-
-// routeRow renders a single row in the route directory table. The KPI
-// values come from transit.RouteRowKPIFromChunks, which sums the chunk
-// slice in vm.Chunks for one route across all bands and days.
-templ routeRow(rt transit.RouteMetaAPI, kpi transit.RouteRowKPI) {
-	<tr
-		class="route-table-row route-table-link"
-		data-route={ rt.RouteID }
-		data-href={ "/transit/route/" + rt.RouteID }
-		{ routeCardStyle(rt.Color)... }
-	>
-		<td class="route-table-id" { routeIdStyle(rt.Color, rt.TextColor)... }>{ rt.RouteID }</td>
-		<td class="route-table-name">{ rt.Name }</td>
-		<td class="route-table-num"><span class="route-metric-val">{ valOrDash(kpi.Trips) }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ valOrDash(kpi.Cancel) }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ valOrDash(kpi.CancelPct) }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ valOrDash(kpi.EWT) }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ valOrDash(kpi.Cv) }</span></td>
-		<td class="route-table-terminals">
-			if len(rt.Terminals) > 0 {
-				{ strings.Join(rt.Terminals, " ↔ ") }
-			}
-		</td>
-	</tr>
-}
-
-// routeTotalsRow renders the system-wide totals row at the top of the
-// route table. Reaggregates the full chunk slice (no route filter, all
-// bands) — same numbers the KPI cards on /transit/metrics show.
-templ routeTotalsRow(chunks []chunk.ChunkView) {
-	<tr class="route-table-total">
-		<td class="route-table-id"></td>
-		<td class="route-table-name">Total</td>
-		<td class="route-table-num"><span class="route-metric-val">{ totalTripsFromChunks(chunks) }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ totalCancelledFromChunks(chunks) }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ transit.KPIFromChunks(chunks, "cancel", "") }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ transit.KPIFromChunks(chunks, "ewt", "") }</span></td>
-		<td class="route-table-num"><span class="route-metric-val">{ transit.KPIFromChunks(chunks, "cv", "") }</span></td>
-		<td></td>
-	</tr>
-}
-
-// totalTripsFromChunks sums the Trips field across all chunk views.
-func totalTripsFromChunks(chunks []chunk.ChunkView) string {
-	n := 0
-	for _, b := range chunks {
-		n += b.Trips
-	}
-	return fmt.Sprintf("%d", n)
-}
-
-// totalCancelledFromChunks sums the Cancelled field across all chunk views.
-func totalCancelledFromChunks(chunks []chunk.ChunkView) string {
-	n := 0
-	for _, b := range chunks {
-		n += b.Cancelled
-	}
-	return fmt.Sprintf("%d", n)
 }
 
 // dateRangeNav renders a single-popover range picker. The trigger button
@@ -89,16 +28,16 @@ templ dateRangeNav(dr transit.DateRange) {
 	>
 		<button type="button" class="drp-trigger" aria-haspopup="dialog" aria-expanded="false">
 			<span class="drp-trigger-label" data-drp-label>{ dr.From } – { dr.To }</span>
-			<svg class="drp-trigger-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+			<svg class="drp-trigger-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
 		</button>
 		<div class="drp-popover" role="dialog" aria-label="Choose date range" hidden>
 			<div class="drp-cal-head">
 				<button type="button" class="drp-nav-btn" data-drp-cal="prev" aria-label="Previous month">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
 				</button>
 				<span class="drp-cal-title" data-drp-title></span>
 				<button type="button" class="drp-nav-btn" data-drp-cal="next" aria-label="Next month">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
 				</button>
 			</div>
 			<div class="drp-cal-dow" aria-hidden="true">
@@ -111,20 +50,6 @@ templ dateRangeNav(dr transit.DateRange) {
 			</div>
 		</div>
 	</div>
-}
-
-func routeCardStyle(color string) templ.Attributes {
-	return templ.Attributes{"style": "--route-color: " + color}
-}
-
-func routeIdStyle(bg, fg string) templ.Attributes {
-	style := "background:" + bg
-	if fg != "" {
-		style += "; color:#" + strings.TrimPrefix(fg, "#")
-	} else {
-		style += "; color:var(--text-on-dark)"
-	}
-	return templ.Attributes{"style": style}
 }
 
 func cancelLeadClass(leadMin int) string {

@@ -52,26 +52,26 @@ type MonthChoice struct {
 // fetch. CancelledTrips is a separate per-trip log embedded the same way
 // for the cancel-card drill-down.
 type MetricsViewModel struct {
-	KPI            string         // active KPI key (otp, cancel, notice, wait, ewt, cv)
-	RouteMeta      []RouteMetaAPI // needed for route comparison chart
-	Range          DateRange
-	Month          MonthChoice
-	Chunks         []chunk.ChunkView // selected month × 3 bands × N routes
-	TrendChunks    []chunk.ChunkView // daily raw rows for the long-term trend
-	CancelledTrips []CancelDetail    // per-trip cancel log for the date range
-	HasData        bool
-	ExportSize     string // approximate download size for Range, e.g. "~1.5 MB"
+	KPI         string         // active KPI key (otp, cancel, notice, wait, ewt, cv)
+	RouteMeta   []RouteMetaAPI // needed for route comparison chart
+	Range       DateRange
+	Month       MonthChoice
+	Chunks      []chunk.ChunkView // selected month × 3 bands × N routes
+	TrendChunks []chunk.ChunkView // daily raw rows for the long-term trend
+	HasData     bool
 }
 
 // RoutesViewModel contains data for the routes directory page (/transit/routes).
 type RoutesViewModel struct {
 	RouteMeta []RouteMetaAPI
 	Range     DateRange
-	Chunks    []chunk.ChunkView // same shape as MetricsViewModel.Chunks
+	Summaries map[string]RouteDaySummary
+	Totals    RouteDayTotals
 }
 
 // MethodViewModel holds data collection intervals for the methodology page.
 type MethodViewModel struct {
+	ReportURL   string
 	VehiclePoll string
 	TripPoll    string
 	AlertPoll   string

@@ -2,6 +2,7 @@ package transit
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -63,6 +64,7 @@ func (r *ChunkRollup) findMissingDates(ctx context.Context, from, to time.Time) 
 	rows, err := r.db.Query(ctx, `SELECT DISTINCT s.date FROM transit.metric_service s
         LEFT JOIN transit.metric_rebuild b ON b.date=s.date
         WHERE s.date <= $2::date
+ AND NOT EXISTS(SELECT 1 FROM transit.archive_month a WHERE a.month=date_trunc('month',s.date)::date AND a.state IN ('frozen','uploaded','published','complete'))
         AND (s.date >= $1::date OR EXISTS(
             SELECT 1 FROM transit.route_band_chunk c WHERE c.date=s.date AND c.metric_version<>$3
         ))
@@ -89,10 +91,16 @@ func (r *ChunkRollup) rebuild(ctx context.Context, date time.Time) {
 	dayCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	if _, err := RebuildMetricPassages(dayCtx, r.db, date); err != nil {
+		if errors.Is(err, ErrArchivedMonth) {
+			return
+		}
 		rollupLog.Error("rebuild passages", "date", date.Format("2006-01-02"), "err", err)
 		return
 	}
 	if _, err := BuildChunksForDate(dayCtx, r.db, date); err != nil {
+		if errors.Is(err, ErrArchivedMonth) {
+			return
+		}
 		rollupLog.Error("rebuild chunks", "date", date.Format("2006-01-02"), "err", err)
 	}
 }

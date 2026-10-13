@@ -92,7 +92,12 @@ func NewSeeder(db *pgxpool.Pool, seed int64) *Seeder {
 // and any synthetic cancellation rows whose trip_id starts with "seed_".
 // Returns the number of chunk rows deleted.
 func (s *Seeder) Clean(ctx context.Context, from, to time.Time) (int64, error) {
-	res, err := s.db.Exec(ctx, `
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+	res, err := tx.Exec(ctx, `
 		DELETE FROM transit.route_band_chunk
 		WHERE date >= $1::date AND date <= $2::date
 	`, from, to)
@@ -101,7 +106,7 @@ func (s *Seeder) Clean(ctx context.Context, from, to time.Time) (int64, error) {
 	}
 	chunkRows := res.RowsAffected()
 
-	if _, err := s.db.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 		DELETE FROM transit.cancellation
 		WHERE trip_id LIKE 'seed_%'
 		  AND feed_timestamp >= $1::date
@@ -109,7 +114,10 @@ func (s *Seeder) Clean(ctx context.Context, from, to time.Time) (int64, error) {
 	`, from, to); err != nil {
 		return chunkRows, err
 	}
-	return chunkRows, nil
+	if _, err := tx.Exec(ctx, `DELETE FROM transit.route_day_summary WHERE date BETWEEN $1::date AND $2::date`, from, to); err != nil {
+		return 0, err
+	}
+	return chunkRows, tx.Commit(ctx)
 }
 
 // Run seeds chunks and per-trip cancellation detail for [from, to]
@@ -152,6 +160,9 @@ func (s *Seeder) Run(ctx context.Context, from, to time.Time) (Summary, error) {
 					sum.Cancellations += n
 				}
 			}
+		}
+		if _, err := s.db.Exec(ctx, `SELECT transit.refresh_route_day_summary($1::date)`, date); err != nil {
+			return sum, err
 		}
 	}
 	return sum, nil

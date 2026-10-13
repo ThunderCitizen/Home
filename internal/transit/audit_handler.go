@@ -49,6 +49,10 @@ func (h *Handler) auditRoute(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if h.archivedHistory(w, r, date) {
+		return
+	}
+
 	info, err := h.svc.RouteInfo(r.Context(), routeID)
 	if err != nil {
 		http.NotFound(w, r)

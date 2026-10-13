@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"thundercitizen/internal/assets"
 	"thundercitizen/internal/transit"
+	"thundercitizen/internal/transit/chunk"
 	"thundercitizen/templates"
 	"thundercitizen/templates/components"
 )
@@ -77,61 +78,19 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 		OGImage:     "/static/og/transit.png",
 	}) {
 		@components.TransitNav(components.TransitNavProps{Current: "metrics"})
-
 		@components.PageHeader(components.PageHeaderProps{Title: "Performance Metrics"})
 		<section class="metrics-panel" aria-label="System performance metrics">
 			<div class="terminal-map-header metrics-panel-header">
 				<h2 class="terminal-map-title">System Metrics</h2>
 				<div class="metrics-header-controls">
 					@metricsMonthNav(vm.Month)
-					<a
-						href={ bundleURL(vm.Range) }
-						class="metrics-dl-btn"
-						download
-						data-export-trigger
-						aria-haspopup="dialog"
-						title="Download a ZIP for the selected range: metrics, raw timepoint stop events, cancellations, and alerts (with a README). Capped at one year."
-					>
-						<svg class="metrics-dl-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-						<span>Export</span>
-					</a>
 				</div>
 			</div>
-			@exportDialog(vm.Range, vm.ExportSize)
 			<div class="metrics-disclaimer">
 				These are unofficial statistics based on the transit data feed. <a href="mailto:data@thundercitizen.ca">Send feedback</a>
 			</div>
 			<p class="metrics-trend-intro">{ transit.MetricCoverage(vm.Chunks) } Select a metric to compare routes and explore its trend.</p>
-			<div class="kpi-grid" data-active-kpi={ vm.KPI }>
-				for _, d := range kpiDefs {
-					<div class={ kpiCardClass(vm.KPI, d.Key) } data-kpi={ d.Key } role="button" tabindex="0" aria-pressed={ fmt.Sprint(vm.KPI == d.Key) } { kpiPctAttrs(d)... }>
-						<div class="kpi-card-top">
-							<span class="kpi-label">{ d.Label }</span>
-							<span class="kpi-tag">{ d.Tag }</span>
-						</div>
-						<div class="kpi-card-body">
-							<div class="kpi-card-data">
-								<div class="kpi-big">
-									<span class="kpi-value">{ transit.KPIFromChunks(vm.Chunks, d.Key, "") }</span>
-									if d.Unit != "" {
-										<small>{ d.Unit }</small>
-									}
-									<span class="kpi-avg">avg</span>
-								</div>
-							</div>
-							<div class="kpi-card-explain">{ d.Explain }</div>
-							<div class="kpi-pcts">
-								<div class="kpi-pct kpi-pct-1"><span class={ d.Slots[0].Class }>{ transit.KPIFromChunks(vm.Chunks, d.Key, "morning") }</span><span class="kpi-pct-label">{ d.Slots[0].Label }</span></div>
-								<span class="kpi-pct-sep"></span>
-								<div class="kpi-pct kpi-pct-2"><span class={ d.Slots[1].Class }>{ transit.KPIFromChunks(vm.Chunks, d.Key, "midday") }</span><span class="kpi-pct-label">{ d.Slots[1].Label }</span></div>
-								<span class="kpi-pct-sep"></span>
-								<div class="kpi-pct kpi-pct-3"><span class={ d.Slots[2].Class }>{ transit.KPIFromChunks(vm.Chunks, d.Key, "evening") }</span><span class="kpi-pct-label">{ d.Slots[2].Label }</span></div>
-							</div>
-						</div>
-					</div>
-				}
-			</div>
-
+			@performanceCards(vm.Chunks, vm.KPI)
 			<div class="kpi-chart-container">
 				<h3 id="route-compare-title">Route Comparison</h3>
 				<div id="route-compare-chart"></div>
@@ -150,24 +109,15 @@ templ TransitMetrics(vm transit.MetricsViewModel) {
 				</div>
 				<div id="metrics-trend-chart" data-month={ vm.Month.Value } data-month-label={ vm.Month.Label } data-to={ vm.Range.To }></div>
 			</div>
-
-			<div class="kpi-chart-container" id="cancel-log-container" hidden>
-				<h3>Cancelled Trips</h3>
-				<div id="cancel-log"></div>
-			</div>
-
 		</section>
-
 		@templ.JSONScript("route-meta", vm.RouteMeta)
 		@templ.JSONScript("transit-chunks", vm.Chunks)
 		@templ.JSONScript("transit-trend-chunks", vm.TrendChunks)
-		@templ.JSONScript("cancelled-trips", vm.CancelledTrips)
 		<script src={ assets.URL("/static/transit/route-meta.js") }></script>
 		<script src={ assets.URL("/static/transit/chunks.js") }></script>
 		<script src={ assets.URL("/static/vendor/d3.min.js") }></script>
 		<script src={ assets.URL("/static/transit/trends-chart.js") }></script>
 		<script src={ assets.URL("/static/transit/month-picker.js") }></script>
-		<script src={ assets.URL("/static/transit/download-confirm.js") }></script>
 	}
 }
 
@@ -180,49 +130,6 @@ templ metricsMonthNav(month transit.MonthChoice) {
 	</div>
 }
 
-// exportDialog is the pre-download confirmation shown when JS is on. The Export
-// link itself stays a real download anchor (no-JS users get a direct download);
-// download-confirm.js intercepts the click and opens this dialog. The file list
-// is fixed; only the range and the estimated size vary.
-templ exportDialog(dr transit.DateRange, size string) {
-	<dialog id="export-dialog" class="export-dialog" aria-labelledby="export-dialog-title">
-		<div class="export-dialog-inner">
-			<header class="export-dialog-head">
-				<span class="export-dialog-tag">EXPORT</span>
-				<h3 id="export-dialog-title">Transit data</h3>
-				<p class="export-dialog-range">{ dr.From } → { dr.To }</p>
-			</header>
-			<p class="export-dialog-lead">Downloads a ZIP containing:</p>
-			<ul class="export-dialog-files">
-				<li><span class="ef-name">metrics_chunks.csv</span><span class="ef-desc">pre-rolled KPI aggregates</span></li>
-				<li><span class="ef-name">timepoint_stop_events.csv</span><span class="ef-desc">raw per-stop delays</span></li>
-				<li><span class="ef-name">cancellations.csv</span><span class="ef-desc">cancelled trips</span></li>
-				<li><span class="ef-name">alerts.csv</span><span class="ef-desc">service alerts</span></li>
-				<li><span class="ef-name">metric_passages.csv</span><span class="ef-desc">screened GPS passages with source IDs</span></li>
-				<li><span class="ef-name">metric_rebuilds.csv</span><span class="ef-desc">recipe and timetable provenance</span></li>
-				<li><span class="ef-name">metric_timetables.csv / metric_calendar.csv</span><span class="ef-desc">the archived service-date schedule</span></li>
-				<li><span class="ef-name">README.txt</span><span class="ef-desc">field reference</span></li>
-			</ul>
-			<p class="export-dialog-size">Estimated size <strong>{ size }</strong></p>
-			<footer class="export-dialog-actions">
-				<button type="button" class="export-btn-cancel" data-export-cancel>Cancel</button>
-				<a href={ bundleURL(dr) } class="export-btn-confirm" download data-export-confirm>
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-					<span>Download</span>
-				</a>
-			</footer>
-		</div>
-	</dialog>
-}
-
-// bundleURL builds the data-bundle download link bounded by the current picker
-// range. The server re-validates and caps the span, so the link is just a
-// convenience — changing the date picker reloads the page and this href
-// updates with it.
-func bundleURL(dr transit.DateRange) templ.SafeURL {
-	return templ.SafeURL("/api/transit/download?from=" + dr.From + "&to=" + dr.To)
-}
-
 func kpiPctAttrs(d kpiDef) templ.Attributes {
 	attrs := templ.Attributes{}
 	// Map slot index to data attributes for JS (vestigial — values are server-rendered).
@@ -231,4 +138,37 @@ func kpiPctAttrs(d kpiDef) templ.Attributes {
 		attrs["data-"+name] = d.Slots[i].Attr
 	}
 	return attrs
+}
+
+// performanceCards shares the metric definitions, reducers and band breakdowns.
+templ performanceCards(chunks []chunk.ChunkView, active string) {
+	<div class="kpi-grid" data-active-kpi={ active }>
+		for _, d := range kpiDefs {
+			<div class={ kpiCardClass(active, d.Key) } data-kpi={ d.Key } role="button" tabindex="0" aria-pressed={ fmt.Sprint(active == d.Key) } { kpiPctAttrs(d)... }>
+				<div class="kpi-card-top">
+					<span class="kpi-label">{ d.Label }</span>
+					<span class="kpi-tag">{ d.Tag }</span>
+				</div>
+				<div class="kpi-card-body">
+					<div class="kpi-card-data">
+						<div class="kpi-big">
+							<span class="kpi-value">{ transit.KPIFromChunks(chunks, d.Key, "") }</span>
+							if d.Unit != "" {
+								<small>{ d.Unit }</small>
+							}
+							<span class="kpi-avg">avg</span>
+						</div>
+					</div>
+					<div class="kpi-card-explain">{ d.Explain }</div>
+					<div class="kpi-pcts">
+						<div class="kpi-pct kpi-pct-1"><span class={ d.Slots[0].Class }>{ transit.KPIFromChunks(chunks, d.Key, "morning") }</span><span class="kpi-pct-label">{ d.Slots[0].Label }</span></div>
+						<span class="kpi-pct-sep"></span>
+						<div class="kpi-pct kpi-pct-2"><span class={ d.Slots[1].Class }>{ transit.KPIFromChunks(chunks, d.Key, "midday") }</span><span class="kpi-pct-label">{ d.Slots[1].Label }</span></div>
+						<span class="kpi-pct-sep"></span>
+						<div class="kpi-pct kpi-pct-3"><span class={ d.Slots[2].Class }>{ transit.KPIFromChunks(chunks, d.Key, "evening") }</span><span class="kpi-pct-label">{ d.Slots[2].Label }</span></div>
+					</div>
+				</div>
+			</div>
+		}
+	</div>
 }

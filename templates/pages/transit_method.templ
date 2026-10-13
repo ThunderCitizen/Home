@@ -1,65 +1,68 @@
 package pages
 
 import (
-    "thundercitizen/internal/transit"
-    "thundercitizen/templates"
-    "thundercitizen/templates/components"
+	"thundercitizen/internal/transit"
+	"thundercitizen/templates"
+	"thundercitizen/templates/components"
 )
 
 templ TransitMethod(vm transit.MethodViewModel) {
-    @templates.Layout(templates.SocialMeta{
-        Title: "Transit — Method",
-        Description: "How transit punctuality, reported cancellations and headway reliability are measured, and what missing observations mean.",
-        OGImage: "/static/og/transit.png",
-    }) {
-        @components.TransitNav(components.TransitNavProps{Current:"method"})
-        @components.PageHeader(components.PageHeaderProps{Title:"Transit Method"})
-        <section class="report-methodology" aria-label="Measurement methods">
-            <article>
-                <header class="methods-header"><h3>Start with the right question</h3></header>
-                <p>For a route you plan around a timetable, punctuality and cancelled trips matter most. For a frequent service where you arrive without checking a schedule, regular spacing and excess waiting time are more useful.</p>
-                <p>This distinction is used in <a href="https://www.gov.uk/government/publications/buses-statistics-guidance/annual-bus-statistics-quality-report">Department for Transport reporting</a>. Our figures are unofficial estimates from Thunder Bay Transit's public feeds. They are not an agency audit or a passenger survey.</p>
-            </article>
-            <article>
-                <header class="methods-header"><h3>On-time performance</h3></header>
-                <p>We classify each reported departure at a scheduled timepoint: early is more than one minute before schedule; on time is one minute early through five minutes late; late is more than five minutes after schedule. Final destinations are excluded from departure punctuality.</p>
-                <p>Each timepoint counts separately. Being early at one stop cannot cancel out being late at another. We sum the on-time observations and divide by all observations with a delay value. We use reported departure delay, falling back to arrival delay when needed.</p>
-                <p>These are the last delay values retained from the trip-update feed. They can be predictions rather than confirmed departures. There is no universal agency OTP threshold, and this percentage should not be compared directly with a differently measured agency score.</p>
-            </article>
-            <article>
-                <header class="methods-header"><h3>Reported cancellations</h3></header>
-                <p>The cancellation rate divides distinct trips reported cancelled by the trips in the archived timetable for that service date. Repeated feed messages count once. A missing vehicle alone is not a cancellation: it could be missing telemetry. Unreported missed trips are outside this measure.</p>
-                <p>Notice is measured from the first cancellation message to the scheduled departure. Less than 15 minutes is our short-notice threshold, including messages received after departure time. It is an editorial threshold, not an industry standard.</p>
-            </article>
-            <article>
-                <header class="methods-header"><h3>Excess waiting time</h3></header>
-                <p>For someone arriving at random, long gaps are more likely to be encountered than short gaps. With complete intervals, average wait is the sum of squared headways divided by twice their total duration. Scheduled wait uses the same calculation: half the mean gap is only correct for an evenly spaced timetable.</p>
-                <p>We compare observed and scheduled forward waits over the same bounded interval at one interior timepoint, in one direction and time band. Excess waiting time is observed wait minus scheduled wait. Negative values are retained when spacing produces a shorter wait than the timetable.</p>
-                <p>Route values weight these complete windows by their duration. The system value averages the contributing routes equally. We have no passenger counts, so this is not a passenger-weighted estimate. On low-frequency routes it is a diagnostic of spacing, not a prediction of how a timetable-aware rider waits.</p>
-            </article>
-            <article>
-                <header class="methods-header"><h3>Bus spacing (headway CV)</h3></header>
-                <p>CV is the standard deviation of observed gaps divided by their mean. Zero means even spacing. We calculate it within each stop, direction, day and time band before combining windows. Pooling an every-15-minute morning with an every-30-minute evening would create variation even if both services ran perfectly.</p>
-                <p>CV measures spacing, not timetable adherence. An evenly spaced service can still be infrequent, late or missing half its trips. Read it alongside punctuality, cancellations and coverage.</p>
-            </article>
-            <article>
-                <header class="methods-header"><h3>Coverage and GPS uncertainty</h3></header>
-                <p>Historical visits are reconstructed from the retained GPS positions and archived timetables. A short GPS segment must pass within 35 metres of the scheduled stop and be corroborated by the feed's stop status or progression. Segments over 30 seconds or implying a speed over 35 metres per second are rejected.</p>
-                <p>Terminals, endpoints, repeated stops, ambiguous visits, vehicle changes and backwards stop order are excluded. These rules screen observations; they do not establish a guaranteed timing accuracy. Older records use feed timestamps because vehicle measurement timestamps were not retained.</p>
-                <p>Every scheduled passage in a regularity window must be observed or explicitly reported cancelled. Otherwise the entire window is excluded. Very short gaps and very long gaps are retained when the observation is valid. Missing data never becomes zero excess wait or perfect regularity.</p>
-                <p>The exported data includes counts of complete and candidate windows. The surviving windows can be an unrepresentative sample. A trend that changes alongside its coverage needs investigation before being attributed to service improvement.</p>
-            </article>
-            <article>
-                <header class="methods-header"><h3>Reading long-term trends</h3></header>
-                <p>The light series shows daily readings. The heavier series recomputes the metric from 30 calendar days of counts and matched windows, rather than averaging daily percentages. It requires readings for at least 70% of the selected day type and a reading on the final day. This is a completeness rule, not a confidence interval.</p>
-                <p>The trend includes all days and service from 6 am to midnight. Use the route selector to follow the same route across periods. The default month is the most recent completed calendar month; the historical chart ends with the selected month and excludes the unfinished service day.</p>
-                <p>Seasonality and timetable changes affect comparisons. <a href="https://tfl.gov.uk/corporate/publications-and-reports/buses-performance-data">TfL compares quarters with the same quarter a year earlier</a>. Until a full year is available, our month-to-month changes describe the observed period and cannot establish a seasonally adjusted trend.</p>
-            </article>
-            <article>
-                <header class="methods-header"><h3>Sources and reproducibility</h3></header>
-                <p>Vehicle positions are polled every { vm.VehiclePoll }, trip updates every { vm.TripPoll }, and alerts every { vm.AlertPoll }. Position and cancellation histories are retained; delay rows retain the latest reported values for each trip, stop and service day.</p>
-                <p>The export includes metric counts, screened passages, timepoint delays, cancellations and the archived timetable used for each date. GPS source record IDs and timetable hashes make the derived observations traceable. Service times follow the <a href="https://gtfs.org/documentation/schedule/reference/">GTFS specification</a>, including times after midnight and daylight-saving transitions.</p>
-            </article>
-        </section>
-    }
+	@templates.Layout(templates.SocialMeta{
+		Title:       "Transit — Method",
+		Description: "How transit punctuality, reported cancellations and headway reliability are measured, and what missing observations mean.",
+		OGImage:     "/static/og/transit.png",
+	}) {
+		@components.TransitNav(components.TransitNavProps{Current: "method"})
+		@components.PageHeader(components.PageHeaderProps{Title: "Transit Method"})
+		<section class="report-methodology" aria-label="Measurement methods">
+			<article id="downloads">
+				<header class="methods-header"><h3>Download reports</h3></header>
+				<p>One ZIP contains monthly metrics and daily route summaries for the trailing 12 completed months. The current month is excluded.</p>
+				if vm.ReportURL != "" {
+					<p><a href={ templ.SafeURL(vm.ReportURL) }>Download transit reports (ZIP)</a></p>
+				} else {
+					<p>Reports will appear here once published.</p>
+				}
+				<p>Blank values mean unavailable. Raw observations and timetables are archived separately.</p>
+			</article>
+			<article>
+				<header class="methods-header"><h3>What the numbers mean</h3></header>
+				<dl>
+					<dt><strong>On-time performance (OTP)</strong></dt>
+					<dd>The share of reported timepoint departures between one minute early and five minutes late. Each observation counts separately; final destinations are excluded. Feed delays may be predictions, not confirmed departures.</dd>
+					<dt><strong>Reported cancellations</strong></dt>
+					<dd>Distinct cancelled trips divided by scheduled trips. Missing GPS alone does not count as a cancellation. Short notice means reported less than 15 minutes before departure, including after departure.</dd>
+					<dt><strong>Excess waiting time</strong></dt>
+					<dd>Observed wait minus scheduled wait, in minutes, for someone arriving at random. Both use the same observation interval. Negative values mean a shorter wait than scheduled. This is most useful for frequent service.</dd>
+					<dt><strong>Bus spacing (headway CV)</strong></dt>
+					<dd>Variation in the gaps between buses: standard deviation divided by mean gap. Lower means more even spacing. Even spacing alone does not mean buses are on time or all trips ran.</dd>
+				</dl>
+			</article>
+			<article>
+				<header class="methods-header"><h3>Coverage matters</h3></header>
+				<p>These are unofficial estimates from Thunder Bay Transit's public feeds. Missing data stays unavailable, never zero. Changes in coverage can affect comparisons.</p>
+				<p>Waiting-time and spacing measures require every scheduled passage in a window to be observed or reported cancelled. Incomplete windows are excluded.</p>
+				<details>
+					<summary>How observations are checked</summary>
+					<p>GPS segments must pass within 35 metres of a stop, with supporting stop status or progression. We reject segments over 30 seconds or 35 metres per second, terminals, endpoints, repeated or ambiguous stops, vehicle changes and backwards stop order.</p>
+					<p>Older GPS records use feed timestamps. These checks cannot guarantee timing accuracy, and the remaining observations may not represent all service.</p>
+				</details>
+			</article>
+			<article>
+				<header class="methods-header"><h3>Reading trends</h3></header>
+				<p>The light line shows daily values; the heavier line recomputes a 30-day trend from counts and observation windows. It needs at least 70% of the selected day type and a reading on the final day.</p>
+				<p>Compare the same route and check coverage. Timetable changes and seasonality can affect results; these trends are not seasonally adjusted.</p>
+				<details>
+					<summary>How results are combined</summary>
+					<p>Waiting-time and spacing windows are calculated separately by stop, direction, day and time band. Route results are weighted by window duration; system results give each contributing route equal weight. We have no passenger counts.</p>
+					<p>The trend covers service from 6 a.m. to midnight and excludes the unfinished service day. Percentages are recomputed from their counts, not averaged across days.</p>
+				</details>
+			</article>
+			<article>
+				<header class="methods-header"><h3>Sources and service days</h3></header>
+				<p>Service day: 4 a.m. to 4 a.m. Eastern Time.</p>
+				<p>Public <a href="https://gtfs.org/documentation/schedule/reference/">GTFS feeds</a> supply timetables and updates. We poll positions every { vm.VehiclePoll }, trip updates every { vm.TripPoll }, and alerts every { vm.AlertPoll }.</p>
+			</article>
+		</section>
+	}
 }

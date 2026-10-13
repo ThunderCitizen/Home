@@ -1145,23 +1145,14 @@ function updateRouteGrid(vehicles: LocalVehicle[]): void {
       }
     }
 
-    // Footer: buses | cancelled | upcoming — KPI-style three-cell strip
     const pastCount = totalCancelled - upcomingCount;
-    let footer = '<span class="route-pill-footer">' +
-      '<span class="route-pill-ft' + (count > 0 ? ' ft-active' : '') + '">' +
-        '<span class="route-pill-ft-val">' + count + '</span>' +
-        '<span class="route-pill-ft-label">buses</span></span>' +
-      '<span class="route-pill-ft-sep"></span>' +
-      '<span class="route-pill-ft' + (pastCount > 0 ? ' ft-error' : '') + '"' +
-        (pastCount > 0 ? ' data-cancel-route="' + escapeHtml(id) + '"' : '') + '>' +
-        '<span class="route-pill-ft-val">' + pastCount + '</span>' +
-        '<span class="route-pill-ft-label">cancel</span></span>' +
-      '<span class="route-pill-ft-sep"></span>' +
-      '<span class="route-pill-ft' + (upcomingCount > 0 ? ' ft-warn' : '') + '"' +
-        (upcomingCount > 0 ? ' data-cancel-route="' + escapeHtml(id) + '"' : '') + '>' +
-        '<span class="route-pill-ft-val">' + upcomingCount + '</span>' +
-        '<span class="route-pill-ft-label">upcoming</span></span>' +
-      '</span>';
+    const footer = renderRouteCardFields([
+      { value: count, label: 'buses', className: count > 0 ? 'ft-active' : '' },
+      { value: pastCount, label: 'cancel', className: pastCount > 0 ? 'ft-error' : '',
+        attributes: pastCount > 0 ? { 'data-cancel-route': id } : {} },
+      { value: upcomingCount, label: 'upcoming', className: upcomingCount > 0 ? 'ft-warn' : '',
+        attributes: upcomingCount > 0 ? { 'data-cancel-route': id } : {} },
+    ]);
 
     let titleParts = escapeHtml(name || id);
     if (isActive) titleParts += ' — ' + count + ' bus' + (count !== 1 ? 'es' : '');
@@ -2918,4 +2909,23 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initMap);
 } else {
   initMap();
+}
+
+// Mirrors the server card's data-driven field strip. Its caller supplies labels,
+// values, status classes and interaction hooks; the renderer owns only markup.
+function renderRouteCardFields(fields: Array<{
+  value: string | number;
+  label: string;
+  className?: string;
+  attributes?: Record<string, string>;
+}>): string {
+  const cells = fields.map(function (field) {
+    const attrs = Object.entries(field.attributes || {}).map(function ([key, value]) {
+      return ' ' + escapeHtml(key) + '="' + escapeHtml(value) + '"';
+    }).join('');
+    return '<span class="route-pill-ft ' + escapeHtml(field.className || '') + '"' + attrs + '>' +
+      '<span class="route-pill-ft-val">' + escapeHtml(String(field.value)) + '</span>' +
+      '<span class="route-pill-ft-label">' + escapeHtml(field.label) + '</span></span>';
+  });
+  return '<span class="route-pill-footer">' + cells.join('<span class="route-pill-ft-sep"></span>') + '</span>';
 }

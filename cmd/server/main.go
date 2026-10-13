@@ -32,6 +32,7 @@ import (
 	"thundercitizen/internal/munisign"
 	"thundercitizen/internal/system/metrics"
 	"thundercitizen/internal/transit"
+	"thundercitizen/internal/transitclosing"
 	"thundercitizen/internal/views"
 	"thundercitizen/templates/pages"
 )
@@ -53,9 +54,12 @@ func main() {
 	defer db.Close()
 	log.Info("database connected")
 
-	log.Info("running migrations")
-	if err := runMigrations(cfg.DatabaseURL); err != nil {
-		log.Warn("migration warning", "err", err)
+	if os.Getenv("TC_SKIP_MIGRATIONS") != "1" {
+		log.Info("running migrations")
+		if err := runMigrations(cfg.DatabaseURL); err != nil {
+			log.Error("database migration failed; refusing to start with an incomplete schema", "err", err)
+			os.Exit(1)
+		}
 	}
 
 	// Trust store is loaded once at startup. A malformed or
@@ -75,7 +79,6 @@ func main() {
 	// thing when BOD.tsv is unchanged since the last boot — no
 	// network, no Postgres staging scan, instant hot-reload.
 	muniStatus := muni.NewStatus()
-	go applyMuniBundle(db, cfg, trust, muniStatus)
 
 	// GTFS: the initial fetch is NOT done synchronously here. It used to
 	// be — a full GTFS zip HTTP download (60s client timeout, 3min cap)
@@ -99,18 +102,46 @@ func main() {
 	defer transitCancel()
 
 	recorder := transit.NewRecorder(db)
-	recorder.Start(transitCtx)
+	go waitForActivation(transitCtx, os.Getenv("TC_DEPLOY_SLOT"), os.Getenv("TC_ACTIVATION_FILE"), func(writerCtx context.Context) {
+		go applyMuniBundle(db, cfg, trust, muniStatus)
+		recorder.Start(writerCtx)
 
-	// Keep transit.route_band_chunk populated without operator action:
-	// a startup backfill catches any missing recent days, then every 10
-	// minutes today's chunks are rebuilt so /transit/metrics stays fresh
-	// as bands close.
-	transit.NewChunkRollup(db).Start(transitCtx)
+		// Keep transit.route_band_chunk populated without operator action:
+		// a startup backfill catches any missing recent days, then every 10
+		// minutes today's chunks are rebuilt so /transit/metrics stays fresh
+		// as bands close.
+		archiveStore, archiveErr := transitclosing.StoreFromConfig()
+		if archiveErr != nil {
+			log.Error("monthly archival disabled; raw data retained", "err", archiveErr)
+		}
+		// Partition provisioning runs even before a bucket is configured. Closing
+		// and raw eviction start only when object storage is available.
+		go func() {
+			// Restore bundled historical timetables before either worker can
+			// calculate or seal a month. Retry without blocking HTTP or recording.
+			for {
+				importCtx, importCancel := context.WithTimeout(writerCtx, 5*time.Minute)
+				err := transit.ImportHistoricalSchedules(importCtx, db)
+				importCancel()
+				if err == nil {
+					transit.NewChunkRollup(db).Start(writerCtx)
+					transitclosing.New(db, archiveStore).Start(writerCtx)
+					return
+				}
+				log.Error("historical GTFS import failed; rollups and archival waiting", "err", err)
+				select {
+				case <-writerCtx.Done():
+					return
+				case <-time.After(5 * time.Minute):
+				}
+			}
+		}()
 
-	// Start GTFS refresher. pollLoop does an immediate CheckAndReload
-	// (the boot-time initial fetch, now off the hot path) and then
-	// handles every-4-hours upstream change detection.
-	gtfsRefresher.Start(transitCtx)
+		// Start GTFS refresher. pollLoop does an immediate CheckAndReload
+		// (the boot-time initial fetch, now off the hot path) and then
+		// handles every-4-hours upstream change detection.
+		gtfsRefresher.Start(writerCtx)
+	})
 
 	th := transit.NewHandler(db, transit.Renderer{
 		TransitLive: func(vm transit.LiveViewModel) transit.RenderFunc {
@@ -122,12 +153,13 @@ func main() {
 		TransitRoutes: func(vm transit.RoutesViewModel) transit.RenderFunc {
 			return pages.TransitRoutes(vm).Render
 		},
+		TransitRoutesDay: func(vm transit.RoutesViewModel) transit.RenderFunc {
+			return pages.TransitRoutesDay(vm).Render
+		},
 		TransitMethod: func(vm transit.MethodViewModel) transit.RenderFunc {
 			return pages.TransitMethod(vm).Render
 		},
-		Route: func(vm transit.RouteViewModel) transit.RenderFunc {
-			return pages.Route(vm).Render
-		},
+
 		RoutePartial: func(vm transit.RouteViewModel) transit.RenderFunc {
 			return pages.RoutePartial(vm).Render
 		},

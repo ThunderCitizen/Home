@@ -19,8 +19,12 @@ func main() {
 	published := flag.String("published-at", "", "original capture time, RFC3339 (required when importing)")
 	fromText := flag.String("from", "", "first service date to rebuild, YYYY-MM-DD")
 	toText := flag.String("to", "", "last service date, inclusive")
+	summariesOnly := flag.Bool("summaries-only", false, "refresh route/day summaries from retained bands without raw events")
 	gps := flag.Bool("gps", false, "reconstruct screened timepoint passages from retained GPS first")
 	flag.Parse()
+	if *summariesOnly && (*gps || *dir != "") {
+		check(fmt.Errorf("-summaries-only cannot be combined with -gps or -schedule-dir"))
+	}
 	if *dir == "" && *fromText == "" {
 		flag.Usage()
 		os.Exit(2)
@@ -52,6 +56,11 @@ func main() {
 	}
 	for day := from; !day.After(to); day = day.AddDate(0, 0, 1) {
 		started := time.Now()
+		if *summariesOnly {
+			check(transit.RefreshRouteDaySummary(ctx, db, day))
+			fmt.Printf("%s: refreshed route/day summaries (%s)\n", day.Format("2006-01-02"), time.Since(started).Round(time.Millisecond))
+			continue
+		}
 		n := 0
 		if *gps {
 			n, err = transit.RebuildMetricPassages(ctx, db, day)

@@ -23,7 +23,7 @@ th {
 
 Requires `border-collapse: separate; border-spacing: 0` on the table. Parent containers must not have `overflow: hidden` (use `overflow: clip` instead if clipping is needed for scanlines/rounded corners).
 
-**Used by:** Route directory table (`.route-table` in `transit.templ`)
+The historical route directory now uses responsive cards; this pattern remains available for tables in normal document flow.
 
 ### Pattern 2: Extracted header + JS sync (inside overflow container)
 

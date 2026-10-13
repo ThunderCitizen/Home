@@ -54,6 +54,7 @@ func routeQueryTestDB(t *testing.T) *pgxpool.Pool {
 	// Only columns used by these readers are needed; no PostGIS or source data.
 	routeQueryExec(t, db, `
 		CREATE SCHEMA transit;
+ CREATE TABLE transit.archive_month(month date PRIMARY KEY,state text NOT NULL);
 		CREATE TABLE transit.trip_catalog (
 			trip_id text PRIMARY KEY, route_id text, service_id text, headsign text,
 			scheduled_first_dep_time text, scheduled_last_arr_time text

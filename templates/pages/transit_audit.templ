@@ -61,7 +61,7 @@ templ AuditRoute(vm transit.AuditRouteViewModel) {
 				</div>
 				<div class="audit-panel-meta">
 					<span>{ vm.Date }</span>
-					<a href={ templ.SafeURL("/transit/route/" + vm.RouteID + "?date=" + vm.DateISO) }>(live route page)</a>
+					<a href={ templ.SafeURL("/transit/routes?date=" + vm.DateISO) }>(daily route totals)</a>
 				</div>
 			</div>
 			@auditMethodBlurb()

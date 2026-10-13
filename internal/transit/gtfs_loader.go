@@ -489,7 +489,14 @@ func (g *GTFSRefresher) CheckAndReload(ctx context.Context) error {
 	stored := g.repo.GetGTFSVersionHash(ctx)
 
 	if hash == stored {
-		gtfsLog.Info("GTFS unchanged", "hash", hash[:12])
+		// A fresh container has no GTFS files even though the DB remembers the
+		// feed hash. Restore them and ensure metric history exists as well.
+		g.mu.Lock()
+		defer g.mu.Unlock()
+		if err := archiveUnchangedGTFS(ctx, g.db, body, gtfsBaseDir); err != nil {
+			return err
+		}
+		gtfsLog.Info("GTFS unchanged; metric timetable ensured", "hash", hash[:12])
 		return nil
 	}
 
@@ -523,13 +530,23 @@ func (g *GTFSRefresher) CheckAndReload(ctx context.Context) error {
 	return nil
 }
 
-func extractGTFSZip(data []byte) error {
+func archiveUnchangedGTFS(ctx context.Context, db *pgxpool.Pool, data []byte, dir string) error {
+	if err := extractGTFSZipTo(data, dir); err != nil {
+		return err
+	}
+	_, err := ImportMetricSchedule(ctx, db, dir, "unchanged GTFS refresh", time.Now())
+	return err
+}
+
+func extractGTFSZip(data []byte) error { return extractGTFSZipTo(data, gtfsBaseDir) }
+
+func extractGTFSZipTo(data []byte, dir string) error {
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return fmt.Errorf("opening zip: %w", err)
 	}
 
-	if err := os.MkdirAll(gtfsBaseDir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("creating dir: %w", err)
 	}
 
@@ -537,7 +554,7 @@ func extractGTFSZip(data []byte) error {
 		if f.FileInfo().IsDir() {
 			continue
 		}
-		outPath := filepath.Join(gtfsBaseDir, filepath.Base(f.Name))
+		outPath := filepath.Join(dir, filepath.Base(f.Name))
 		rc, err := f.Open()
 		if err != nil {
 			return fmt.Errorf("opening %s: %w", f.Name, err)

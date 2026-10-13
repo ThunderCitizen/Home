@@ -3,7 +3,8 @@
 # Stack:
 #   init  → one-shot. Generates ./secrets/postgres_password if missing.
 #   db    → postgis/postgis, no host port. Reads password via POSTGRES_PASSWORD_FILE.
-#   app   → published GHCR image, no host port. Builds DATABASE_URL from the
+#   app-blue/app-green → health-checked HTTP slots, one active background writer.
+#           Published GHCR image, no host port. Builds DATABASE_URL from the
 #           secret file at startup via a tiny entrypoint wrapper.
 #   caddy → terminates TLS (auto-issues + auto-renews via Let's Encrypt),
 #           proxies HTTPS to the app on the internal compose network.
@@ -19,7 +20,7 @@
 # Differences from docker-compose.yml (local dev):
 #   - Pulls the published image from GHCR instead of building locally
 #   - Postgres has NO published ports (only reachable inside the compose network)
-#   - App has NO published ports (only reachable via caddy)
+#   - App slots have NO published ports (only reachable via caddy)
 #   - Caddy publishes 80/443 and handles TLS automatically — no Caddyfile in
 #     the repo, the config is inlined below
 #   - Every env var has a sensible default — the stack can come up with an
@@ -55,9 +56,9 @@
 #   block's target — a mistake better caught by editing the file than by
 #   setting a shell variable wrong.
 #
-#   2. Bring it up:
+#   2. Prepare, health-check, switch traffic and activate writers:
 #
-#        docker compose -f docker-compose.prod.yml --env-file .env up -d
+#        ./scripts/deploy.sh
 #
 #      First boot: `init` generates ./secrets/postgres_password, db comes up
 #      with that password, app reads the same file to build DATABASE_URL,
@@ -94,9 +95,9 @@ x-default-logging: &default-logging
 configs:
   caddyfile:
     # Compose interpolates ${VAR} at parse time, baking the values into the
-    # config object. Re-run `docker compose up -d --force-recreate caddy`
-    # to pick up changes (a plain `restart` won't see them — the config
-    # is baked into the container at create time, not read from disk).
+    # config object. Run scripts/deploy.sh to validate and gracefully reload
+    # changes together with the selected healthy app. A plain restart keeps
+    # the persisted active configuration in /config/active.Caddyfile.
     content: |
       {
           email ${ACME_EMAIL:-ops@thundercitizen.ca}
@@ -274,13 +275,16 @@ services:
     # No `ports:` — Postgres is only reachable from other services on the
     # default compose network (i.e. the `app` container, as host `db`).
 
-  app:
-    image: ghcr.io/thundercitizen/home:${TC_IMAGE_TAG:-latest}
+  app: &app-common
+    profiles: [legacy]
+    image: ${TC_DEPLOY_IMAGE:-ghcr.io/thundercitizen/home:${TC_IMAGE_TAG:-latest}}
     restart: unless-stopped
     logging: *default-logging
-    environment:
+    environment: &app-environment
       POSTGRES_USER: ${POSTGRES_USER:-thundercitizen}
       POSTGRES_DB: ${POSTGRES_DB:-thundercitizen}
+      TC_SKIP_MIGRATIONS: "1"
+      TC_ACTIVATION_FILE: /run/deploy/active
       PORT: "8080"
       ENVIRONMENT: production
       # Canonical public origin used to build absolute og:url / og:image
@@ -288,6 +292,12 @@ services:
       # LinkedIn, iMessage). Override in .env for staging deploys:
       #   BASE_URL=https://staging.thundercitizen.ca
       BASE_URL: ${BASE_URL:-https://thundercitizen.ca}
+      # Optional fallback for a manually published ZIP. Automatic closing saves
+      # the verified transit/reports/archive/<month>/<release>/ URL in the DB.
+      # Leave empty until a release exists; the bucket root is not a report URL.
+      TRANSIT_REPORT_BASE_URL: ${TRANSIT_REPORT_BASE_URL:-}
+      TRANSIT_ARCHIVE_BUCKET: ${TRANSIT_ARCHIVE_BUCKET:-thundercitizen}
+      TRANSIT_ARCHIVE_ENDPOINT: ${TRANSIT_ARCHIVE_ENDPOINT:-tor1.digitaloceanspaces.com}
       # Surfaced on /health so operators can see exactly which image is
       # running. Docker doesn't expose the running image ref to the
       # container, so we bake it in at compose parse time from the
@@ -295,6 +305,7 @@ services:
       TC_IMAGE: ghcr.io/thundercitizen/home:${TC_IMAGE_TAG:-latest}
     volumes:
       - ./secrets:/run/secrets:ro
+      - ./.deploy:/run/deploy:ro
     # The published image's ENTRYPOINT is /usr/local/bin/server. Override it
     # with a tiny shell wrapper that reads the password from the secret file
     # and builds DATABASE_URL at startup, then execs the server.
@@ -304,6 +315,7 @@ services:
       - sh
       - -c
       - |
+        set -e
         DB_PASS=$$(cat /run/secrets/postgres_password)
         export DATABASE_URL="postgres://$$POSTGRES_USER:$$DB_PASS@db:5432/$$POSTGRES_DB?sslmode=disable"
         # Server-side analytics. The token file is optional — if the
@@ -312,9 +324,20 @@ services:
         if [ -f /run/secrets/goatcounter_token ]; then
           export GOATCOUNTER_URL="http://goatcounter:8080"
           export GOATCOUNTER_SITE="analytics.local"
-          export GOATCOUNTER_TOKEN="$$(cat /run/secrets/goatcounter_token)"
+          GOATCOUNTER_TOKEN=$$(cat /run/secrets/goatcounter_token)
+          export GOATCOUNTER_TOKEN
         fi
-        exec /usr/local/bin/server
+        if [ -f /run/secrets/transit_archive_access_key ]; then
+          AWS_ACCESS_KEY_ID=$$(cat /run/secrets/transit_archive_access_key)
+          export AWS_ACCESS_KEY_ID
+        fi
+        if [ -f /run/secrets/transit_archive_secret_key ]; then
+          AWS_SECRET_ACCESS_KEY=$$(cat /run/secrets/transit_archive_secret_key)
+          export AWS_SECRET_ACCESS_KEY
+        fi
+        exec "$$@"
+      - app-entrypoint
+    command: ["/usr/local/bin/server"]
     depends_on:
       init:
         condition: service_completed_successfully
@@ -330,8 +353,25 @@ services:
       start_period: 20s
     # No `ports:` — caddy reaches the app as `app:8080` on the compose network.
 
+  app-blue:
+    <<: *app-common
+    profiles: [deploy]
+    environment:
+      <<: *app-environment
+      TC_DEPLOY_SLOT: blue
+
+  app-green:
+    <<: *app-common
+    profiles: [deploy]
+    environment:
+      <<: *app-environment
+      TC_DEPLOY_SLOT: green
+
   caddy:
     image: caddy:2-alpine
+    # Runtime reloads persist here. A restart/recreation retains the selected
+    # healthy slot instead of reverting to the legacy app upstream.
+    command: ["sh", "-ec", "if [ -s /config/active.Caddyfile ]; then exec caddy run --config /config/active.Caddyfile --adapter caddyfile; else exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile; fi"]
     restart: unless-stopped
     logging: *default-logging
     ports:
@@ -347,9 +387,6 @@ services:
       - caddy_data:/data       # cert storage — MUST persist or you'll hit LE rate limits
       - caddy_config:/config
       - ./caddy-logs:/var/log/caddy  # bind mount so operator can tail from the host; rotated by Caddy, max age 7 days
-    depends_on:
-      app:
-        condition: service_healthy
 
   # Self-hosted GoatCounter. Fed only over the internal compose network by
   # the app's analytics middleware (no client JS, no public /count). It is

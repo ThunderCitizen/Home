@@ -42,7 +42,7 @@ func KPIFromChunks(chunks []chunk.ChunkView, metric, band string) string {
 	return formatKPI(m, v, ok)
 }
 
-// RouteRowKPI is the per-route summary the routes table renders.
+// RouteRowKPI is the per-route summary the directory cards render.
 type RouteRowKPI struct {
 	OTP       string
 	Cancel    string // cancelled trip count
@@ -54,10 +54,10 @@ type RouteRowKPI struct {
 }
 
 // RouteRowKPIFromChunks summarizes one route's chunks into the per-row
-// fields the routes table displays. Pre-filters the slice to the route,
+// fields the directory cards display. Pre-filters the slice to the route,
 // then delegates each metric to chunk.KPI — which, applied to a single
 // route, reduces to that route's own pooled per-metric reading. Raw
-// Trips/Cancelled counts are still totaled here because the table
+// Trips/Cancelled counts are still totaled here because the directory
 // displays them as integers alongside the formatted percentages.
 //
 // Returns a zero-value RouteRowKPI with HasData=false when the route has
@@ -66,11 +66,14 @@ type RouteRowKPI struct {
 func RouteRowKPIFromChunks(chunks []chunk.ChunkView, routeID string) RouteRowKPI {
 	var routeChunks []chunk.ChunkView
 	var trips, cancelled int
+	hasObservations := false
 	for i := range chunks {
-		if chunks[i].RouteID != routeID {
+		if chunks[i].RouteID != routeID || chunks[i].Version != chunk.Version {
 			continue
 		}
 		routeChunks = append(routeChunks, chunks[i])
+		c := chunks[i]
+		hasObservations = hasObservations || c.Trips > 0 || c.Cancelled > 0 || c.OTPCount > 0 || c.ObservedTimepoints > 0 || c.WindowSeconds > 0
 		trips += chunks[i].Trips
 		cancelled += chunks[i].Cancelled
 	}
@@ -78,10 +81,10 @@ func RouteRowKPIFromChunks(chunks []chunk.ChunkView, routeID string) RouteRowKPI
 		return RouteRowKPI{}
 	}
 
-	row := RouteRowKPI{
-		HasData: true,
-		Trips:   fmt.Sprintf("%d", trips),
-		Cancel:  fmt.Sprintf("%d", cancelled),
+	row := RouteRowKPI{HasData: hasObservations}
+	if trips > 0 || cancelled > 0 {
+		row.Trips = fmt.Sprintf("%d", trips)
+		row.Cancel = fmt.Sprintf("%d", cancelled)
 	}
 	row.OTP = KPIFromChunks(routeChunks, "otp", "")
 	row.CancelPct = KPIFromChunks(routeChunks, "cancel", "")
@@ -92,6 +95,10 @@ func RouteRowKPIFromChunks(chunks []chunk.ChunkView, routeID string) RouteRowKPI
 
 // MetricCoverage gives a plain-language summary of the selected month's data.
 func MetricCoverage(chunks []chunk.ChunkView) string {
+	return metricCoverage(chunks, "this month")
+}
+
+func metricCoverage(chunks []chunk.ChunkView, period string) string {
 	legacy := false
 	days := map[string]bool{}
 	for _, c := range chunks {
@@ -104,13 +111,13 @@ func MetricCoverage(chunks []chunk.ChunkView) string {
 		}
 	}
 	if len(days) == 0 {
-		return "Not enough data for this month yet."
+		return "Not enough data for " + period + "."
 	}
 	unit := "days"
 	if len(days) == 1 {
 		unit = "day"
 	}
-	summary := fmt.Sprintf("Based on %d %s of observations this month.", len(days), unit)
+	summary := fmt.Sprintf("Based on %d %s of observations %s.", len(days), unit, period)
 	if legacy {
 		summary += " Some historical data is still being updated."
 	}

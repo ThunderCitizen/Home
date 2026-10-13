@@ -71,6 +71,11 @@ func passageBetween(a, b passageFix, t MetricTrip) []metricPassage {
 // log. It only replaces its own derived table, never raw observations. All
 // writes commit together, and source row IDs make every estimate inspectable.
 func RebuildMetricPassages(ctx context.Context, db *pgxpool.Pool, date time.Time) (int, error) {
+	release, err := lockMetricMonth(ctx, db, date)
+	if err != nil {
+		return 0, err
+	}
+	defer release()
 	scheduleID, trips, err := metricScheduleForDate(ctx, db, date)
 	if err != nil {
 		return 0, err

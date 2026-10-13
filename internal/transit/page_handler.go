@@ -51,7 +51,6 @@ func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 	vm.RouteMeta = h.svc.RouteMeta(r.Context())
 	since := h.svc.SinceDate(r.Context())
 	vm.Month, vm.Range = parseMetricsMonth(r, since)
-	vm.ExportSize = EstimateBundleSize(vm.Range)
 
 	from, errFrom := time.ParseInLocation("2006-01-02", vm.Range.From, TZ)
 	to, errTo := time.ParseInLocation("2006-01-02", vm.Range.To, TZ)
@@ -62,21 +61,12 @@ func (h *Handler) transitMetricsPage(w http.ResponseWriter, r *http.Request) {
 		if completed := ServiceDate().AddDate(0, 0, -1); trendEnd.After(completed) {
 			trendEnd = completed
 		}
-		g, ctx := errgroup.WithContext(r.Context())
-		g.Go(func() error {
-			var err error
-			vm.TrendChunks, err = h.svc.Chunks(ctx, mustParseDate(since, from), trendEnd)
-			return err
-		})
-		g.Go(func() error {
-			var err error
-			vm.CancelledTrips, err = h.svc.CancelDetails(ctx, from, trendEnd)
-			return err
-		})
-		if err := g.Wait(); err != nil {
-			middleware.HandleUnavailable(r.Context(), w, "metric history unavailable", err)
+		vm.TrendChunks, errFrom = h.svc.Chunks(r.Context(), mustParseDate(since, from), trendEnd)
+		if errFrom != nil {
+			middleware.HandleUnavailable(r.Context(), w, "metric history unavailable", errFrom)
 			return
 		}
+
 		for _, c := range vm.TrendChunks {
 			if c.Date >= vm.Range.From && c.Date <= vm.Range.To {
 				vm.Chunks = append(vm.Chunks, c)
@@ -96,21 +86,48 @@ func mustParseDate(value string, fallback time.Time) time.Time {
 }
 
 func (h *Handler) transitRoutesPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Vary", "HX-Request, HX-History-Restore-Request")
 	var vm RoutesViewModel
-	vm.RouteMeta = h.svc.RouteMeta(r.Context())
-	vm.Range = parseDateRange(r, h.svc.SinceDate(r.Context()))
-	if from, err := time.ParseInLocation("2006-01-02", vm.Range.From, TZ); err == nil {
-		if to, err := time.ParseInLocation("2006-01-02", vm.Range.To, TZ); err == nil {
-			if chunks, err := h.svc.Chunks(r.Context(), from, to); err == nil {
-				vm.Chunks = chunks
-			}
-		}
+	since, err := h.svc.RouteSummarySinceDate(r.Context())
+	if err != nil {
+		middleware.HandleUnavailable(r.Context(), w, "route summaries unavailable", err)
+		return
+	}
+	vm.Range = parseRouteDay(r, since)
+	from := mustParseDate(vm.Range.From, ServiceDate())
+	to := mustParseDate(vm.Range.To, ServiceDate())
+	g, ctx := errgroup.WithContext(r.Context())
+	g.Go(func() error {
+		var err error
+		vm.RouteMeta, err = h.svc.reporter.repo.SummaryRouteMeta(ctx, from, to)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		vm.Summaries, err = h.svc.RouteDaySummaries(ctx, from)
+		return err
+	})
+	if err := g.Wait(); err != nil {
+		middleware.HandleUnavailable(r.Context(), w, "route summaries unavailable", err)
+		return
+	}
+
+	vm.Totals = TotalRouteDayStats(vm.Summaries)
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-History-Restore-Request") != "true" {
+		h.render.TransitRoutesDay(vm)(r.Context(), w)
+		return
 	}
 	h.render.TransitRoutes(vm)(r.Context(), w)
 }
 
 func (h *Handler) transitMethodPage(w http.ResponseWriter, r *http.Request) {
+	base, err := h.svc.PublishedReportDownloadURL(r.Context())
+	if err != nil {
+		middleware.HandleUnavailable(r.Context(), w, "published reports unavailable", err)
+		return
+	}
 	h.render.TransitMethod(MethodViewModel{
+		ReportURL:   base,
 		VehiclePoll: formatPollInterval(VehiclePollInterval),
 		TripPoll:    formatPollInterval(TripPollInterval),
 		AlertPoll:   formatPollInterval(AlertPollInterval),
@@ -166,98 +183,22 @@ func (h *Handler) routePage(w http.ResponseWriter, r *http.Request) {
 
 	partial := r.URL.Query().Get("partial")
 
-	// Full page: dedicated route page with schedule + stats.
+	// The directory replaces standalone route metrics. Keep live timetable
+	// partials available and redirect old bookmarks without loading any data.
 	if partial == "" {
-		date := ServiceDate()
-		if !schedDate.IsZero() {
-			date = schedDate
+		target := "/transit/routes"
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
 		}
+		http.Redirect(w, r, target, http.StatusMovedPermanently)
+		return
+	}
 
-		// All six fetches below are independent. Run them concurrently so
-		// wall-clock time collapses to the slowest single query instead of
-		// the sum. RouteInfo is the only one whose error 404s; the rest
-		// surface 500 or silently render empty.
-		var (
-			info          *RouteInfo
-			tp            []TimepointSchedule
-			totalTrips    int
-			since         string
-			serviceDays   map[string]bool
-			cancelDays    map[string]int
-			cancelledList []CancelledTrip
-		)
-		g, ctx := errgroup.WithContext(r.Context())
-		g.Go(func() error {
-			v, err := h.svc.RouteInfo(ctx, routeID)
-			if err != nil {
-				return err
-			}
-			info = v
-			return nil
-		})
-		g.Go(func() error {
-			v, err := h.svc.RouteTimepointSchedule(ctx, routeID, date)
-			if err != nil {
-				return err
-			}
-			tp = v
-			return nil
-		})
-		g.Go(func() error {
-			totalTrips, since = h.svc.RouteTrackingStats(ctx, routeID)
-			return nil
-		})
-		g.Go(func() error {
-			serviceDays = h.svc.RouteServiceDays(ctx, routeID, date)
-			return nil
-		})
-		g.Go(func() error {
-			cancelDays = h.svc.RouteCancelDays(ctx, routeID, date)
-			return nil
-		})
-		g.Go(func() error {
-			// Cancellation details is best-effort; errors here just leave the
-			// list empty rather than 500ing the whole page (matching prior
-			// behavior via `if ... == nil`).
-			if v, err := CancelledTripDetailsForRoute(ctx, h.svc.db, date, routeID); err == nil {
-				cancelledList = v
-			}
-			return nil
-		})
-		if err := g.Wait(); err != nil {
-			// RouteInfo failure is a 404; anything else reported by errgroup
-			// came from RouteTimepointSchedule (the only other returning error).
-			if info == nil {
-				http.NotFound(w, r)
-				return
-			}
-			httperr.Internal(w, err)
-			return
-		}
-
-		var sinceLabel string
-		if since != "" {
-			if t, err := time.ParseInLocation("2006-01-02", since, TZ); err == nil {
-				sinceLabel = t.Format("Jan 2, 2006")
-			}
-		}
-		vm := RouteViewModel{
-			RouteID:        info.RouteID,
-			ShortName:      info.ShortName,
-			LongName:       info.LongName,
-			Color:          info.Color,
-			TextColor:      info.TextColor,
-			Date:           date.Format("Monday, January 2"),
-			DateISO:        date.Format("2006-01-02"),
-			IsToday:        date.Format("2006-01-02") == ServiceDate().Format("2006-01-02"),
-			Unified:        UnifySchedules(tp),
-			TotalTrips:     totalTrips,
-			TrackingSince:  sinceLabel,
-			ServiceDays:    serviceDays,
-			CancelDays:     cancelDays,
-			CancelledTrips: cancelledList,
-		}
-		h.render.Route(vm)(r.Context(), w)
+	date := ServiceDate()
+	if partial != "schedule-today" && !schedDate.IsZero() {
+		date = schedDate
+	}
+	if h.archivedHistory(w, r, date) {
 		return
 	}
 

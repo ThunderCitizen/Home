@@ -116,3 +116,31 @@ npx eslint static/transit/chunks.js static/transit/trends-chart.js
 ```
 
 PostgreSQL tests create and remove scratch databases. Fixtures cover early/late cancellation in the old OTP formula, cancellation deduplication, missing-passage suppression, archived schedules after live tables change, visit identity across service days, finalization after midnight, variable schedules, signed EWT, extreme headways, DST and Go/JavaScript parity. Historical validation results are recorded in [transit metric audit](transit-metric-audit.md).
+
+## Monthly raw archives
+
+The separate [monthly evidence archive workflow](transit-archival.md) includes raw GPS and supports verified analysis restores. When configured, the automatic closer seals operating months, verifies uploaded archives, publishes the report release and removes raw partitions. Retained metrics are protected from rebuilding against removed raw data. Historical route pages consume retained daily chunks independently of these exports.
+
+## Persisted route/day summaries
+
+`route_day_summary` is the daily directory's read model: one row per route/service
+date, containing additive statistics and provenance. Migration 29 backfills it
+from the existing band rollups without reading raw events. Normal daily builds
+refresh it atomically with bands and `metric_rebuild`. The current day is
+provisional; a post-04:00 build finalizes the previous service day. Finalization
+is a build lifecycle marker, not a claim of complete observations.
+
+Metrics and detailed time-band views retain `route_band_chunk`; those are small
+aggregates too. Both tables remain in production when raw evidence is archived.
+A timetable change invalidates both, and mixed recipe versions never appear as a
+valid daily reading. `route_day_summaries.csv` is published alongside `monthly_metrics.csv` as completed-month reports on the Method page. See [publication instructions](transit-archival.md#public-consolidated-reports).
+
+To repair only the daily projection, including after raw archival:
+
+```sh
+./bin/transitmetrics -from 2026-06-01 -to 2026-06-30 -summaries-only
+```
+
+This uses retained band statistics and never runs stop/GPS reconstruction. Normal
+recipe corrections still need their original evidence. No raw data is deleted by
+this migration or summary command.

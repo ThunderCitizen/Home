@@ -204,7 +204,7 @@
     const helpers = window.transitChunks;
     const routeSelect = document.getElementById('trend-route');
     const names = readRouteMetaById();
-    Array.from(helpers.groupByRoute(chunks).keys()).sort(function(a,b) { return a.localeCompare(b, undefined, {numeric: true}); }).forEach(function(id) {
+    if (routeSelect) Array.from(helpers.groupByRoute(chunks).keys()).sort(function(a,b) { return a.localeCompare(b, undefined, {numeric: true}); }).forEach(function(id) {
       const option = document.createElement('option'); option.value = id;
       option.textContent = 'Route ' + ((names[id] || {}).short_name || id); routeSelect.appendChild(option);
     });
@@ -212,12 +212,13 @@
     function display(value) { return value == null ? 'No reading' : helpers.format(value, reportKPI) + (reportKPI === 'otp' || reportKPI === 'cancel' ? '%' : reportKPI === 'ewt' ? ' min' : ''); }
     function render() {
       container.replaceChildren();
-      const rows = chunks.filter(function(c) { return !routeSelect.value || c.route_id === routeSelect.value; });
+      const selectedRoute = container.dataset.route || (routeSelect ? routeSelect.value : '');
+      const rows = chunks.filter(function(c) { return !selectedRoute || c.route_id === selectedRoute; });
       const title = document.getElementById('metrics-trend-title'); title.textContent = 'Trend — ' + KPI_LABELS[reportKPI];
       if (!dates.length) { container.textContent = 'No trend data is available yet.'; return; }
-      const series = helpers.trendSeries(rows, reportKPI, dates[0], container.dataset.to || dates[dates.length - 1], '');
+      const series = helpers.trendSeries(rows, reportKPI, container.dataset.historyFrom || dates[0], container.dataset.to || dates[dates.length - 1], '').filter(function(d) { return !container.dataset.from || d.date >= container.dataset.from; });
       const readings = series.flatMap(function(d) { return [d.daily, d.rolling]; }).filter(function(v) { return v != null; });
-      if (!readings.length) { container.textContent = 'Not enough data for this selection. Try another route.'; return; }
+      if (!readings.length) { container.textContent = container.dataset.route ? 'Not enough data for this metric in the selected month.' : 'Not enough data for this selection. Try another route.'; return; }
       const width = Math.max(280, container.clientWidth || 720), height = 280, margin = {left: 48, right: 24, top: 18, bottom: 32};
       // Include the entire final day, so month shading also works for a single reading.
       const x = d3.scaleUtc().domain([series[0].at, d3.utcDay.offset(series[series.length - 1].at, 1)]).range([margin.left, width-margin.right]);
@@ -231,7 +232,7 @@
       }
       const svg = d3.select(container).append('svg').attr('class', 'metrics-trend-svg').attr('viewBox', [0,0,width,height])
         .attr('role', 'group').attr('tabindex', 0)
-        .attr('aria-label', KPI_LABELS[reportKPI] + ': daily readings and 30-day average. ' + container.dataset.monthLabel + ' is shaded. Use the left and right arrow keys to explore dates.');
+        .attr('aria-label', KPI_LABELS[reportKPI] + ': daily readings and 30-day average. ' + (container.dataset.monthLabel ? container.dataset.monthLabel + ' is shaded. ' : '') + 'Use the left and right arrow keys to explore dates.');
       const monthStart = new Date(container.dataset.month + '-01T00:00:00Z');
       if (Number.isFinite(+monthStart)) {
         const left = Math.max(margin.left, x(monthStart));
@@ -290,7 +291,7 @@
         inspect(event.key === 'Home' ? 0 : event.key === 'End' ? series.length - 1 : selectedIndex + (event.key === 'ArrowLeft' ? -1 : 1));
       });
     }
-    routeSelect.addEventListener('change', function() {
+    if (routeSelect) routeSelect.addEventListener('change', function() {
       render();
       if (reportKPI === 'cancel' && updateCancelLog) updateCancelLog();
     });

@@ -20,7 +20,7 @@ Migrations in `migrations/`. Relations live in named Postgres schemas:
 - **`gtfs.*`** — raw GTFS schedule imports (`routes`, `stops`, `trips`, `stop_times`, `calendar`, `calendar_dates`, `shapes`, `transfers`, `feed_info`)
 - **`transit.*`** — transit domain (events, derived state, schedule projections):
   - **GTFS-RT events** — `transit.vehicle_position`, `transit.stop_delay`, `transit.cancellation`, `transit.alert`
-  - **Derived** — `transit.stop_visit` (GPS proximity detection), `transit.route_band_chunk` (metric rollups — see below)
+  - **Derived** — `transit.stop_visit` (GPS proximity detection), `transit.route_band_chunk` (band rollups), `transit.route_day_summary` (one row per route/day — see below)
   - **Schedule projections** — `transit.route`, `transit.route_pattern`, `transit.route_pattern_stop`, `transit.route_baseline`, `transit.scheduled_stop`, `transit.service_calendar`, `transit.stop`, `transit.trip_catalog`
   - **Fleet tracking** — `transit.vehicle`, `transit.vehicle_assignment`
   - **Operational** — `transit.feed_state`, `transit.feed_gap`
@@ -122,6 +122,31 @@ date is generated from the observed timestamp with a 04:00 local boundary.
 Existing duplicate local records are preserved in `stop_visit_duplicate_archive`.
 The down migration refuses a lossy rollback; retain a pre-migration backup.
 
+### Daily route summaries — `transit.route_day_summary`
+
+Migration 29 adds a physical table keyed by `(route_id, date)`, with a date-leading
+index for the daily directory. Each row retains observed/scheduled/cancelled trip
+counts, punctuality counts, coverage, wait integrals and CV weights, plus recipe
+version, schedule ID, source build time and `is_final`. No stop IDs, trip IDs or
+GPS points are stored here. At 20 contributing routes, this is 20 rows per day
+(7,300 per 365-day year), plus the small band rollups retained for time-of-day views.
+
+`transit.refresh_route_day_summary(date)` replaces a day's projection from band
+summaries under the same advisory lock as the metric builder. `BuildChunksForDate`
+updates bands, rebuild provenance and daily rows in one transaction. Existing
+history is backfilled by the migration using only retained bands. Schedule imports
+invalidate both summary versions; mixed source versions produce an unavailable
+daily row. A row with no telemetry remains unavailable rather than reporting zero.
+
+`cancellation_scheduled_count` deliberately excludes bands with neither observed
+trips nor cancellations. It is the cancellation-rate denominator; `scheduled_count`
+retains all scheduled trips within the existing reporting bands (06:00–24:00).
+The daily summary preserves those established metric boundaries. OTP and
+regularity retain additive inputs, not
+averages of percentages. `is_final` means the day was built after its local 04:00
+closing boundary with matching provenance; it does **not** certify complete feed
+coverage or authorize raw-data eviction.
+
 ### Metric rollup table — `transit.route_band_chunk`
 
 One row per route × date × band stores raw sample counts, coverage, matched
@@ -186,3 +211,23 @@ application's data flow.
      stats caused the per-band metric queries to pick pathological
      seq-scan plans.
 2. `data.LoadFIRFromDB(ctx, db)` — FIR budget data, merged into `BudgetByYear`
+
+
+### Transit operating-month lifecycle
+
+Migration 30 partitions raw GPS, alerts, cancellations, stop delays, assignments,
+passages, visits and legacy duplicate visits. Timestamp boundaries are 04:00
+America/Thunder_Bay; date tables use the operating date, and cancellations use
+GTFS `start_date`. `transit.raw_partition` tracks owned partitions. Fallback
+partitions preserve unmatched data until it can be assigned.
+
+Migration 31 adds `transit.archive_month`. Its durable stages are `preparing`,
+`sealed`, `frozen`, `uploaded`, `published`, and `complete`. Recorder transactions
+share month locks with the closer; stale writes are skipped after sealing and
+metric writes are rejected after freezing. The journal stores verified raw and
+report manifests and the active public report URL. Raw partition drops and the
+completion marker commit together. Summaries and timetable provenance remain.
+
+This is a table-copy conversion, requiring a backed-up maintenance deployment
+with disk headroom. Bucket setup, retry behavior, restoration and status queries
+are in the [archival runbook](transit-archival.md).

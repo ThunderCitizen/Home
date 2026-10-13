@@ -37,6 +37,7 @@ Default run (30 days × 20 routes × 3 bands = 1,800 chunks):
 | Table                         | What                                      |
 |-------------------------------|-------------------------------------------|
 | `transit.route_band_chunk`    | One chunk per (route, date, band). UPSERTed by primary key — re-running is idempotent. |
+| `transit.route_day_summary` | One row per route/day, refreshed from the seeded bands after each day. |
 | `transit.cancellation`        | Synthetic per-trip rows backing the cancel log on the metrics tab. `trip_id` always starts with `seed_` so cleanup is unambiguous. |
 | `transit.route`               | Minimal placeholder rows **only** when the table is empty (fresh DB without GTFS loaded). If GTFS is already there, the existing routes are reused untouched. |
 

@@ -35,6 +35,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/thundercitizen?sslmode=disable
       PORT: "8080"
       ENVIRONMENT: production
+      TRANSIT_REPORT_BASE_URL: ${TRANSIT_REPORT_BASE_URL:-}
     depends_on:
       db:
         condition: service_healthy

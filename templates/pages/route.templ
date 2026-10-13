@@ -6,11 +6,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
-	"thundercitizen/internal/assets"
 	"thundercitizen/internal/transit"
-	"thundercitizen/templates"
-	"thundercitizen/templates/components"
+	"time"
 )
 
 templ RoutePartial(vm transit.RouteViewModel) {
@@ -34,31 +31,9 @@ templ RouteScheduleTodayPartial(vm transit.RouteViewModel) {
 		</div>
 	</section>
 	<div class="route-tp-footer">
-		<a href={ templ.SafeURL("/transit/route/" + vm.RouteID) } class="route-stats-link">Route Stats</a>
+		<a href={ templ.SafeURL("/transit/routes?date=" + vm.DateISO) } class="route-stats-link">Daily Route Totals</a>
 		<a href={ templ.SafeURL("/transit/audit/deltas/" + vm.RouteID) } class="route-tp-audit-link">position audit</a>
 	</div>
-}
-
-templ Route(vm transit.RouteViewModel) {
-	@templates.Layout(templates.SocialMeta{
-		Title:       fmt.Sprintf("Route %s %s", vm.ShortName, vm.LongName),
-		Description: fmt.Sprintf("Route %s %s — Thunder Bay Transit timetable, daily cancellations, and schedule-vs-actual performance.", vm.ShortName, vm.LongName),
-		OGImage:     "/static/og/transit.png",
-	}) {
-		@components.TransitNav(components.TransitNavProps{Current: "routes"})
-		<p class="route-back"><a href="/transit/routes">&lsaquo; All Routes</a></p>
-		@routeHeader(vm.ShortName, vm.LongName, vm.Color, vm.TextColor)
-		if vm.TotalTrips > 0 {
-			<div class="route-tracking-stats">
-				<span>{ fmt.Sprintf("%d trips tracked", vm.TotalTrips) }</span>
-				if vm.TrackingSince != "" {
-					<span>since { vm.TrackingSince }</span>
-				}
-			</div>
-		}
-		@routeSchedule(vm)
-		<script src={ assets.URL("/static/transit/route-detail.js") }></script>
-	}
 }
 
 templ routeSchedule(vm transit.RouteViewModel) {
@@ -111,7 +86,7 @@ templ routeCancelList(trips []transit.CancelledTrip) {
 			</thead>
 			<tbody>
 				for i, ct := range trips {
-					<tr class={ templ.KV("cl-stripe", i % 2 == 1) }>
+					<tr class={ templ.KV("cl-stripe", i%2 == 1) }>
 						<td class="cl-td-time">{ cancelTimeRange(ct) }</td>
 						<td class="cl-td-headsign">{ cancelHeadsign(ct) }</td>
 						<td class={ cancelNoticeClass(ct.LeadMin) }>{ ct.LeadLabel }</td>
@@ -163,46 +138,46 @@ templ routeScheduleBody(vm transit.RouteViewModel) {
 				<div class="route-tp-direction-label">{ sec.Headsign }</div>
 			}
 			<div class="route-tp-scroll-wrap">
-			<div class="route-tp-sticky-header" aria-hidden="true">
-				<div class="route-tp-header-scroll">
-					<table class="route-tp-table striped">
-						@timetableHead(sec)
+				<div class="route-tp-sticky-header" aria-hidden="true">
+					<div class="route-tp-header-scroll">
+						<table class="route-tp-table striped">
+							@timetableHead(sec)
+						</table>
+					</div>
+				</div>
+				<div class="route-tp-scroll">
+					<table class="route-tp-table striped" role="table">
+						<thead class="route-tp-thead-hidden">
+							@timetableHead(sec)
+						</thead>
+						<tbody>
+							for _, trip := range vm.Unified.Trips {
+								if tripHasStops(trip, sec) {
+									<tr class={ templ.KV("route-tp-canceled", trip.Canceled) }>
+										<td class="route-tp-trip-id">{ tripStartTime(trip, sec) }</td>
+										for _, idx := range sec.StopIdx {
+											if trip.Stops[idx].ScheduledTime == "" {
+												<td class="route-tp-empty"></td>
+												<td class="route-tp-empty"></td>
+											} else if trip.Canceled {
+												<td class="route-tp-canceled">{ trip.Stops[idx].ScheduledTime }</td>
+												<td class="route-tp-canceled"></td>
+											} else if trip.Stops[idx].DelaySec == nil {
+												<td>{ trip.Stops[idx].ScheduledTime }</td>
+												<td class="route-tp-empty"></td>
+											} else {
+												<td>{ trip.Stops[idx].ScheduledTime }</td>
+												<td class={ tpCellClass(trip.Stops[idx]) }>
+													{ actualTime(trip.Stops[idx]) } <span class="tp-delta">{ delayDelta(trip.Stops[idx]) }</span>
+												</td>
+											}
+										}
+									</tr>
+								}
+							}
+						</tbody>
 					</table>
 				</div>
-			</div>
-			<div class="route-tp-scroll">
-				<table class="route-tp-table striped" role="table">
-					<thead class="route-tp-thead-hidden">
-						@timetableHead(sec)
-					</thead>
-					<tbody>
-						for _, trip := range vm.Unified.Trips {
-							if tripHasStops(trip, sec) {
-								<tr class={ templ.KV("route-tp-canceled", trip.Canceled) }>
-									<td class="route-tp-trip-id">{ tripStartTime(trip, sec) }</td>
-									for _, idx := range sec.StopIdx {
-										if trip.Stops[idx].ScheduledTime == "" {
-											<td class="route-tp-empty"></td>
-											<td class="route-tp-empty"></td>
-										} else if trip.Canceled {
-											<td class="route-tp-canceled">{ trip.Stops[idx].ScheduledTime }</td>
-											<td class="route-tp-canceled"></td>
-										} else if trip.Stops[idx].DelaySec == nil {
-											<td>{ trip.Stops[idx].ScheduledTime }</td>
-											<td class="route-tp-empty"></td>
-										} else {
-											<td>{ trip.Stops[idx].ScheduledTime }</td>
-											<td class={ tpCellClass(trip.Stops[idx]) }>
-												{ actualTime(trip.Stops[idx]) } <span class="tp-delta">{ delayDelta(trip.Stops[idx]) }</span>
-											</td>
-										}
-									}
-								</tr>
-							}
-						}
-					</tbody>
-				</table>
-			</div>
 			</div>
 		}
 		<div class="route-tp-footer">
@@ -315,14 +290,14 @@ func routeBadgeColor(c string) string {
 	if c != "" {
 		return c
 	}
-	return "#6b7280"
+	return "var(--status-muted)"
 }
 
 func routeBadgeFg(c string) string {
 	if c != "" {
 		return "#" + strings.TrimPrefix(c, "#")
 	}
-	return "white"
+	return "var(--text-on-dark)"
 }
 
 func routeDisplayName(short, long string) string {
@@ -336,13 +311,13 @@ func textColor(c string) string {
 	if c != "" {
 		return c
 	}
-	return "white"
+	return "var(--text-on-dark)"
 }
 
 // mergedSchedule combines both directions into one table.
 type mergedSchedule struct {
-	Stops []mergedStop       // all columns: dir A stops then dir B stops (shared terminal deduplicated)
-	Trips []mergedTrip       // all trips sorted by departure time
+	Stops []mergedStop // all columns: dir A stops then dir B stops (shared terminal deduplicated)
+	Trips []mergedTrip // all trips sorted by departure time
 }
 
 type mergedStop struct {
