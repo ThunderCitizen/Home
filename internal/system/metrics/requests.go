@@ -163,6 +163,14 @@ func (w *statusWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
+// Unwrap lets ResponseController reach connection controls through metrics.
+func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+// Flush preserves streaming through middleware that uses http.Flusher.
+func (w *statusWriter) Flush() {
+	_ = http.NewResponseController(w.ResponseWriter).Flush()
+}
+
 // Middleware records one observation per request: the matched chi
 // route pattern (or the unmatched bucket) plus the response status
 // class. Must be registered via r.Use. Pre-injects a RouteContext into
