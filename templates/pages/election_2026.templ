@@ -53,6 +53,74 @@ templ Election2026Partial(vm views.Election2026ViewModel) {
 			Title: "2026 Municipal Election",
 		})
 
+		<section class="election-results" aria-labelledby="election-results-title">
+			<header>
+				<h2 id="election-results-title">Who won · Mayor &amp; Council</h2>
+				<p>Results · October 26, 2026, 10:21 p.m.</p>
+			</header>
+			<dl class="election-turnout" aria-label="Voter participation">
+				<div>
+					<dt>Voter turnout</dt>
+					<dd>40.85%<small>Down 1.77 percentage points vs. 2022<span>2022 turnout: 42.62%</span></small></dd>
+				</div>
+				<div>
+					<dt>Total voters</dt>
+					<dd>37,539<small>1,878 more voters vs. 2022<span>2022 voters: 35,661</span></small></dd>
+				</div>
+				<div>
+					<dt>Eligible voters</dt>
+					<dd>91,888<small>8,209 more eligible voters vs. 2022<span>2022 eligible voters: 83,679</span></small></dd>
+				</div>
+			</dl>
+			<div class="election-winners">
+				for i, winner := range vm.MunicipalWinners() {
+					if i == 0 {
+						<div class="election-winner-mayor">
+							<span>Mayor</span>
+							<strong>{ strings.Join(winner.Names, ", ") }</strong>
+						</div>
+					}
+					if i == 1 {
+						<section class="election-winner-group" aria-labelledby="election-atlarge-winners">
+							<h3 id="election-atlarge-winners">At-Large <span>5 seats</span></h3>
+							<ul>
+								for _, name := range winner.Names {
+									<li>{ name }</li>
+								}
+							</ul>
+						</section>
+					}
+				}
+				<section class="election-winner-group" aria-labelledby="election-ward-winners">
+					<h3 id="election-ward-winners">Ward councillors <span>7 seats</span></h3>
+					<dl>
+						for i, winner := range vm.MunicipalWinners() {
+							if i > 1 {
+								<div><dt>{ winner.Race }</dt><dd>{ strings.Join(winner.Names, ", ") }</dd></div>
+							}
+						}
+					</dl>
+				</section>
+			</div>
+			<p><a href="https://thunderbay.enrs.ca/">View City results and vote totals</a> · <a href="https://results.thunderbay.ca/">2022 comparison source</a></p>
+			<section class="election-trustee-results" aria-labelledby="election-trustee-results-title">
+				<h2 id="election-trustee-results-title">School-board trustee results</h2>
+			<p>School boards: the City's English public and separate trustee counts cover Thunder Bay only. <a href="https://www.thunderbay.ca/election">Check the City's school-board results notices</a>.</p>
+				<div class="election-winners">
+					for _, board := range vm.TrusteeResults() {
+						<section class="election-winner-group election-trustee-group" aria-labelledby={ "trustee-results-" + board.ID }>
+							<h3 id={ "trustee-results-" + board.ID }>{ board.Board }<span>{ board.Status }</span></h3>
+							<ul>
+								for _, name := range board.Names {
+									<li>{ name }</li>
+								}
+							</ul>
+						</section>
+					}
+				</div>
+			</section>
+		</section>
+
 		<section class="election-status" aria-label="Ballot and voting overview">
 			<div class="election-status-copy">
 				<p class="election-ballot-summary-label">Candidate details &amp; local coverage</p>

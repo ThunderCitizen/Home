@@ -99,6 +99,45 @@ type Election2026ViewModel struct {
 	Trustees         []ElectionContestView
 }
 
+// ElectionWinnerView records municipal winners in the City's unofficial
+// October 26, 2026, 10:21 p.m. results (https://thunderbay.enrs.ca/).
+type ElectionWinnerView struct {
+	Race  string
+	Names []string
+}
+
+func (vm Election2026ViewModel) MunicipalWinners() []ElectionWinnerView {
+	return []ElectionWinnerView{
+		{"Mayor", []string{"Maureen (Moe) Comuzzi"}},
+		{"At-Large", []string{"Mark Bentz", "Peng You", "Kasey Taylor Etreni", "Julie-Ann Elizabeth Colquhoun", "Jamie Nichols"}},
+		{"Current River", []string{"Andrew Foulds"}},
+		{"McIntyre", []string{"Albert Aiello"}},
+		{"McKellar", []string{"Brian Hamilton"}},
+		{"Neebing", []string{"Greg Johnsen"}},
+		{"Northwood", []string{"John Ongaro"}},
+		{"Red River", []string{"Jamie Scrimger"}},
+		{"Westfort", []string{"Stephen Margarit"}},
+	}
+}
+
+// TrusteeResults uses the same City results snapshot as MunicipalWinners.
+// English-board counts exclude surrounding districts; do not call them winners.
+type ElectionTrusteeResultView struct {
+	ID     string
+	Board  string
+	Status string
+	Names  []string
+}
+
+func (vm Election2026ViewModel) TrusteeResults() []ElectionTrusteeResultView {
+	return []ElectionTrusteeResultView{
+		{"english-public", "English public", "Leading in city count · 8 seats", []string{"Trudy Tuchenhagen", "Kathleen Heikkinen", "Deborah Massaro", "Susan Frattaroli", "George Saarinen", "Ian Morgan", "Patricia Johansen", "Lex MacArthur"}},
+		{"english-separate", "English separate", "Leading in city count · 6 seats", []string{"Leanne Fonso", "Tony Romeo", "Lawrence Badanai", "Eleanor Ashe", "Anthony Foglia", "Olivia Kembel"}},
+		{"french-public", "French public", "Acclaimed · 1 seat", []string{"Anne-Marie Gélineault"}},
+		{"french-separate", "French separate", "Acclaimed · 4 seats", []string{"Angèle Desbiens", "Claudette Gleeson", "Elodie Grunerud", "Victoria Mauro"}},
+	}
+}
+
 func electionPage(url string, kind ElectionPageKind) *ElectionCandidatePage {
 	return &ElectionCandidatePage{URL: url, Kind: kind}
 }
